@@ -15,8 +15,6 @@ import sys
 
 from   setuptools              import setup, find_packages
 from   setuptools.command.test import test as TestCommand
-# from pip.req import parse_requirements
-# from install_deps import get_requirements
 
 
 # long description
@@ -56,9 +54,7 @@ setup_dict = dict(
 
     packages=find_packages(),
 
-    install_requires=['numpy',
-                      'scipy',
-                      'scikit-learn'],
+    install_requires=[],
 
     extra_files=['CHANGES.rst', 'COPYING', 'README.rst'],
 
@@ -74,18 +70,17 @@ setup_dict = dict(
         'Development Status :: 1 - Alpha',
         'Natural Language :: English',
         'Environment :: Console',
-        'Intended Audience ::  Machine Learning Research',
+        'Intended Audience ::  Neuroimage processing',
         'License :: OSI Approved ::' + LICENSE,
         'Operating System :: OS Independent',
         'Topic :: Software Development :: Libraries :: Python Modules',
-        'Topic :: Scientific/Engineering :: Machine Learning',
+        'Topic :: Scientific/Engineering :: Neuroimaging',
         'Topic :: Scientific/Engineering :: Information Analysis',
         'Operating System :: POSIX',
         'Operating System :: Unix',
         'Operating System :: MacOS',
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
     ],
 
