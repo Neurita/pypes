@@ -54,9 +54,7 @@ setup_dict = dict(
 
     packages=find_packages(),
 
-    install_requires=[],
-
-    extra_files=['CHANGES.rst', 'COPYING', 'README.rst'],
+    install_requires=['nipype'],
 
     scripts=[],
 

@@ -1,0 +1,7 @@
+include *.py
+include *.rst
+include *.md
+include *.txt
+include tox.ini
+include Makefile
+include COPYING
