@@ -3,6 +3,15 @@ Private helper functions
 """
 import os.path as op
 
+
+def flatten_list(list_of_lists):
+    if not list_of_lists:
+        return []
+    if isinstance(list_of_lists[0], list):
+        return [l.pop() for l in list_of_lists]
+    return list_of_lists
+
+
 def _check_list(str_or_list):
     """ If `str_or_list` is a list will return it as it is. If it is a str, will return a
     list with the str inside.
@@ -28,9 +37,8 @@ def _check_list(str_or_list):
                      'got {}.'.format(type(str_or_list)))
 
 
-
 def get_extension(filepath, check_if_exists=False, allowed_exts=None):
-    """Return the extension of fpath.
+    """Return the extension of filepath.
 
     Parameters
     ----------
