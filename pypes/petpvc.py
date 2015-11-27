@@ -148,7 +148,9 @@ class PETPVC(CommandLine):
         outputs = self.output_spec().get()
         outputs['out_file'] = self.inputs.out_file
         if not isdefined(outputs['out_file']):
-            outputs['out_file'] = self._gen_fname(self.inputs.in_file, suffix='_pvc')
+            method_name = self.inputs.pvc.lower()
+            outputs['out_file'] = self._gen_fname(self.inputs.in_file,
+                                                  suffix='{}_pvc'.format(method_name))
 
         outputs['out_file'] = os.path.abspath(outputs['out_file'])
         return outputs
@@ -206,8 +208,7 @@ class PETPVC(CommandLine):
 
 if __name__ == '__main__':
 
-    from petpvc import PETPVC
-    from petpvc.testing import example_data
+    #from .testing import example_data
     #TODO get data for PETPVC
 
     pvc = PETPVC()
