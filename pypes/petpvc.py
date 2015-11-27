@@ -127,8 +127,7 @@ class PETPVC(CommandLine):
 
     Examples
     --------
-    >>> from petpvc import PETPVC
-    >>> from petpvc.testing import example_data
+    >>> from ..testing import example_data
     >>> #TODO get data for PETPVC
     >>> pvc = PETPVC()
     >>> pvc.inputs.in_file   = example_data('pet.nii.gz')
