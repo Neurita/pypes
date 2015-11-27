@@ -35,14 +35,21 @@ def subject_session_input(base_dir, session_names, file_names, subject_ids=None,
     wf_name: str
         Name of the workflow
 
+    Nipype Outputs
+    --------------
+    select.{file_name_without_extension}: path to existing file
+        Will give you the path of the {file_name}s.
+
+    infosrc.subject_id: str
+        Will give you the 'subject_id's.
+
+    infosrc.session_id: str
+        Will give you the 'session_id's.
+
+
     Returns
     -------
     wf: nipype Workflow
-
-    Notes
-    -----
-    - 'select.{file_name_without_extension}' will give you the path of the {file_name}s.
-    - 'infosrc.subject_id' will give you the 'subject_id's.
     """
     # Check the subject ids
     subj_ids = _check_list(subject_ids)
@@ -86,6 +93,14 @@ def input_file_wf(work_dir, data_dir, field_iterables, file_templates, wf_name="
 
     wf_name: str
         Name of the workflow
+
+    Nipype Outputs
+    --------------
+    select.{template_key}: path to existing file
+        Will give you the path of the {file_name}s taken from `file_templates`.
+
+    infosrc.{field_name}: str
+        Will give you the value of the field from `field_iterables`.
 
     Returns
     -------
