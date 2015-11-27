@@ -7,7 +7,7 @@ from   nipype.interfaces.ants import N4BiasFieldCorrection
 from   nipype.interfaces.base import traits
 import nipype.interfaces.spm as spm
 
-from   .utils import spm_tpm_priors_path
+from   .utils import spm_tpm_priors_path, extend_trait_list
 from   .registration import spm_apply_deformations
 
 
@@ -128,7 +128,9 @@ def attach_t1_preprocessing(main_wf, data_dir, work_dir=None, output_dir=None):
                      ("manat_hc_corrected.nii", "anat_hc_bc.nii"),
                      ("wanat_hc_bc.nii",        "anat_hc_mni.nii"),
                     ]
-    datasink.inputs.substitutions.extend(substitutions)
+
+    datasink.inputs.substitutions = extend_trait_list(datasink.inputs.substitutions,
+                                                      substitutions)
 
     regexp_subst = [
                      (r"anat_.*corrected_seg8.mat", "anat_to_mni_affine.mat"),
@@ -144,19 +146,19 @@ def attach_t1_preprocessing(main_wf, data_dir, work_dir=None, output_dir=None):
                      (r"/c4anat.*nii$",   "/anat_nobrain.nii"),
                      (r"/c5anat.*nii$",   "/anat_nobrain_mask.nii")
                     ]
-    datasink.inputs.regexp_substitutions = regexp_subst
+    datasink.inputs.regexp_substitutions = extend_trait_list(datasink.inputs.regexp_substitutions,
+                                                             regexp_subst)
 
+    main_wf.connect([(input_files, t1_wf, [("select.anat_hc",  "bias_correction.input_image")]),
 
-    main_wf.connect([(input_files,   t1_wf, [("anat_hc",  "bias_correction.input_image")]),
-
-                     (t1_wf,    datasink,  [("warp_anat.normalized_files",            "anat.@mni")],),
-                     (t1_wf,    datasink,  [("new_segment.modulated_class_images",    "anat.tissues.@warped"),
-                                            ("new_segment.native_class_images",       "anat.tissues.@native"),
-                                            ("new_segment.transformation_mat",        "anat.transform.@linear"),
-                                            ("new_segment.forward_deformation_field", "anat.transform.@forward"),
-                                            ("new_segment.inverse_deformation_field", "anat.transform.@inverse"),
-                                            ("new_segment.bias_corrected_images",     "anat.@biascor"),
-                                           ]),
+                     (t1_wf,    datasink, [("warp_anat.normalized_files",            "anat.@mni")],),
+                     (t1_wf,    datasink, [("new_segment.modulated_class_images",    "anat.tissues.@warped"),
+                                           ("new_segment.native_class_images",       "anat.tissues.@native"),
+                                           ("new_segment.transformation_mat",        "anat.transform.@linear"),
+                                           ("new_segment.forward_deformation_field", "anat.transform.@forward"),
+                                           ("new_segment.inverse_deformation_field", "anat.transform.@inverse"),
+                                           ("new_segment.bias_corrected_images",     "anat.@biascor"),
+                                          ]),
                     ])
 
     return main_wf
