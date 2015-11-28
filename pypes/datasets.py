@@ -69,7 +69,7 @@ def cobre_workflow(wf_name, base_dir, cache_dir, output_dir, year):
     return wf
 
 
-def clinical_dataset(wf_name, base_dir, cache_dir, output_dir, year):
+def clinical_workflow(wf_name, base_dir, cache_dir, output_dir, year):
     """ Run an specific pipeline.
 
     Parameters
