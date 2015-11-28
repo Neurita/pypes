@@ -80,10 +80,10 @@ def extend_trait_list(trait_list, extension):
     trait_list: traits.List
         The extended list.
     """
-    if not isinstance(extension, (list, tuple)):
-        raise ValueError('Expected `extension` to be list or tuple, got {}.'.format(type(extension)))
-
     if isdefined(trait_list):
+        if not isinstance(extension, (list, tuple)):
+            raise ValueError('Expected `extension` to be list or tuple, got {}.'.format(type(extension)))
+
         trait_list.extend(extension)
     else:
         trait_list = extension
