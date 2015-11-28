@@ -81,7 +81,7 @@ def in_out_workflow(work_dir, data_dir, output_dir, session_names, file_names, s
     return main_wf
 
 
-def run_workflow(wf, plugin='MultiProc', n_cpus=2, **plugin_kwargs):
+def run_wf(wf, plugin='MultiProc', n_cpus=2, **plugin_kwargs):
     """ Execute `wf` with `plugin`.
 
     Parameters
