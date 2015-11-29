@@ -9,7 +9,7 @@ from   .anat import attach_t1_preprocessing
 from   .pet  import attach_pet_preprocessing
 
 
-def cobre_workflow(wf_name, base_dir, cache_dir, output_dir, year):
+def cobre_workflow(wf_name, base_dir, cache_dir, output_dir):
     """ Returns a workflow for the COBRE database.
 
     Parameters
@@ -25,9 +25,6 @@ def cobre_workflow(wf_name, base_dir, cache_dir, output_dir, year):
 
     output_dir: str
         The output folder path
-
-    year: str or int
-        The year of the subject set.
     """
 
     data_dir = base_dir
