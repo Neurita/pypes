@@ -29,10 +29,11 @@ def spm_tpm_priors_path(spm_dir=None):
     FileNotFoundError
         If `template` is `None` and can't find the TPM.nii file from SPM.
     """
-    spm_dir = spm.Info.version().get('path', None)
+    if spm_dir is None:
+        spm_dir = spm.Info.version().get('path', None)
 
     if spm_dir is None:
-        spm_dir = '/home/alexandre/Software/matlab_tools/spm12'
+        spm_dir = op.expanduser('~/Software/matlab_tools/spm12')
 
     tpm_path = op.join(spm_dir, 'tpm', 'TPM.nii')
     if not op.exists(tpm_path):
