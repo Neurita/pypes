@@ -28,9 +28,11 @@ def in_out_workflow(work_dir, data_dir, output_dir, session_names, file_names, s
     session_names: list of str
         Example: ['session_0']
 
-    file_names: list of str
-        Example: ['mprage.nii.gz', 'rest.nii.gz']
-        Example: ['anat_1/mprage.nii.gz', 'rest_1/rest.nii.gz']
+    file_names: Dict[str -> str]
+        A dictionary that relates the `select` node keynames and the
+        file name.
+        Example: {'anat': 'anat_hc.nii.gz',       'pet': 'pet_fdg.nii.gz'},
+        Example: {'anat': 'anat_1/mprage.nii.gz', 'rest': 'rest_1/rest.nii.gz'},
 
     subject_ids: list of str
         Use this if you want to limit the analysis to certain subject IDs.

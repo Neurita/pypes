@@ -1,18 +1,32 @@
 """
 Nipype workflows to process anatomical MRI.
 """
-import nipype.pipeline.engine as pe
-from   nipype.algorithms.misc import Gunzip
-from   nipype.interfaces.ants import N4BiasFieldCorrection
-from   nipype.interfaces.base import traits
-import nipype.interfaces.spm as spm
+import os.path as op
 
-from   .utils import spm_tpm_priors_path, extend_trait_list
+import nipype.pipeline.engine    as pe
+from   nipype.algorithms.misc    import Gunzip
+from   nipype.interfaces.ants    import N4BiasFieldCorrection
+from   nipype.interfaces.base    import traits
+import nipype.interfaces.spm     as spm
+
+from   .utils        import spm_tpm_priors_path, extend_trait_list
+from   ._utils       import remove_ext, format_pair_list
 from   .registration import spm_apply_deformations
 
 
 def biasfield_correct(anat_filepath=traits.Undefined):
-    """ Inhomogeneity correction. Call N4BiasFieldCorrection throught nipype. """
+    """ Inhomogeneity correction.
+    ANTS N4BiasFieldCorrection interface.
+
+    Parameters
+    ----------
+    anat_filepath: str
+        Path to the anatomical file path
+
+    Returns
+    -------
+    seg: N4BiasFieldCorrection interface
+    """
 
     n4 = N4BiasFieldCorrection()
     n4.inputs.dimension = 3
@@ -29,17 +43,19 @@ def biasfield_correct(anat_filepath=traits.Undefined):
 
 
 def spm_segment(anat_filepath=traits.Undefined, priors_path=None):
-    """
+    """ SPM12 New Segment interface.
 
     Parameters
     ----------
     anat_filepath: str
+        Path to the anatomical file path
 
     priors_path: str
+        Path to the tissue probability maps file
 
     Returns
     -------
-
+    seg: NewSegment interface
     """
     if priors_path is None:
         priors_path = spm_tpm_priors_path()
@@ -63,7 +79,7 @@ def spm_segment(anat_filepath=traits.Undefined, priors_path=None):
     return seg
 
 
-def spm_t1_preprocessing():
+def spm_anat_preprocessing():
     """ Run the T1 pre-processing workflow against the anat_hc files in `data_dir`.
 
     It does:
@@ -87,7 +103,7 @@ def spm_t1_preprocessing():
     warp_anat   = pe.Node(spm_apply_deformations(), name="warp_anat")
 
     # Create the workflow object
-    wf = pe.Workflow(name="t1_preproc")
+    wf = pe.Workflow(name="anat_preproc")
 
     # Connect the nodes
     wf.connect([
@@ -95,62 +111,73 @@ def spm_t1_preprocessing():
                 (biascor,      gunzip_anat, [("output_image", "in_file"      )]),
                 (gunzip_anat,  segment,     [("out_file",     "channel_files")]),
 
-                # warp
-                (segment, warp_anat,  [("forward_deformation_field", "deformation_file"),
-                                       ("bias_corrected_images",     "apply_to_files"),
-                                      ]),
+                # Normalize12
+                (segment,   warp_anat,  [("forward_deformation_field", "deformation_file")]),
+                (segment, warp_anat,    [("bias_corrected_images",     "apply_to_files")]),
               ])
     return wf
 
 
-def attach_t1_preprocessing(main_wf, data_dir, work_dir=None, output_dir=None):
-    """ Attach to `main_wf`
+def attach_anat_preprocessing(main_wf, data_dir, work_dir=None, output_dir=None):
+    """ Attach to an anatomical MRI pre-processing workflow to the `main_wf`.
 
     Parameters
     ----------
-    main_wf
-    data_dir
-    work_dir
-    output_dir
+    main_wf: nipype Workflow
+
+    data_dir: str
+
+    work_dir: str
+
+    output_dir: str
+
+    Nipype Inputs
+    -------------
+    The `main_wf` workflow needs an `input_files` and a `datasink` nodes.
+
+    input_files.select.anat: input node
+
+    datasink: nipype Node
 
     Returns
     -------
-
+    main_wf: nipype Workflow
     """
     input_files = main_wf.get_node("input_files")
     datasink    = main_wf.get_node("datasink")
 
-    # Dependency workflow
-    t1_wf = spm_t1_preprocessing()
+    # The workflow box
+    t1_wf = spm_anat_preprocessing()
+
+    # The base name of the 'anat' file for the substitutions
+    select_node = input_files.get_node('select')
+    if select_node is None:
+        anat_fbasename = remove_ext(op.basename(select_node.interface._templates['anat']))
+    else:
+        raise KeyError("Could not find a SelectFiles node called 'select' in main workflow.")
 
     # dataSink output substitutions
-    substitutions = [
-                     ("manat_hc_corrected.nii", "anat_hc_bc.nii"),
-                     ("wanat_hc_bc.nii",        "anat_hc_mni.nii"),
-                    ]
-
-    datasink.inputs.substitutions = extend_trait_list(datasink.inputs.substitutions,
-                                                      substitutions)
-
     regexp_subst = [
-                     (r"anat_.*corrected_seg8.mat", "anat_to_mni_affine.mat"),
-                     (r"/y_anat.*nii$",   "/anat_to_mni_field.nii"),
-                     (r"/iy_anat.*nii$",  "/anat_to_mni_inv_field.nii"),
-                     (r"/mwc1anat.*nii$", "/ant_mni_gm_mod.nii"),
-                     (r"/mwc2anat.*nii$", "/anat_mni_wm_mod.nii"),
-                     (r"/mwc3anat.*nii$", "/anat_mni_csf_mod.nii"),
-                     (r"/mwc4anat.*nii$", "/anat_mni_nobrain_mod.nii"),
-                     (r"/c1anat.*nii$",   "/anat_gm.nii"),
-                     (r"/c2anat.*nii$",   "/anat_wm.nii"),
-                     (r"/c3anat.*nii$",   "/anat_csf.nii"),
-                     (r"/c4anat.*nii$",   "/anat_nobrain.nii"),
-                     (r"/c5anat.*nii$",   "/anat_nobrain_mask.nii")
-                    ]
+                     (r"/{anat}_.*corrected_seg8.mat$", "/{anat}_to_mni_affine.mat"),
+                     (r"/m{anat}*_corrected.nii$"       "/{anat}_biascorrected.nii"),
+                     (r"/w{anat}.*_biascorrected.nii$", "/{anat}_mni.nii"),
+                     (r"/y_{anat}.*nii$",               "/{anat}_to_mni_field.nii"),
+                     (r"/iy_{anat}.*nii$",              "/{anat}_to_mni_inv_field.nii"),
+                     (r"/mwc1{anat}.*nii$",             "/{anat}_gm_mod_w2tpm.nii"),
+                     (r"/mwc2{anat}.*nii$",             "/{anat}_wm_mod_w2tpm.nii"),
+                     (r"/mwc3{anat}.*nii$",             "/{anat}_csf_mod_w2tpm.nii"),
+                     (r"/mwc4{anat}.*nii$",             "/{anat}_nobrain_mod_w2tpm.nii"),
+                     (r"/c1{anat}.*nii$",               "/{anat}_gm.nii"),
+                     (r"/c2{anat}.*nii$",               "/{anat}_wm.nii"),
+                     (r"/c3{anat}.*nii$",               "/{anat}_csf.nii"),
+                     (r"/c4{anat}.*nii$",               "/{anat}_nobrain.nii"),
+                     (r"/c5{anat}.*nii$",               "/{anat}_nobrain_mask.nii"),
+                   ]
+    regexp_subst = format_pair_list(regexp_subst, anat=anat_fbasename)
     datasink.inputs.regexp_substitutions = extend_trait_list(datasink.inputs.regexp_substitutions,
                                                              regexp_subst)
 
-    main_wf.connect([(input_files, t1_wf, [("select.anat_hc",  "bias_correction.input_image")]),
-
+    main_wf.connect([(input_files, t1_wf, [("select.anat",                           "bias_correction.input_image")]),
                      (t1_wf,    datasink, [("warp_anat.normalized_files",            "anat.@mni")],),
                      (t1_wf,    datasink, [("new_segment.modulated_class_images",    "anat.tissues.@warped"),
                                            ("new_segment.native_class_images",       "anat.tissues.@native"),

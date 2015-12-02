@@ -24,9 +24,11 @@ def subject_session_input(base_dir, session_names, file_names, subject_ids=None,
     session_names: list of str
         Example: ['session_0']
 
-    file_names: list of str
-        Example: ['mprage.nii.gz', 'rest.nii.gz']
-        Example: ['anat_1/mprage.nii.gz', 'rest_1/rest.nii.gz']
+    file_names: Dict[str -> str]
+        A dictionary that relates the `select` node keynames and the
+        file name.
+        Example: {'anat': 'anat_hc.nii.gz',       'pet': 'pet_fdg.nii.gz'},
+        Example: {'anat': 'anat_1/mprage.nii.gz', 'rest': 'rest_1/rest.nii.gz'},
 
     subject_ids: list of str
         Use this if you want to limit the analysis to certain subject IDs.
@@ -60,8 +62,8 @@ def subject_session_input(base_dir, session_names, file_names, subject_ids=None,
     fields = [('session_id', session_names),
               ('subject_id', subj_ids),]
 
-    files = {'{}'.format(remove_ext(op.basename(f))): '{subject_id}/{session_id}/' +
-                                        '{}'.format(f) for f in file_names}
+    files = {'{}'.format(f): '{subject_id}/{session_id}/' +
+                             '{}'.format(file_names[f]) for f in file_names}
 
     return input_file_wf(work_dir=base_dir,
                          data_dir=base_dir,
@@ -87,8 +89,8 @@ def input_file_wf(work_dir, data_dir, field_iterables, file_templates, wf_name="
         This will be input to an IdentityInterface
 
     file_templates: Dict[str -> str]
-        Example: {'anat_hc': '{subject_id}/{session_id}/anat_hc.nii.gz',
-                  'pet_fdg': '{subject_id}/{session_id}/pet_fdg.nii.gz',
+        Example: {'anat': '{subject_id}/{session_id}/anat_hc.nii.gz',
+                  'pet': '{subject_id}/{session_id}/pet_fdg.nii.gz',
                  }
 
     wf_name: str

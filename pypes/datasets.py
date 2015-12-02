@@ -5,7 +5,7 @@ Functions to create pipelines for public and not so public available datasets.
 import os.path as op
 
 from   .run  import in_out_workflow
-from   .anat import attach_t1_preprocessing
+from   .anat import attach_anat_preprocessing
 from   .pet  import attach_pet_preprocessing
 
 
@@ -31,7 +31,7 @@ def cobre_workflow(wf_name, base_dir, cache_dir, output_dir):
     if not data_dir or not op.exists(data_dir):
         raise IOError("Expected an existing folder for `data_dir`, got {}.".format(data_dir))
 
-    wfs = {"spm_t1_preproc": attach_t1_preprocessing,
+    wfs = {"spm_anat_preproc": attach_anat_preprocessing,
            # TODO: "spm_rest_preproc": attach_rest_preprocessing,
           }
 
@@ -51,7 +51,8 @@ def cobre_workflow(wf_name, base_dir, cache_dir, output_dir):
                               data_dir=data_dir,
                               output_dir=output_dir,
                               session_names=['session_1'],
-                              file_names=['anat_1/mprage.nii.gz', 'rest_1/rest.nii.gz'],
+                              file_names={'anat': 'anat_1/mprage.nii.gz',
+                                          'rest': 'rest_1/rest.nii.gz'},
                               subject_ids=None,
                               input_wf_name='input_files')
 
@@ -94,7 +95,7 @@ def clinical_workflow(wf_name, base_dir, cache_dir, output_dir, year):
     if not data_dir or not op.exists(data_dir):
         raise IOError("Expected an existing folder for `data_dir`, got {}.".format(data_dir))
 
-    wfs = {"spm_t1_preproc": attach_t1_preprocessing,
+    wfs = {"spm_anat_preproc": attach_anat_preprocessing,
            "spm_pet_preproc": attach_pet_preprocessing,
           }
 
@@ -114,7 +115,8 @@ def clinical_workflow(wf_name, base_dir, cache_dir, output_dir, year):
                               data_dir=data_dir,
                               output_dir=output_dir,
                               session_names=['session_0'],
-                              file_names=['anat_hc.nii.gz', 'pet_fdg.nii.gz'],
+                              file_names={'anat': 'anat_hc.nii.gz',
+                                          'pet': 'pet_fdg.nii.gz'},
                               subject_ids=None,
                               input_wf_name='input_files')
 
