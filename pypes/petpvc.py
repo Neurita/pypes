@@ -149,7 +149,7 @@ class PETPVC(CommandLine):
         if not isdefined(outputs['out_file']):
             method_name = self.inputs.pvc.lower()
             outputs['out_file'] = self._gen_fname(self.inputs.in_file,
-                                                  suffix='{}_pvc'.format(method_name))
+                                                  suffix='_{}_pvc'.format(method_name))
 
         outputs['out_file'] = os.path.abspath(outputs['out_file'])
         return outputs
