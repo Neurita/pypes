@@ -37,7 +37,7 @@ def format_pair_list(pair_list, **kwargs):
     -------
     formatted_pair_list: list of 2-tuples of str
     """
-    return [(s1.format(**kwargs), s2.format(**kwargs)) for s1, s2 in pair_list]
+    return [(s[0].format(**kwargs), s[1].format(**kwargs)) for s in pair_list]
 
 
 def _check_list(str_or_list):
