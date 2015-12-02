@@ -82,11 +82,8 @@ setup_dict = dict(
         'Programming Language :: Python :: 3.5',
     ],
 
-    extras_require={
-        'testing': ['pytest', 'pytest-cov'],
-    }
+    tests_require=['pytest'],
 )
-
 
 # Python3 support keywords
 if sys.version_info >= (3,):
@@ -100,11 +97,10 @@ class PyTest(TestCommand):
 
     def initialize_options(self):
         TestCommand.initialize_options(self)
-        self.pytest_args = []
+        #self.pytest_args = []
 
     def finalize_options(self):
         TestCommand.finalize_options(self)
-        self.test_args = []
         self.test_suite = True
 
     def run_tests(self):
@@ -112,11 +108,6 @@ class PyTest(TestCommand):
         import pytest
         errno = pytest.main(self.pytest_args)
         sys.exit(errno)
-
-
-setup_dict.update(dict(tests_require=['pytest'],
-                       cmdclass={'test': PyTest}))
-
 
 if __name__ == '__main__':
     setup(**setup_dict)
