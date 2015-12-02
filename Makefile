@@ -24,7 +24,7 @@ develop: install_deps
 install_deps:
 	./install_deps.py requirements.txt
 
-clean: clean-build clean-pyc
+clean: clean-build clean-pyc clean-others
 
 clean-build:
 	rm -fr build/
@@ -36,6 +36,9 @@ clean-pyc:
 	find . -name '*.pyo' -exec rm -f {} +
 	find . -name '*~' -exec rm -f {} +
 	find . -name '__pycache__' -exec rm -rf {} +
+
+clean-others:
+	find . -name '*.nii*' -exec rm -f {} +
 
 lint:
 	flake8 $(project-name) test
