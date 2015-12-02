@@ -118,8 +118,8 @@ def spm_anat_preprocessing():
     return wf
 
 
-def attach_anat_preprocessing(main_wf, data_dir, work_dir=None, output_dir=None):
-    """ Attach to an anatomical MRI pre-processing workflow to the `main_wf`.
+def attach_spm_anat_preprocessing(main_wf, data_dir, work_dir=None, output_dir=None):
+    """ Attach the SPM12 anatomical MRI pre-processing workflow to the `main_wf`.
 
     Parameters
     ----------
@@ -177,6 +177,7 @@ def attach_anat_preprocessing(main_wf, data_dir, work_dir=None, output_dir=None)
     datasink.inputs.regexp_substitutions = extend_trait_list(datasink.inputs.regexp_substitutions,
                                                              regexp_subst)
 
+    # input and output anat workflow to main workflow connections
     main_wf.connect([(input_files, t1_wf, [("select.anat",                           "bias_correction.input_image")]),
                      (t1_wf,    datasink, [("warp_anat.normalized_files",            "anat.@mni")],),
                      (t1_wf,    datasink, [("new_segment.modulated_class_images",    "anat.tissues.@warped"),
