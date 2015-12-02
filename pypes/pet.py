@@ -1,6 +1,7 @@
 """
 PET image preprocessing nipype workflows.
 """
+import os.path as op
 
 import nipype.pipeline.engine    as pe
 from   nipype.interfaces.utility import Select, Merge, Split
@@ -12,7 +13,7 @@ from   .anat         import attach_spm_anat_preprocessing
 from   .registration import spm_apply_deformations, spm_coregister
 from   .petpvc       import PETPVC
 from   .utils        import fsl_merge, extend_trait_list
-from   ._utils       import flatten_list
+from   ._utils       import flatten_list, remove_ext, format_pair_list
 
 
 def petpvc_cmd(in_file=traits.Undefined, mask_file=traits.Undefined, out_file=traits.Undefined,
@@ -259,31 +260,31 @@ def spm_pet_preprocessing():
 
     wf.connect([
                 # unzip to coregister to anatomical image. 'coreg_pet.target' is an input for this wf.
-                (gunzip_pet,  coreg_pet,   [("out_file",                  "source")]),
+                (gunzip_pet,  coreg_pet,  [("out_file",            "source")]),
 
                 # the list of tissues to the mask wf and the GM for PET intensity normalization
-                (tissues_sel, select_gm,   [(("out", flatten_list),       "inlist")]),
-                (tissues_sel, mask_wf,     [(("out", flatten_list),       "split_tissues.inlist")]),
+                (tissues_sel, select_gm,  [(("out", flatten_list), "inlist")]),
+                (tissues_sel, mask_wf,    [(("out", flatten_list), "split_tissues.inlist")]),
 
                 # the coregistered PET to PVC correction
-                (coreg_pet,   rbvpvc,      [("coregistered_source",       "in_file")]),
+                (coreg_pet,   rbvpvc,     [("coregistered_source", "in_file")]),
 
                 # the merged file with 4 tissues to PCV correction
-                (mask_wf,     rbvpvc,      [("merge_tissues.merged_file", "mask_file")]),
+                (mask_wf,     rbvpvc,     [("merge_tissues.merged_file", "mask_file")]),
 
                 # normalize voxel values of PET PVCed by demeaning whole by GM PET voxel values
-                (rbvpvc,      norm_wf,     [("out_file",                  "mean_value.in_file")]),
-                (rbvpvc,      norm_wf,     [("out_file",                  "gm_norm.in_file")]),
-                (select_gm,   norm_wf,     [("out",                       "mean_value.mask_file")]),
+                (rbvpvc,      norm_wf,    [("out_file",            "mean_value.in_file")]),
+                (rbvpvc,      norm_wf,    [("out_file",            "gm_norm.in_file")]),
+                (select_gm,   norm_wf,    [("out",                 "mean_value.mask_file")]),
 
                 # gunzip some files for SPM Normalize12
-                (rbvpvc,      unzip_mrg,  [("out_file",                  "in1")]),
-                (mask_wf,     unzip_mrg,  [("brain_mask.out_file",       "in2")]),
-                (norm_wf,     unzip_mrg,  [("gm_norm.out_file",          "in3")]),
-                (unzip_mrg,   gunzipper,  [("out",                       "in_file")]),
+                (rbvpvc,      unzip_mrg,  [("out_file",            "in1")]),
+                (mask_wf,     unzip_mrg,  [("brain_mask.out_file", "in2")]),
+                (norm_wf,     unzip_mrg,  [("gm_norm.out_file",    "in3")]),
+                (unzip_mrg,   gunzipper,  [("out",                 "in_file")]),
 
                 # warp the PET PVCed to MNI
-                (gunzipper,  merge_lists, [("out_file",             "in1")]),
+                (gunzipper,  merge_lists, [("out_file",            "in1")]),
                 (coreg_pet,  merge_lists, [("coregistered_source", "in2")]),
 
                 (merge_lists, warp_pet,   [("out",                 "apply_to_files")]),
@@ -293,7 +294,7 @@ def spm_pet_preprocessing():
 
 
 def attach_spm_pet_preprocessing(main_wf, data_dir, work_dir=None, output_dir=None):
-    """ Attach a PET pre-processing workflow to `main_wf`.
+    """ Attach a PET pre-processing workflow that uses SPM12 to `main_wf`.
 
     This will also attach the anat preprocessing workflow to `main_wf`. The reason
     for this is that the PET pre-processing steps here make use of anatomical MR
@@ -301,6 +302,14 @@ def attach_spm_pet_preprocessing(main_wf, data_dir, work_dir=None, output_dir=No
 
     #TODO: a pet pre-processing workflow that does not need anatomical MR
     pre-processing.
+
+    Nipype Inputs
+    -------------
+    Note: The `main_wf` workflow is expected to have an `input_files` and a `datasink` nodes.
+
+    input_files.select.pet: input node
+
+    datasink: nipype Node
 
     Parameters
     ----------
@@ -315,57 +324,44 @@ def attach_spm_pet_preprocessing(main_wf, data_dir, work_dir=None, output_dir=No
     Returns
     -------
     main_wf: nipype Workflow
-
     """
     # Dependency workflows
-    main_wf = attach_anat_preprocessing(main_wf=main_wf,
-                                        data_dir=data_dir,
-                                        work_dir=work_dir,
-                                        output_dir=output_dir,)
+    main_wf = attach_spm_anat_preprocessing(main_wf=main_wf,
+                                            data_dir=data_dir,
+                                            work_dir=work_dir,
+                                            output_dir=output_dir,)
 
     t1_wf    = main_wf.get_node("anat_preproc")
     in_files = main_wf.get_node("input_files")
     datasink = main_wf.get_node("datasink")
+
+    # The base name of the 'pet' file for the substitutions
+    select_node = in_files.get_node('select')
+    try:
+        pet_fbasename = remove_ext(op.basename(select_node.interface._templates['anat']))
+    except:
+        raise AttributeError("Could not find a SelectFiles node called 'select' in main workflow.")
+
 
     # get the PET preprocessing pipeline
     pet_wf = spm_pet_preprocessing()
 
     # dataSink output substitutions
     regexp_subst = [
-                     (r"/anat_.*corrected_seg8.mat", "anat_to_mni_affine.mat"),
-                     (r"/y_anat.*nii.*",   "/anat_to_mni_field.nii"),
-                     (r"/iy_anat.*nii.*",  "/anat_to_mni_inv_field.nii"),
-                     (r"/mwc1anat.*nii.*", "/anat_gm_mod_w2tpm.nii"),
-                     (r"/mwc2anat.*nii.*", "/anat_wm_mod_w2tpm.nii"),
-                     (r"/mwc3anat.*nii.*", "/anat_csf_mod_w2tpm.nii"),
-                     (r"/mwc4anat.*nii.*", "/anat_nobrain_mod_w2tpm.nii"),
-                     (r"/c1anat.*nii.*",   "/anat_gm.nii"),
-                     (r"/c2anat.*nii.*",   "/anat_wm.nii"),
-                     (r"/c3anat.*nii.*",   "/anat_csf.nii"),
-                     (r"/c4anat.*nii.*",   "/anat_nobrain.nii"),
-                     (r"/c5anat.*nii.*",   "/anat_nobrain_mask.nii"),
-
-                     (r"/rpet_fdg.*nii.*",                  "pet_fdg_anat.nii"),
-                     (r"/rpet_fdg_rbv_pvc.nii.*",           "pet_fdg_anat_rbv.nii.gz"),
-                     (r"/rpet_fdg_rbv_pvc_maths.nii.*",     "pet_fdg_anat_rbv_normed.nii.gz"),
-                     (r"/rpet_fdg_rbv_pvc_maths.nii.*",     "pet_fdg_anat_rbv_normed.nii.gz"),
-                     (r"/wrpet_fdg.nii.*",                  "pet_fdg_mni.nii"),
-                     (r"/wbrain_mask.nii.*",                "brain_mask_mni.nii.gz"),
-                     (r"/wc1anat_hc_corrected.nii.*",       "brain_mask_mni.nii.gz"),
-
+                     (r"/r{pet}.*nii",                 "/{pet}_anat.nii"),
+                     (r"/r{pet}_rbv_pvc.nii.gz",       "/{pet}_anat_rbv.nii.gz"),
+                     (r"/r{pet}_rbv_pvc_maths.nii.gz", "/{pet}_anat_rbv_normed.nii.gz"),
+                     (r"/r{pet}_rbv_pvc_maths.nii.gz", "/{pet}_anat_rbv_normed.nii.gz"),
+                     (r"/wr{pet}.nii.*",               "/{pet}_mni.nii"),
+                     (r"/wbrain_mask.nii.*",           "/brain_mask_mni.nii.gz"),
                    ]
+    regexp_subst = format_pair_list(regexp_subst, pet=pet_fbasename)
     datasink.inputs.regexp_substitutions = extend_trait_list(datasink.inputs.regexp_substitutions,
                                                              regexp_subst)
-
-    substitutions = [
-
-                    ]
-    datasink.inputs.substitutions = extend_trait_list(datasink.inputs.substitutions,
-                                                      substitutions)
     # Connect the nodes
     main_wf.connect([
                 # pet file input
-                (in_files, pet_wf, [("select.pet_fdg",                        "gunzip_pet.in_file")]),
+                (in_files, pet_wf, [("select.pet"    ,                        "gunzip_pet.in_file")]),
 
                 # pet to anat registration
                 (t1_wf,    pet_wf, [("new_segment.bias_corrected_images",     "coreg_pet.target" )]),
