@@ -151,15 +151,15 @@ def attach_anat_preprocessing(main_wf, data_dir, work_dir=None, output_dir=None)
 
     # The base name of the 'anat' file for the substitutions
     select_node = input_files.get_node('select')
-    if select_node is None:
+    try:
         anat_fbasename = remove_ext(op.basename(select_node.interface._templates['anat']))
-    else:
-        raise KeyError("Could not find a SelectFiles node called 'select' in main workflow.")
+    except:
+        raise AttributeError("Could not find a SelectFiles node called 'select' in main workflow.")
 
     # dataSink output substitutions
     regexp_subst = [
                      (r"/{anat}_.*corrected_seg8.mat$", "/{anat}_to_mni_affine.mat"),
-                     (r"/m{anat}*_corrected.nii$"       "/{anat}_biascorrected.nii"),
+                     (r"/m{anat}.*_corrected.nii$",     "/{anat}_biascorrected.nii"),
                      (r"/w{anat}.*_biascorrected.nii$", "/{anat}_mni.nii"),
                      (r"/y_{anat}.*nii$",               "/{anat}_to_mni_field.nii"),
                      (r"/iy_{anat}.*nii$",              "/{anat}_to_mni_inv_field.nii"),
