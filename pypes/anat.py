@@ -133,7 +133,7 @@ def attach_spm_anat_preprocessing(main_wf, data_dir, work_dir=None, output_dir=N
 
     Nipype Inputs
     -------------
-    The `main_wf` workflow needs an `input_files` and a `datasink` nodes.
+    Note: The `main_wf` workflow is expected to have an `input_files` and a `datasink` nodes.
 
     input_files.select.anat: input node
 
