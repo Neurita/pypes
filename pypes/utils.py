@@ -1,6 +1,7 @@
 """
 Helper nipype nodes.
 """
+import os
 import os.path as op
 
 import nipype.interfaces.spm as spm
@@ -40,6 +41,42 @@ def spm_tpm_priors_path(spm_dir=None):
         raise FileNotFoundError('Could not find TPM.nii file from SPM.')
 
     return tpm_path
+
+
+def get_fsl_extension(default='NIFTI_GZ'):
+    """ Return the file extension that FSL will output.
+
+    Parameters
+    ----------
+    default: str
+        Default output type for FSL in FSL format.
+        Choices: ANALYZE, NIFTI, NIFTI_PAIR,
+                ANALYZE_GZ, NIFTI_GZ, NIFTI_PAIR_GZ
+
+    Returns
+    -------
+    ext: str
+        The file extension
+
+    Note
+    ----
+    In the case of the pair files, this will only return
+    the extension of the header file.
+
+    #TODO: deal with pair file renaming with header modification.
+    Check boyle for this.
+    """
+    outtype = os.environ.get('FSLOUTPUTTYPE', default)
+
+    otype_ext = {'NIFTI':           '.nii',
+                 'NIFTI_GZ':        '.nii.gz',
+                 'ANALYZE':         '.hdr',
+                 'NIFTI_PAIR':      '.hdr',
+                 'NIFTI_PAIR_GZ':   '.hdr.gz',
+                 'ANALYZE_PAIR_GZ': '.hdr.gz',
+                }
+
+    return otype_ext[outtype]
 
 
 def fsl_merge(in_files=traits.Undefined, dimension='t'):
