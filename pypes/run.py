@@ -77,7 +77,7 @@ def in_out_workflow(work_dir, data_dir, output_dir, session_names, file_names, s
                       # datasink
                       (input_wf, joinpath, [("infosrc.subject_id", "arg1"),
                                             ("infosrc.session_id", "arg2")]),
-                      (joinpath, datasink, [("out", "container")]),
+                      (joinpath, datasink, [("out",                "container")]),
                     ])
 
     return main_wf

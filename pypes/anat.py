@@ -103,7 +103,7 @@ def spm_anat_preprocessing():
     warp_anat   = pe.Node(spm_apply_deformations(), name="warp_anat")
 
     # Create the workflow object
-    wf = pe.Workflow(name="anat_preproc")
+    wf = pe.Workflow(name="spm_anat_preproc")
 
     # Connect the nodes
     wf.connect([
@@ -112,8 +112,8 @@ def spm_anat_preprocessing():
                 (gunzip_anat,  segment,     [("out_file",     "channel_files")]),
 
                 # Normalize12
-                (segment,   warp_anat,  [("forward_deformation_field", "deformation_file")]),
-                (segment, warp_anat,    [("bias_corrected_images",     "apply_to_files")]),
+                (segment, warp_anat, [("forward_deformation_field", "deformation_file")]),
+                (segment, warp_anat, [("bias_corrected_images",     "apply_to_files")]),
               ])
     return wf
 
@@ -160,13 +160,13 @@ def attach_spm_anat_preprocessing(main_wf, data_dir, work_dir=None, output_dir=N
     regexp_subst = [
                      (r"/{anat}_.*corrected_seg8.mat$", "/{anat}_to_mni_affine.mat"),
                      (r"/m{anat}.*_corrected.nii$",     "/{anat}_biascorrected.nii"),
-                     (r"/w{anat}.*_biascorrected.nii$", "/{anat}_mni.nii"),
+                     (r"/wm{anat}.*_corrected.nii$",    "/{anat}_mni.nii"),
                      (r"/y_{anat}.*nii$",               "/{anat}_to_mni_field.nii"),
                      (r"/iy_{anat}.*nii$",              "/{anat}_to_mni_inv_field.nii"),
-                     (r"/mwc1{anat}.*nii$",             "/{anat}_gm_mod_w2tpm.nii"),
-                     (r"/mwc2{anat}.*nii$",             "/{anat}_wm_mod_w2tpm.nii"),
-                     (r"/mwc3{anat}.*nii$",             "/{anat}_csf_mod_w2tpm.nii"),
-                     (r"/mwc4{anat}.*nii$",             "/{anat}_nobrain_mod_w2tpm.nii"),
+                     (r"/mwc1{anat}.*nii$",             "/{anat}_gm_mod_mni.nii"),
+                     (r"/mwc2{anat}.*nii$",             "/{anat}_wm_mod_mni.nii"),
+                     (r"/mwc3{anat}.*nii$",             "/{anat}_csf_mod_mni.nii"),
+                     (r"/mwc4{anat}.*nii$",             "/{anat}_nobrain_mod_mni.nii"),
                      (r"/c1{anat}.*nii$",               "/{anat}_gm.nii"),
                      (r"/c2{anat}.*nii$",               "/{anat}_wm.nii"),
                      (r"/c3{anat}.*nii$",               "/{anat}_csf.nii"),

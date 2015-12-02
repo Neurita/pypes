@@ -256,7 +256,7 @@ def spm_pet_preprocessing():
     norm_wf = intensity_norm(wf_name="intensity_norm_gm")
 
     # Create the workflow object
-    wf = pe.Workflow(name="pet_preproc")
+    wf = pe.Workflow(name="spm_pet_preproc")
 
     wf.connect([
                 # unzip to coregister to anatomical image. 'coreg_pet.target' is an input for this wf.
@@ -331,44 +331,45 @@ def attach_spm_pet_preprocessing(main_wf, data_dir, work_dir=None, output_dir=No
                                             work_dir=work_dir,
                                             output_dir=output_dir,)
 
-    t1_wf    = main_wf.get_node("anat_preproc")
+    anat_wf  = main_wf.get_node("spm_anat_preproc")
     in_files = main_wf.get_node("input_files")
     datasink = main_wf.get_node("datasink")
 
     # The base name of the 'pet' file for the substitutions
     select_node = in_files.get_node('select')
     try:
-        pet_fbasename = remove_ext(op.basename(select_node.interface._templates['anat']))
+        pet_fbasename = remove_ext(op.basename(select_node.interface._templates['pet']))
     except:
         raise AttributeError("Could not find a SelectFiles node called 'select' in main workflow.")
-
 
     # get the PET preprocessing pipeline
     pet_wf = spm_pet_preprocessing()
 
     # dataSink output substitutions
     regexp_subst = [
-                     (r"/r{pet}.*nii",                 "/{pet}_anat.nii"),
-                     (r"/r{pet}_rbv_pvc.nii.gz",       "/{pet}_anat_rbv.nii.gz"),
-                     (r"/r{pet}_rbv_pvc_maths.nii.gz", "/{pet}_anat_rbv_normed.nii.gz"),
-                     (r"/r{pet}_rbv_pvc_maths.nii.gz", "/{pet}_anat_rbv_normed.nii.gz"),
-                     (r"/wr{pet}.nii.*",               "/{pet}_mni.nii"),
-                     (r"/wbrain_mask.nii.*",           "/brain_mask_mni.nii.gz"),
+                     (r"/r{pet}.nii$",                  "/{pet}_anat.nii"),
+                     (r"/r{pet}_.*_pvc.nii.gz$",        "/{pet}_anat_pvc.nii.gz"),
+                     (r"/r{pet}_.*_pvc_maths.nii.gz$",  "/{pet}_anat_pvc_norm.nii.gz"),
+                     (r"/wr{pet}.nii",                  "/{pet}_mni.nii"),
+                     (r"/wr{pet}_.*_pvc.nii.gz$",       "/{pet}_mni_pvc.nii.gz"),
+                     (r"/wr{pet}_.*_pvc_maths.nii.gz$", "/{pet}_mni_pvc_norm.nii.gz"),
+                     (r"/wbrain_mask.nii",              "/brain_mask_mni.nii"),
                    ]
     regexp_subst = format_pair_list(regexp_subst, pet=pet_fbasename)
     datasink.inputs.regexp_substitutions = extend_trait_list(datasink.inputs.regexp_substitutions,
                                                              regexp_subst)
+
     # Connect the nodes
     main_wf.connect([
                 # pet file input
                 (in_files, pet_wf, [("select.pet"    ,                        "gunzip_pet.in_file")]),
 
                 # pet to anat registration
-                (t1_wf,    pet_wf, [("new_segment.bias_corrected_images",     "coreg_pet.target" )]),
-                (t1_wf,    pet_wf, [("new_segment.forward_deformation_field", "warp_pet.deformation_file")]),
+                (anat_wf,  pet_wf, [("new_segment.bias_corrected_images",     "coreg_pet.target" )]),
+                (anat_wf,  pet_wf, [("new_segment.forward_deformation_field", "warp_pet.deformation_file")]),
 
                 # pet pvc
-                (t1_wf,    pet_wf, [("new_segment.native_class_images",       "tissues.inlist")]),
+                (anat_wf,  pet_wf, [("new_segment.native_class_images",       "tissues.inlist")]),
 
                 # datasink
                 (pet_wf, datasink, [("coreg_pet.coregistered_files",       "pet.others"),
