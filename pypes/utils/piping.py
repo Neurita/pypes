@@ -4,7 +4,60 @@ Helper functions for joining, merging, managing the workflow nodes.
 from   nipype import Function
 from   nipype.interfaces.traits_extension import isdefined
 from   nipype.interfaces.base import traits
+from   nipype.interfaces.io import SelectFiles, DataGrabber, DataSink
 import nipype.interfaces.fsl as fsl
+
+
+def get_input_node(wf):
+    """ Return the file input node in `wf`
+
+    Parameters
+    ----------
+    wf: nipype Workflow
+
+    Returns
+    -------
+    nodes: nipype Node
+        The file input nodes in `wf`.
+    """
+    input_types = (SelectFiles, DataGrabber)
+    return find_wf_node(wf, input_types)
+
+
+def get_datasink(wf):
+    """ Return the DataSink node in `wf`
+
+    Parameters
+    ----------
+    wf: nipype Workflow
+
+    Returns
+    -------
+    nodes: nipype Node
+        The DataSink in `wf`.
+    """
+    return find_wf_node(wf, DataSink)
+
+
+def wf_nodes(wf, iface_type):
+    """ Return the nodes found in the list of node names in `wf` that
+    has an interface of type `iface_type`.
+
+    Parameters
+    ----------
+    wf: nipype Workflow
+
+    iface_type: nipype class
+
+    Returns
+    -------
+    nodes: list of nipype Node
+    """
+    nodes = []
+    for name in wf.list_node_names():
+        if isinstance(getattr(wf.get_node(name), 'interface', None), iface_type):
+            nodes.append(wf.get_node(name))
+    return nodes
 
 
 def find_wf_node(wf, iface_type):
