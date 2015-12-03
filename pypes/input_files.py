@@ -23,6 +23,7 @@ def subject_session_input(base_dir, session_names, file_names, subject_ids=None,
 
     session_names: list of str
         Example: ['session_0']
+        If None or '', will remove the 'session_id' option from the information source.
 
     file_names: Dict[str -> str]
         A dictionary that relates the `select` node keynames and the
@@ -58,12 +59,17 @@ def subject_session_input(base_dir, session_names, file_names, subject_ids=None,
     if subj_ids is None:
         subj_ids = [op.basename(p) for p in os.listdir(base_dir)]
 
-    # the fields and its values for the fields_iterables
-    fields = [('session_id', session_names),
-              ('subject_id', subj_ids),]
+    if session_names is None:
+        session_names = ''
 
-    files = {'{}'.format(f): '{subject_id}/{session_id}/' +
-                             '{}'.format(file_names[f]) for f in file_names}
+    # the fields and its values for the fields_iterables
+    fields  = [('subject_id', subj_ids)]
+    dirpath = '{subject_id}'
+    if session_names:
+        fields.append(('session_id', session_names))
+        dirpath = op.join(dirpath, '{session_id}')
+
+    files = {'{}'.format(f): op.join(dirpath, '{}').format(file_names[f]) for f in file_names}
 
     return input_file_wf(work_dir=base_dir,
                          data_dir=base_dir,
