@@ -10,12 +10,12 @@ from   nipype.interfaces.ants    import N4BiasFieldCorrection
 from   nipype.interfaces.base    import traits
 from   nipype.interfaces.io      import DataSink, SelectFiles
 
-from   pypes.preproc.registration import spm_apply_deformations
-from   ._utils       import format_pair_list
-from   .utils        import (spm_tpm_priors_path,
-                             extend_trait_list,
-                             find_wf_node,
-                             remove_ext)
+from   .preproc import spm_apply_deformations
+from   ._utils  import format_pair_list
+from   .utils   import (spm_tpm_priors_path,
+                        extend_trait_list,
+                        find_wf_node,
+                        remove_ext)
 
 
 def biasfield_correct(anat_filepath=traits.Undefined):
