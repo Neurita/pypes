@@ -10,11 +10,10 @@ from   nipype.interfaces.base    import traits
 from   nipype.interfaces.utility import Select, Merge, Split
 from   nipype.interfaces.io      import DataSink, SelectFiles
 
-from   .preproc import PETPVC
-from   .preproc import spm_apply_deformations, spm_coregister
-from   ._utils  import flatten_list, format_pair_list
 from   .anat    import attach_spm_anat_preprocessing
-from   .utils   import fsl_merge, extend_trait_list, remove_ext
+from   .preproc import spm_apply_deformations, spm_coregister, PETPVC
+from   .utils   import fsl_merge, extend_trait_list, remove_ext, find_wf_node
+from   ._utils  import flatten_list, format_pair_list
 
 
 def petpvc_cmd(in_file=traits.Undefined, mask_file=traits.Undefined, out_file=traits.Undefined,
@@ -364,7 +363,7 @@ def attach_spm_pet_preprocessing(main_wf, data_dir, work_dir=None, output_dir=No
     # Connect the nodes
     main_wf.connect([
                 # pet file input
-                (in_files, pet_wf, [("select.pet"    ,                        "gunzip_pet.in_file")]),
+                (in_files, pet_wf, [("pet",                                  "gunzip_pet.in_file")]),
 
                 # pet to anat registration
                 (anat_wf,  pet_wf, [("new_segment.bias_corrected_images",     "coreg_pet.target" )]),

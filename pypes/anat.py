@@ -185,7 +185,7 @@ def attach_spm_anat_preprocessing(main_wf, data_dir, work_dir=None, output_dir=N
                                                              regexp_subst)
 
     # input and output anat workflow to main workflow connections
-    main_wf.connect([(input_files, t1_wf, [("select.anat",                           "bias_correction.input_image")]),
+    main_wf.connect([(input_files, t1_wf, [("anat",                                  "bias_correction.input_image")]),
                      (t1_wf,    datasink, [("warp_anat.normalized_files",            "anat.@mni")],),
                      (t1_wf,    datasink, [("new_segment.modulated_class_images",    "anat.tissues.@warped"),
                                            ("new_segment.native_class_images",       "anat.tissues.@native"),
