@@ -18,7 +18,7 @@ def afni_slicetime(in_file=traits.Undefined,
                    tslice=traits.Undefined,
                    tzero=traits.Undefined,
                    out_type='NIFTI_GZ'):
-    """ Returna a nipype interface to the AFNI 3dTshift command.
+    """ Return a nipype interface to the AFNI 3dTshift command.
 
     Parameters
     ----------
