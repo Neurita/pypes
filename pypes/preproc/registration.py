@@ -1,7 +1,8 @@
 """
 Nipype registration nodes
 """
-import nipype.interfaces.spm as spm
+import nipype.interfaces.spm  as spm
+import nipype.interfaces.afni as afni
 from   nipype.interfaces.base import traits
 
 from pypes.utils import spm_tpm_priors_path
@@ -97,3 +98,30 @@ def spm_coregister(src_img=traits.Undefined, tgt_img=traits.Undefined, cost_func
     return coreg
 
 
+def afni_deoblique(in_file=traits.Undefined, out_file=traits.Undefined, out_type='NIFTI_GZ'):
+    """ Return a nipype interface for AFNI '3dWarp -deoblique'.
+
+    Parameters
+    ----------
+    in_file: str
+        Path to the input file
+
+    out_file: str
+        Path to the output file.
+
+    out_type: str
+        ('NIFTI_GZ' or 'AFNI' or 'NIFTI')
+        AFNI output filetype
+
+    Returns
+    -------
+    deob: nipype.interfaces.afni.Warp
+    """
+
+    deob = afni.Warp()
+    deob.inputs.in_file = in_file
+    deob.inputs.deoblique = True
+    deob.inputs.out_file = out_file
+    deob.inputs.outputtype = out_type
+
+    return deob

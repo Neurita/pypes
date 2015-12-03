@@ -9,8 +9,8 @@ from   .input_files import subject_session_input
 from   .utils       import extend_trait_list, joinpaths
 
 
-def in_out_workflow(work_dir, data_dir, output_dir, session_names, file_names, subject_ids,
-                    input_wf_name, wf_name="main_workflow"):
+def in_out_workflow(work_dir, data_dir, output_dir, file_names, session_names=None,
+                    subject_ids=None, input_wf_name=None, wf_name="main_workflow"):
     """ Creates a workflow with the `subject_session_file` input nodes and an empty `datasink`.
     The 'datasink' must be connected in order to work.
 
@@ -25,20 +25,21 @@ def in_out_workflow(work_dir, data_dir, output_dir, session_names, file_names, s
     output_dir: str
         Path to where the datasink will leave the results.
 
-    session_names: list of str
-        Example: ['session_0']
-
     file_names: Dict[str -> str]
         A dictionary that relates the `select` node keynames and the
         file name.
         Example: {'anat': 'anat_hc.nii.gz',       'pet': 'pet_fdg.nii.gz'},
         Example: {'anat': 'anat_1/mprage.nii.gz', 'rest': 'rest_1/rest.nii.gz'},
 
+    session_names: list of str
+        Example: ['session_0']
+
     subject_ids: list of str
         Use this if you want to limit the analysis to certain subject IDs.
         If `None` will pick the folders from os.listdir(data_dir).
 
     input_wf_name: src
+        Name of the root input-output workflow
 
     wf_name: str
         Name of the main workflow
@@ -62,23 +63,27 @@ def in_out_workflow(work_dir, data_dir, output_dir, session_names, file_names, s
                                      subject_ids=subject_ids,
                                      wf_name=input_wf_name)
 
-    joinpath = pe.Node(joinpaths(), name='joinpath')
-
     # basic file name substitutions for the datasink
-    substitutions = [("_subject_id", ""),
-                     ("_session_id_", ""),
-                    ]
+    substitutions = [("_subject_id", ""),]
+    if session_names is not None:
+        substitutions.append(("_session_id_", ""))
 
     datasink.inputs.substitutions = extend_trait_list(datasink.inputs.substitutions,
                                                       substitutions)
 
-    # Connect the infosrc node to the datasink
-    main_wf.connect([
-                      # datasink
-                      (input_wf, joinpath, [("infosrc.subject_id", "arg1"),
-                                            ("infosrc.session_id", "arg2")]),
-                      (joinpath, datasink, [("out",                "container")]),
-                    ])
+    # connect the input_wf to the datasink
+    if session_names is None:
+        main_wf.connect([(input_wf, datasink, [("infosrc.subject_id", "container")]),])
+    else:
+        joinpath = pe.Node(joinpaths(), name='joinpath')
+
+        # Connect the infosrc node to the datasink
+        main_wf.connect([
+                         (input_wf, joinpath, [("infosrc.subject_id", "arg1"),
+                                               ("infosrc.session_id", "arg2")]),
+
+                         (joinpath, datasink, [("out",                "container")]),
+                        ])
 
     return main_wf
 

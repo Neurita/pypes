@@ -12,7 +12,7 @@ from ._utils import _check_list
 
 
 def subject_session_input(base_dir, session_names, file_names, subject_ids=None,
-                          wf_name="subject_session_files"):
+                          wf_name=None):
     """ A workflow of IdentityInterface->SelectFiles for the case where
     you have a {subject_id}/{session_id}/{image_file} dataset structure.
 
@@ -37,6 +37,7 @@ def subject_session_input(base_dir, session_names, file_names, subject_ids=None,
 
     wf_name: str
         Name of the workflow
+        Default: "subject_session_files"
 
     Nipype Outputs
     --------------
@@ -54,20 +55,21 @@ def subject_session_input(base_dir, session_names, file_names, subject_ids=None,
     -------
     wf: nipype Workflow
     """
+    # check default values
+    if wf_name is None:
+        wf_name = "subject_session_files"
+
     # Check the subject ids
     subj_ids = _check_list(subject_ids)
     if subj_ids is None:
         subj_ids = [op.basename(p) for p in os.listdir(base_dir)]
 
-    if session_names is None:
-        session_names = ''
-
     # the fields and its values for the fields_iterables
     fields  = [('subject_id', subj_ids)]
-    dirpath = '{subject_id}'
-    if session_names:
+    dirpath = '{{subject_id}}'
+    if session_names is not None:
         fields.append(('session_id', session_names))
-        dirpath = op.join(dirpath, '{session_id}')
+        dirpath = op.join(dirpath, '{{session_id}}')
 
     files = {'{}'.format(f): op.join(dirpath, '{}').format(file_names[f]) for f in file_names}
 

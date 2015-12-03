@@ -7,6 +7,26 @@ from   nipype.interfaces.base import traits
 import nipype.interfaces.fsl as fsl
 
 
+def find_wf_node(wf, iface_type):
+    """ Return the first node found in the list of node names in `wf` that
+    has an interface of type `iface_type`.
+
+    Parameters
+    ----------
+    wf: nipype Workflow
+
+    iface_type: nipype class
+
+    Returns
+    -------
+    node: nipype Node
+    """
+    for name in wf.list_node_names():
+        if isinstance(getattr(wf.get_node(name), 'interface', None), iface_type):
+            return wf.get_node(name)
+    return None
+
+
 def extend_trait_list(trait_list, extension):
     """ Extend or initialize `trait_list` with `extension`.
 

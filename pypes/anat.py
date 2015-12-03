@@ -8,11 +8,14 @@ import nipype.pipeline.engine    as pe
 from   nipype.algorithms.misc    import Gunzip
 from   nipype.interfaces.ants    import N4BiasFieldCorrection
 from   nipype.interfaces.base    import traits
+from   nipype.interfaces.io      import DataSink, SelectFiles
 
 from   pypes.preproc.registration import spm_apply_deformations
 from   ._utils       import format_pair_list
-from pypes.utils.files import remove_ext
-from   .utils        import spm_tpm_priors_path, extend_trait_list
+from   .utils        import (spm_tpm_priors_path,
+                             extend_trait_list,
+                             find_wf_node,
+                             remove_ext)
 
 
 def biasfield_correct(anat_filepath=traits.Undefined):
@@ -80,7 +83,7 @@ def spm_segment(anat_filepath=traits.Undefined, priors_path=None):
     return seg
 
 
-def spm_anat_preprocessing():
+def spm_anat_preprocessing(wf_name="spm_anat_preproc"):
     """ Run the T1 pre-processing workflow against the anat_hc files in `data_dir`.
 
     It does:
@@ -104,7 +107,7 @@ def spm_anat_preprocessing():
     warp_anat   = pe.Node(spm_apply_deformations(), name="warp_anat")
 
     # Create the workflow object
-    wf = pe.Workflow(name="spm_anat_preproc")
+    wf = pe.Workflow(name=wf_name)
 
     # Connect the nodes
     wf.connect([
@@ -119,7 +122,7 @@ def spm_anat_preprocessing():
     return wf
 
 
-def attach_spm_anat_preprocessing(main_wf, data_dir, work_dir=None, output_dir=None):
+def attach_spm_anat_preprocessing(main_wf, data_dir, work_dir=None, output_dir=None, wf_name="spm_anat_preproc"):
     """ Attach the SPM12 anatomical MRI pre-processing workflow to the `main_wf`.
 
     Parameters
@@ -131,6 +134,9 @@ def attach_spm_anat_preprocessing(main_wf, data_dir, work_dir=None, output_dir=N
     work_dir: str
 
     output_dir: str
+
+    wf_name: str
+        Name of the anat preprocessing workflow
 
     Nipype Inputs
     -------------
@@ -144,8 +150,8 @@ def attach_spm_anat_preprocessing(main_wf, data_dir, work_dir=None, output_dir=N
     -------
     main_wf: nipype Workflow
     """
-    input_files = main_wf.get_node("input_files")
-    datasink    = main_wf.get_node("datasink")
+    input_files = find_wf_node(main_wf, SelectFiles)
+    datasink    = find_wf_node(main_wf, DataSink)
 
     # The workflow box
     t1_wf = spm_anat_preprocessing()

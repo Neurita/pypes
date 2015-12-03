@@ -8,13 +8,13 @@ from   nipype.algorithms.misc    import Gunzip
 from   nipype.interfaces         import fsl
 from   nipype.interfaces.base    import traits
 from   nipype.interfaces.utility import Select, Merge, Split
+from   nipype.interfaces.io      import DataSink, SelectFiles
 
-from   pypes.preproc.petpvc import PETPVC
-from   pypes.preproc.registration import spm_apply_deformations, spm_coregister
-from   ._utils       import flatten_list, format_pair_list
-from pypes.utils.files import remove_ext
-from   .anat         import attach_spm_anat_preprocessing
-from   .utils        import fsl_merge, extend_trait_list
+from   .preproc import PETPVC
+from   .preproc import spm_apply_deformations, spm_coregister
+from   ._utils  import flatten_list, format_pair_list
+from   .anat    import attach_spm_anat_preprocessing
+from   .utils   import fsl_merge, extend_trait_list, remove_ext
 
 
 def petpvc_cmd(in_file=traits.Undefined, mask_file=traits.Undefined, out_file=traits.Undefined,
@@ -330,11 +330,12 @@ def attach_spm_pet_preprocessing(main_wf, data_dir, work_dir=None, output_dir=No
     main_wf = attach_spm_anat_preprocessing(main_wf=main_wf,
                                             data_dir=data_dir,
                                             work_dir=work_dir,
-                                            output_dir=output_dir,)
+                                            output_dir=output_dir,
+                                            wf_name="spm_anat_preproc")
 
     anat_wf  = main_wf.get_node("spm_anat_preproc")
-    in_files = main_wf.get_node("input_files")
-    datasink = main_wf.get_node("datasink")
+    in_files = find_wf_node(main_wf, SelectFiles)
+    datasink = find_wf_node(main_wf, DataSink)
 
     # The base name of the 'pet' file for the substitutions
     select_node = in_files.get_node('select')
