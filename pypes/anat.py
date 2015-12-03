@@ -10,12 +10,13 @@ from   nipype.interfaces.ants    import N4BiasFieldCorrection
 from   nipype.interfaces.base    import traits
 from   nipype.interfaces.io      import DataSink, SelectFiles
 
-from   .preproc import spm_apply_deformations
-from   ._utils  import format_pair_list
-from   .utils   import (spm_tpm_priors_path,
-                        extend_trait_list,
-                        find_wf_node,
-                        remove_ext)
+from   .preproc     import spm_apply_deformations
+from   .input_files import get_input_file_name
+from   ._utils      import format_pair_list
+from   .utils       import (spm_tpm_priors_path,
+                            extend_trait_list,
+                            find_wf_node,
+                            remove_ext)
 
 
 def biasfield_correct(anat_filepath=traits.Undefined):
@@ -122,21 +123,15 @@ def spm_anat_preprocessing(wf_name="spm_anat_preproc"):
     return wf
 
 
-def attach_spm_anat_preprocessing(main_wf, data_dir, work_dir=None, output_dir=None, wf_name="spm_anat_preproc"):
+def attach_spm_anat_preprocessing(main_wf, wf_name="spm_anat_preproc"):
     """ Attach the SPM12 anatomical MRI pre-processing workflow to the `main_wf`.
 
     Parameters
     ----------
     main_wf: nipype Workflow
 
-    data_dir: str
-
-    work_dir: str
-
-    output_dir: str
-
     wf_name: str
-        Name of the anat preprocessing workflow
+        Name of the preprocessing workflow
 
     Nipype Inputs
     -------------
@@ -150,18 +145,14 @@ def attach_spm_anat_preprocessing(main_wf, data_dir, work_dir=None, output_dir=N
     -------
     main_wf: nipype Workflow
     """
-    input_files = find_wf_node(main_wf, SelectFiles)
-    datasink    = find_wf_node(main_wf, DataSink)
+    in_files = find_wf_node(main_wf, SelectFiles)
+    datasink = find_wf_node(main_wf, DataSink)
 
     # The workflow box
-    t1_wf = spm_anat_preprocessing()
+    t1_wf = spm_anat_preprocessing(wf_name=wf_name)
 
     # The base name of the 'anat' file for the substitutions
-    select_node = input_files.get_node('select')
-    try:
-        anat_fbasename = remove_ext(op.basename(select_node.interface._templates['anat']))
-    except:
-        raise AttributeError("Could not find a SelectFiles node called 'select' in main workflow.")
+    anat_fbasename = remove_ext(op.basename(get_input_file_name(in_files, 'anat')))
 
     # dataSink output substitutions
     regexp_subst = [
@@ -185,7 +176,7 @@ def attach_spm_anat_preprocessing(main_wf, data_dir, work_dir=None, output_dir=N
                                                              regexp_subst)
 
     # input and output anat workflow to main workflow connections
-    main_wf.connect([(input_files, t1_wf, [("anat",                                  "bias_correction.input_image")]),
+    main_wf.connect([(in_files, t1_wf,    [("anat",                                  "bias_correction.input_image")]),
                      (t1_wf,    datasink, [("warp_anat.normalized_files",            "anat.@mni")],),
                      (t1_wf,    datasink, [("new_segment.modulated_class_images",    "anat.tissues.@warped"),
                                            ("new_segment.native_class_images",       "anat.tissues.@native"),

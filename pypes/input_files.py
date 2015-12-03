@@ -133,3 +133,31 @@ def input_file_wf(work_dir, data_dir, field_iterables, file_templates, wf_name="
 
     return wf
 
+
+def get_input_file_name(input_node, fname_key):
+    """ Return the name of the file given by the node key `fname_key` in `input_node`.
+
+    Parameters
+    ----------
+    input_node: nipype Node
+        a node with a file input interface (SelectFiles, for now).
+
+    fname_key: str
+        The key that is used to access the file path using `input_node`.
+        Example: 'anat'
+
+    Returns
+    -------
+    filename: str
+        The base input file path from the input node.
+    """
+    if isinstance(input_node.interface, SelectFiles):
+        try:
+            fname = input_node.interface._templates[fname_key]
+        except:
+            raise AttributeError("Could not find a SelectFiles node called 'select' in main workflow.")
+        else:
+            return fname
+    else:
+        raise NotImplementedError('`get_input_file_name` has not been implemented for nodes'
+                                  ' of type {}.'.format(type(input_node.interface)))

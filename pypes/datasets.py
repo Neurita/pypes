@@ -56,10 +56,7 @@ def cobre_workflow(wf_name, base_dir, cache_dir, output_dir):
                               subject_ids=None,
                               input_wf_name='input_files')
 
-    wf = wfs[wf_name](main_wf=main_wf,
-                      data_dir=data_dir,
-                      work_dir=cache_dir,
-                      output_dir=output_dir,)
+    wf = wfs[wf_name](main_wf=main_wf)
 
     # move the crash files folder elsewhere
     wf.config["execution"]["crashdump_dir"] = op.join(wf.base_dir, wf.name, "log")
@@ -120,10 +117,7 @@ def clinical_workflow(wf_name, base_dir, cache_dir, output_dir, year):
                               subject_ids=None,
                               input_wf_name='input_files')
 
-    wf = wfs[wf_name](main_wf=main_wf,
-                      data_dir=data_dir,
-                      work_dir=cache_dir,
-                      output_dir=output_dir,)
+    wf = wfs[wf_name](main_wf=main_wf)
 
     # move the crash files folder elsewhere
     wf.config["execution"]["crashdump_dir"] = op.join(wf.base_dir, wf.name, "log")

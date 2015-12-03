@@ -8,12 +8,12 @@ from   nipype.algorithms.misc    import Gunzip
 from   nipype.interfaces         import fsl
 from   nipype.interfaces.base    import traits
 from   nipype.interfaces.utility import Select, Merge, Split
-from   nipype.interfaces.io      import DataSink, SelectFiles
 
-from   .anat    import attach_spm_anat_preprocessing
-from   .preproc import spm_apply_deformations, spm_coregister, PETPVC
-from   .utils   import fsl_merge, extend_trait_list, remove_ext, find_wf_node
-from   ._utils  import flatten_list, format_pair_list
+from   .anat        import attach_spm_anat_preprocessing
+from   .preproc     import spm_apply_deformations, spm_coregister, PETPVC
+from   .input_files import get_input_file_name
+from   .utils       import fsl_merge, extend_trait_list, remove_ext, get_input_node, get_datasink
+from   ._utils      import flatten_list, format_pair_list
 
 
 def petpvc_cmd(in_file=traits.Undefined, mask_file=traits.Undefined, out_file=traits.Undefined,
@@ -176,7 +176,7 @@ def intensity_norm(wf_name='intensity_norm'):
     return wf
 
 
-def spm_pet_preprocessing():
+def spm_pet_preprocessing(wf_name="spm_pet_preproc"):
     """ Run the PET-FDG pre-processing workflow against the pet_fdg files in `data_dir`.
     It depends on the anat_preproc_workflow, so if this has not been run, this function
     will run it too.
@@ -256,7 +256,7 @@ def spm_pet_preprocessing():
     norm_wf = intensity_norm(wf_name="intensity_norm_gm")
 
     # Create the workflow object
-    wf = pe.Workflow(name="spm_pet_preproc")
+    wf = pe.Workflow(name=wf_name)
 
     wf.connect([
                 # unzip to coregister to anatomical image. 'coreg_pet.target' is an input for this wf.
@@ -293,14 +293,14 @@ def spm_pet_preprocessing():
     return wf
 
 
-def attach_spm_pet_preprocessing(main_wf, data_dir, work_dir=None, output_dir=None):
+def attach_spm_pet_preprocessing(main_wf, wf_name="spm_pet_preproc"):
     """ Attach a PET pre-processing workflow that uses SPM12 to `main_wf`.
 
     This will also attach the anat preprocessing workflow to `main_wf`. The reason
     for this is that the PET pre-processing steps here make use of anatomical MR
     pre-processing outputs.
 
-    #TODO: a pet pre-processing workflow that does not need anatomical MR
+    #TODO: a pet pre-processing workflow that does not make use of an anatomical MR
     pre-processing.
 
     Nipype Inputs
@@ -315,11 +315,8 @@ def attach_spm_pet_preprocessing(main_wf, data_dir, work_dir=None, output_dir=No
     ----------
     main_wf: nipype Workflow
 
-    data_dir: str
-
-    work_dir: str
-
-    output_dir: str
+    wf_name: str
+        Name of the preprocessing workflow
 
     Returns
     -------
@@ -327,24 +324,17 @@ def attach_spm_pet_preprocessing(main_wf, data_dir, work_dir=None, output_dir=No
     """
     # Dependency workflows
     main_wf = attach_spm_anat_preprocessing(main_wf=main_wf,
-                                            data_dir=data_dir,
-                                            work_dir=work_dir,
-                                            output_dir=output_dir,
                                             wf_name="spm_anat_preproc")
 
     anat_wf  = main_wf.get_node("spm_anat_preproc")
-    in_files = find_wf_node(main_wf, SelectFiles)
-    datasink = find_wf_node(main_wf, DataSink)
+    in_files = get_input_node(main_wf)
+    datasink = get_datasink  (main_wf)
 
     # The base name of the 'pet' file for the substitutions
-    select_node = in_files.get_node('select')
-    try:
-        pet_fbasename = remove_ext(op.basename(select_node.interface._templates['pet']))
-    except:
-        raise AttributeError("Could not find a SelectFiles node called 'select' in main workflow.")
+    pet_fbasename = remove_ext(op.basename(get_input_file_name(in_files, 'pet')))
 
     # get the PET preprocessing pipeline
-    pet_wf = spm_pet_preprocessing()
+    pet_wf = spm_pet_preprocessing(wf_name=wf_name)
 
     # dataSink output substitutions
     regexp_subst = [
@@ -352,8 +342,8 @@ def attach_spm_pet_preprocessing(main_wf, data_dir, work_dir=None, output_dir=No
                      (r"/r{pet}_.*_pvc.nii.gz$",        "/{pet}_anat_pvc.nii.gz"),
                      (r"/r{pet}_.*_pvc_maths.nii.gz$",  "/{pet}_anat_pvc_norm.nii.gz"),
                      (r"/wr{pet}.nii",                  "/{pet}_mni.nii"),
-                     (r"/wr{pet}_.*_pvc.nii.gz$",       "/{pet}_mni_pvc.nii.gz"),
-                     (r"/wr{pet}_.*_pvc_maths.nii.gz$", "/{pet}_mni_pvc_norm.nii.gz"),
+                     (r"/wr{pet}_.*_pvc.nii$",          "/{pet}_mni_pvc.nii.gz"),
+                     (r"/wr{pet}_.*_pvc_maths.nii$",    "/{pet}_mni_pvc_norm.nii.gz"),
                      (r"/wbrain_mask.nii",              "/brain_mask_mni.nii"),
                    ]
     regexp_subst = format_pair_list(regexp_subst, pet=pet_fbasename)
