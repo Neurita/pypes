@@ -4,16 +4,17 @@ PET image preprocessing nipype workflows.
 import os.path as op
 
 import nipype.pipeline.engine    as pe
-from   nipype.interfaces.utility import Select, Merge, Split
-from   nipype.interfaces.base    import traits
 from   nipype.algorithms.misc    import Gunzip
 from   nipype.interfaces         import fsl
+from   nipype.interfaces.base    import traits
+from   nipype.interfaces.utility import Select, Merge, Split
 
+from   pypes.preproc.petpvc import PETPVC
+from   pypes.preproc.registration import spm_apply_deformations, spm_coregister
+from   ._utils       import flatten_list, format_pair_list
+from pypes.utils.files import remove_ext
 from   .anat         import attach_spm_anat_preprocessing
-from   .registration import spm_apply_deformations, spm_coregister
-from   .petpvc       import PETPVC
 from   .utils        import fsl_merge, extend_trait_list
-from   ._utils       import flatten_list, remove_ext, format_pair_list
 
 
 def petpvc_cmd(in_file=traits.Undefined, mask_file=traits.Undefined, out_file=traits.Undefined,

@@ -4,7 +4,7 @@ Nipype registration nodes
 import nipype.interfaces.spm as spm
 from   nipype.interfaces.base import traits
 
-from .utils import spm_tpm_priors_path
+from pypes.utils import spm_tpm_priors_path
 
 
 def spm_apply_deformations(in_imgs=traits.Undefined, trans_field=traits.Undefined):

@@ -8,7 +8,7 @@ import nipype.pipeline.engine as pe
 from   nipype.interfaces.utility import IdentityInterface
 from   nipype.interfaces.io import SelectFiles
 
-from ._utils import _check_list, remove_ext
+from ._utils import _check_list
 
 
 def subject_session_input(base_dir, session_names, file_names, subject_ids=None,

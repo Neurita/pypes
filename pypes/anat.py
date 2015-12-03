@@ -3,15 +3,16 @@ Nipype workflows to process anatomical MRI.
 """
 import os.path as op
 
+import nipype.interfaces.spm     as spm
 import nipype.pipeline.engine    as pe
 from   nipype.algorithms.misc    import Gunzip
 from   nipype.interfaces.ants    import N4BiasFieldCorrection
 from   nipype.interfaces.base    import traits
-import nipype.interfaces.spm     as spm
 
+from   pypes.preproc.registration import spm_apply_deformations
+from   ._utils       import format_pair_list
+from pypes.utils.files import remove_ext
 from   .utils        import spm_tpm_priors_path, extend_trait_list
-from   ._utils       import remove_ext, format_pair_list
-from   .registration import spm_apply_deformations
 
 
 def biasfield_correct(anat_filepath=traits.Undefined):
