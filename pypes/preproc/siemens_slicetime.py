@@ -50,13 +50,31 @@ class SiemensSliceTimingOutputSpec(TraitedSpec):
 
 class SiemensSliceTiming(SPMCommand):
     """Use spm to perform slice timing correction.
-    This subclass checks the input file to automatically
-    set slice ordering parameters.
+    Some options are automated for Siemens acquisitions
+    compared to spm.SliceTiming correction.
 
-    Auto detection of slice order only if images
-    are from Siemens and converted with dcm2nii from Nov 2013 or later.
+    Auto detection of slice order, i.e., slice_order == [0] and slice_mode == 'unknown'
+    only works for images from Siemens and converted with dcm2nii from Nov 2013 or later.
 
     http://www.fil.ion.ucl.ac.uk/spm/doc/manual.pdf#page=19
+
+    Nipype Inputs
+    -------------
+    All the inputs are the same as SliceTiming, although most are not mandatory anymore.
+
+    slice_mode: str
+        Choices:
+            'unknown': auto detect if images are from Siemens and converted with dcm2nii from Nov 2013 or later #kNIFTI_SLICE_UNKNOWN
+            'seq_inc': sequential ascending kNIFTI_SLICE_SEQ_INC = 1; %1,2,3,4
+            'seq_dec': sequential descending kNIFTI_SLICE_SEQ_DEC = 2; %4,3,2,1
+            'alt_inc': Siemens: interleaved ascending with odd number of slices, interleaved for other vendors kNIFTI_SLICE_ALT_INC = 3; %1,3,2,4
+            'alt_dec': descending interleaved kNIFTI_SLICE_ALT_DEC = 4; %4,2,3,1
+            'alt_inc2': Siemens interleaved ascending with even number of slices kNIFTI_SLICE_ALT_INC2 = 5; %2,4,1,3
+            'alt_dec2': Siemens interleaved descending with even number of slices kNIFTI_SLICE_ALT_DEC2 = 6; %3,1,4,2
+
+        Default: 'unknown'
+        If left to default will read the TR from the nifti image header.
+
 
     Examples
     --------
@@ -112,13 +130,25 @@ class SiemensSliceTiming(SPMCommand):
 
     @staticmethod
     def _get_time_repetition(in_file):
-        return nib.load(in_file).header.get_dim_info()[2]
+        tr = nib.load(in_file).header.get_dim_info()[2]
+        if tr < 1.0 or tr > 5.0:
+            raise ValueError('Aborting: strange Repeat Time (TR), got {}.'.format(tr))
+        if  tr > 5.0:
+            raise ValueError('Long TR often used with sparse imaging: if this is a sparse design please set the TR manually.')
+        if  tr < 0.5:
+            raise ValueError('Short TR may be due to DICOM-to-NIfTI conversion. Perhaps use dcm2nii.')
+
+        return tr
 
     @staticmethod
-    def _get_time_acquisition(in_file):
-        return TA = (TRsec/nslices)*(nslices-1);
+    def _get_time_acquisition(in_file, TR, n_slices):
+        if n_slices == 0:
+            return 0
 
-    def set_slice_order(self):
+        return (TR/n_slices) * (n_slices-1)
+
+    @staticmethod
+    def _get_slice_order(in_file):
         # if slice_order == 0 %attempt to autodetect slice order
         #     fid = fopen(fMRIname1);
         #     fseek(fid,122,'bof');
@@ -148,15 +178,11 @@ class SiemensSliceTiming(SPMCommand):
         # end; %isDescending
         # so
 
-    def _time_acquisition(self):
-        error_msg = 'The time acquisition calculated from all the `in_files` are not the same, got {}.'
-        return self._check_all_equal(self._get_time_acquisition, error_msg)
 
-
-    def _check_all_equal(self, func, error_msg=None):
+    def _check_all_equal(self, func, error_msg=None, **kwargs):
         in_files = self._check_in_files()
 
-        values = [func(f) for f in in_files]
+        values = [func(f,  **kwargs) for f in in_files]
         if not check_equal(values):
             if error_msg is None:
                 error_msg = 'The values from {} are not the same, got {{}}.'.format(func.__name__)
@@ -164,85 +190,40 @@ class SiemensSliceTiming(SPMCommand):
 
         return values[0]
 
-    def _n_slices(self):
+    def set_time_acquisition(self):
+        if isdefined(self.inputs.time_acquisition):
+            return self.inputs.time_acquisition
+
+        n_slices = self.set_num_slices()
+        tr = self.set_time_repetition()
+
+        error_msg = 'The time acquisition calculated from all the `in_files` are not the same, got {}.'
+        self.inputs.time_acquisition = self._check_all_equal(self._get_time_acquisition,
+                                                             error_msg,
+                                                             TR=tr,
+                                                             n_slices=n_slices)
+        return self.inputs.time_acquisition
+
+    def set_num_slices(self):
+        if isdefined(self.inputs.num_slices):
+            return self.inputs.num_slices
+
         error_msg = 'The number of z slices for all `in_files` are not the same, got {}.'
-        return self._check_all_equal(self._get_n_slices, error_msg)
+        self.inputs.num_slices = self._check_all_equal(self._get_n_slices, error_msg)
+        return self.inputs.num_slices
 
     def set_time_repetition(self):
         if isdefined(self.inputs.time_repetition):
             return self.inputs.time_repetition
 
         error_msg = 'The TR calculated from all the `in_files` are not the same, got {}.'
-        self.inputs.re self._check_all_equal(self._get_time_repetition, error_msg)
+        self.inputs.time_repetition = self._check_all_equal(self._get_time_repetition, error_msg)
+        return self.inputs.time_repetition
 
+    def set_slice_order(self):
+        if isdefined(self.inputs.slice_order):
+            return self.inputs.slice_order
 
-
-class SiemensSliceTiming(SPMCommand):
-    """Use spm to perform slice timing correction.
-    Some options are automated for Siemens acquisitions
-    compared to spm.SliceTiming correction.
-
-    Auto detection of slice order, i.e., slice_order == [0] and slice_mode == 'unknown'
-    only works for images from Siemens and converted with dcm2nii from Nov 2013 or later.
-
-    http://www.fil.ion.ucl.ac.uk/spm/doc/manual.pdf#page=19
-
-    Nipype Inputs
-    -------------
-    All the inputs are the same as SliceTiming, although most are not mandatory anymore.
-
-    slice_mode: str
-        Choices:
-            'unknown': auto detect if images are from Siemens and converted with dcm2nii from Nov 2013 or later #kNIFTI_SLICE_UNKNOWN
-            'seq_inc': sequential ascending kNIFTI_SLICE_SEQ_INC = 1; %1,2,3,4
-            'seq_dec': sequential descending kNIFTI_SLICE_SEQ_DEC = 2; %4,3,2,1
-            'alt_inc': Siemens: interleaved ascending with odd number of slices, interleaved for other vendors kNIFTI_SLICE_ALT_INC = 3; %1,3,2,4
-            'alt_dec': descending interleaved kNIFTI_SLICE_ALT_DEC = 4; %4,2,3,1
-            'alt_inc2': Siemens interleaved ascending with even number of slices kNIFTI_SLICE_ALT_INC2 = 5; %2,4,1,3
-            'alt_dec2': Siemens interleaved descending with even number of slices kNIFTI_SLICE_ALT_DEC2 = 6; %3,1,4,2
-
-        Default: 'unknown'
-        If left to default will read the TR from the nifti image header.
-
-    Examples
-    --------
-
-    >>> from nipype.interfaces.spm import SliceTiming
-    >>> st = SliceTiming()
-    >>> st.inputs.in_files = 'functional.nii'
-    >>> st.inputs.num_slices = 32
-    >>> st.inputs.time_repetition = 6.0
-    >>> st.inputs.time_acquisition = 6. - 6./32.
-    >>> st.inputs.slice_order = list(range(32,0,-1))
-    >>> st.inputs.ref_slice = 1
-    >>> st.run() # doctest: +SKIP
-
-    """
-
-    input_spec = SiemensSliceTimingInputSpec
-    output_spec = SiemensSliceTimingOutputSpec
-
-    _jobtype = 'temporal'
-    _jobname = 'st'
-
-    def _format_arg(self, opt, spec, val):
-        """Convert input to appropriate format for spm
-        """
-        if opt == 'in_files':
-            return scans_for_fnames(filename_to_list(val),
-                                    keep4d=False,
-                                    separate_sessions=True)
-        return super(SiemensSliceTiming, self)._format_arg(opt, spec, val)
-
-    def _list_outputs(self):
-        outputs = self._outputs().get()
-        outputs['timecorrected_files'] = []
-
-        filelist = filename_to_list(self.inputs.in_files)
-        for f in filelist:
-            if isinstance(f, list):
-                run = [fname_presuffix(in_f, prefix=self.inputs.out_prefix) for in_f in f]
-            else:
-                run = fname_presuffix(f, prefix=self.inputs.out_prefix)
-            outputs['timecorrected_files'].append(run)
-        return outputs
+        error_msg = 'The slice order for all `in_files` are not the same, got {}.'
+        self.inputs.slice_order = self._check_all_equal(self._get_slice_order, error_msg)
+        return self.inputs.slice_order
