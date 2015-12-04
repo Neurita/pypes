@@ -3,6 +3,13 @@ Private helper functions
 """
 
 
+def check_equal(lst):
+    """ Return True if all items in `lst` are equal, False otherwise.
+    Note that check_equal([1, True]) is True.
+    """
+    return not lst or lst.count(lst[0]) == len(lst)
+
+
 def flatten_list(list_of_lists):
     """ Will convert a list of lists in a list with the items inside each sub-list.
 

@@ -54,7 +54,7 @@ setup_dict = dict(
 
     packages=find_packages(),
 
-    install_requires=['nipype'],
+    install_requires=['nipype', 'nibabel'],
 
     scripts=[],
 
