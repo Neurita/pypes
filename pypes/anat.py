@@ -133,8 +133,8 @@ def attach_spm_anat_preprocessing(main_wf, wf_name="spm_anat_preproc"):
     wf_name: str
         Name of the preprocessing workflow
 
-    Nipype Inputs
-    -------------
+    Nipype Inputs for `main_wf`
+    ---------------------------
     Note: The `main_wf` workflow is expected to have an `input_files` and a `datasink` nodes.
 
     input_files.select.anat: input node

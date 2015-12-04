@@ -293,8 +293,9 @@ def spm_pet_preprocessing(wf_name="spm_pet_preproc"):
     return wf
 
 
-def attach_spm_pet_preprocessing(main_wf, wf_name="spm_pet_preproc"):
+def attach_spm_mrpet_preprocessing(main_wf, wf_name="spm_mrpet_preproc"):
     """ Attach a PET pre-processing workflow that uses SPM12 to `main_wf`.
+    This workflow needs MRI based
 
     This will also attach the anat preprocessing workflow to `main_wf`. The reason
     for this is that the PET pre-processing steps here make use of anatomical MR
@@ -303,8 +304,8 @@ def attach_spm_pet_preprocessing(main_wf, wf_name="spm_pet_preproc"):
     #TODO: a pet pre-processing workflow that does not make use of an anatomical MR
     pre-processing.
 
-    Nipype Inputs
-    -------------
+    Nipype Inputs for `main_wf`
+    ---------------------------
     Note: The `main_wf` workflow is expected to have an `input_files` and a `datasink` nodes.
 
     input_files.select.pet: input node

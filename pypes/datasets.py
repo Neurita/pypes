@@ -6,7 +6,7 @@ import os.path as op
 
 from   .run  import in_out_workflow
 from   .anat import attach_spm_anat_preprocessing
-from   .pet  import attach_spm_pet_preprocessing
+from   .pet  import attach_spm_mrpet_preprocessing
 
 
 def cobre_workflow(wf_name, base_dir, cache_dir, output_dir):
@@ -92,8 +92,8 @@ def clinical_workflow(wf_name, base_dir, cache_dir, output_dir, year):
     if not data_dir or not op.exists(data_dir):
         raise IOError("Expected an existing folder for `data_dir`, got {}.".format(data_dir))
 
-    wfs = {"spm_anat_preproc": attach_spm_pet_preprocessing,
-           "spm_pet_preproc": attach_spm_pet_preprocessing,
+    wfs = {"spm_anat_preproc": attach_spm_anat_preprocessing,
+           "spm_pet_preproc": attach_spm_mrpet_preprocessing,
           }
 
     if wf_name not in wfs:
