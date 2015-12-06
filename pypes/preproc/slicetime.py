@@ -3,13 +3,13 @@ Helper functions for Slice Timing Correction
 """
 import os.path as op
 
-import nibabel as nib
+import nipype.pipeline.engine as pe
 import nipype.interfaces.afni as afni
-import nipype.interfaces.spm as spm
+import nipype.interfaces.spm  as spm
 from   nipype.interfaces.base import traits, isdefined
 
-from ..utils import remove_ext
-from .._utils import check_equal
+from   .slicetime_params import slice_timing_params
+from   ..utils import remove_ext
 
 
 def afni_slicetime(in_file=traits.Undefined,
@@ -94,28 +94,29 @@ def afni_slicetime(in_file=traits.Undefined,
     return tshift
 
 
-def spm_siemens_slicetime(in_file=traits.Undefined,
-                          out_prefix=traits.Undefined,
-                          tr=-1,
-                          time_acquisition=-1,
-                          ignore_first=traits.Undefined,
-                          ref_slice=traits.Undefined,
-                          slice_mode='unknown',
-                          ):
-    """ Return a nipype interface to the SiemensSliceTiming correction which
-    helps setting some parameters for the SPM SliceTiming correction specially
-    regarding Siemens acquisitions.
+def spm_slicetime(in_files=traits.Undefined,
+                  out_prefix=traits.Undefined,
+                  num_slices=0,
+                  time_repetition=-1,
+                  time_acquisition=-1,
+                  ignore_first=traits.Undefined,
+                  ref_slice=traits.Undefined,
+                  slice_order=None,
+                  ):
+    """ Return a nipype interface to the SPM SliceTiming.
 
     Parameters
     ----------
-    in_file: str
+    in_files: str
         Path to the input file
 
     out_prefix: str
         Prefix to the output file.
         Default: 'a'
 
-    tr: int or str
+    num_slices: int
+
+    time_repetition: int or str
         The time repetition (TR) of the input dataset in seconds
         Default: 0
         If left to default will read the TR from the nifti image header.
@@ -135,38 +136,102 @@ def spm_siemens_slicetime(in_file=traits.Undefined,
     ref_slice: int
         Index of the reference slice
 
-    slice_mode: str
-        Choices:
-            'unknown': auto detect if images are from Siemens and converted with dcm2nii from Nov 2013 or later #kNIFTI_SLICE_UNKNOWN
-            'seq_inc': sequential ascending kNIFTI_SLICE_SEQ_INC = 1; %1,2,3,4
-            'seq_dec': sequential descending kNIFTI_SLICE_SEQ_DEC = 2; %4,3,2,1
-            'alt_inc': Siemens: interleaved ascending with odd number of slices, interleaved for other vendors kNIFTI_SLICE_ALT_INC = 3; %1,3,2,4
-            'alt_dec': descending interleaved kNIFTI_SLICE_ALT_DEC = 4; %4,2,3,1
-            'alt_inc2': Siemens interleaved ascending with even number of slices kNIFTI_SLICE_ALT_INC2 = 5; %2,4,1,3
-            'alt_dec2': Siemens interleaved descending with even number of slices kNIFTI_SLICE_ALT_DEC2 = 6; %3,1,4,2
-
-        Default: 'unknown'
-        If left to default will read the TR from the nifti image header.
+    slice_order: list of int
 
     Returns
     -------
     stc: nipype interface
     """
-    stc = SiemensSliceTiming()
+    stc = spm.SliceTiming()
 
-    stc.slice_mode = slice_mode
-    stc.inputs.in_file = in_file
-    stc.inputs.out_prefix = out_prefix
-    stc.inputs.out_prefix = out_prefix
-    stc.inputs.ref_slice = ref_slice
-    stc.inputs.ignore = ignore_first
-
-    # the automatically calculated settings
-    stc.inputs.slice_order = [0]
-    stc.inputs.time_repetition = -1
-    stc.inputs.time_acquisition = -1
-    stc.inputs.ref_slice = 0
-    stc.inputs.num_slices = 0
+    stc.inputs.in_files         = in_files
+    stc.inputs.out_prefix       = out_prefix
+    stc.inputs.slice_order      = slice_order
+    stc.inputs.ref_slice        = ref_slice
+    stc.inputs.ignore           = ignore_first
+    stc.inputs.time_repetition  = time_repetition
+    stc.inputs.time_acquisition = time_acquisition
+    stc.inputs.num_slices       = num_slices
 
     #res = stc.run()
     return stc
+
+
+def auto_spm_slicetime(in_files=traits.Undefined,
+                       out_prefix=traits.Undefined,
+                       num_slices=0,
+                       time_repetition=-1,
+                       time_acquisition=-1,
+                       ignore_first=traits.Undefined,
+                       ref_slice=traits.Undefined,
+                       slice_order=None,
+                       wf_name='auto_spm_slicetime'):
+    """
+
+    Parameters
+    ----------
+    in_files
+    out_prefix
+    num_slices
+    time_repetition
+    time_acquisition
+    ignore_first
+    ref_slice
+    slice_order
+    wf_name
+
+    Nipype Inputs
+    -------------
+    - Mandatory:
+    params.in_files:
+
+
+    - Optional:
+    params.num_slices
+
+    params.slice_order
+
+    params.time_repetition
+
+    params.time_acquisition
+
+    params.ref_slice
+
+    params.slice_mode
+
+    Nipype Outputs
+    --------------
+    slice_timer.out_files
+
+    Returns
+    -------
+    auto_spm_stc: nipype Workflow
+    SPM slice timing correction workflow with automatic
+    parameters detection
+    """
+
+    params = pe.Node(slice_timing_params(), name='params')
+    stc = pe.Node(spm_slicetime(in_files=in_files,
+                                out_prefix=out_prefix,
+                                num_slices=num_slices,
+                                time_repetition=time_repetition,
+                                time_acquisition=time_acquisition,
+                                ignore_first=ignore_first,
+                                ref_slice=ref_slice,
+                                slice_order=slice_order), name='slice_timer')
+
+        # Create the workflow object
+    wf = pe.Workflow(name=wf_name)
+
+    # Connect the nodes
+    wf.connect([
+                (params, stc, [("in_files",         "in_files"),
+                               ("num_slices",       "num_slices"),
+                               ("slice_order",      "slice_order"),
+                               ("time_repetition",  "time_repetition"),
+                               ("time_acquisition", "time_acquisition"),
+                               ("ref_slice",        "ref_slice"),
+                              ]),
+              ])
+
+    return wf
