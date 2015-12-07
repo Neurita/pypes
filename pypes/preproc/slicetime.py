@@ -5,6 +5,7 @@ import os.path as op
 
 import nipype.pipeline.engine as pe
 import nipype.interfaces.afni as afni
+import nipype.interfaces.nipy as nipy
 import nipype.interfaces.spm  as spm
 from   nipype.interfaces.base import traits, isdefined
 
@@ -152,6 +153,48 @@ def spm_slicetime(in_files=traits.Undefined,
     return stc
 
 
+def nipy_fmrirealign4d(in_files=traits.Undefined,
+                       time_repetition=2,
+                       slice_order=None,
+                       loops=5,
+                       ):
+    """ Return a nipype interface to the nipy.FmriRealign4d
+
+    Parameters
+    ----------
+    in_files: str or list of str
+        Path to the input file(s).
+
+    time_repetition: int or str
+        The time repetition (TR) of the input dataset in seconds
+        Default: 0
+        If left to default will read the TR from the nifti image header.
+
+    slice_order: list of int
+        This would be equivalent to
+        entering np.argsort(spm_slice_order) for this field.
+        This field will be deprecated in future Nipy releases and be
+        replaced by actual slice acquisition
+        times.
+
+    loops: int
+        Number of loops used to realignment runs.
+
+    Returns
+    -------
+    stc: nipype interface
+    """
+    stc = nipy.FmriRealign4d()
+
+    stc.inputs.in_files         = in_files
+    stc.inputs.time_repetition  = time_repetition
+    stc.inputs.slice_order      = slice_order
+    stc.inputs.loops            = loops
+
+    #res = stc.run()
+    return stc
+
+
 def auto_spm_slicetime(in_files=traits.Undefined,
                        out_prefix=traits.Undefined,
                        num_slices=0,
@@ -225,6 +268,9 @@ def auto_spm_slicetime(in_files=traits.Undefined,
         SPM slice timing correction workflow with automatic
         parameters detection.
     """
+    def sum_one(slice_order): # SPM starts count from 1
+        return [i+1 for i in slice_order]
+
     # Declare the processing nodes
     params = pe.Node(slice_timing_params(), name='params')
     stc    = pe.Node(spm_slicetime(in_files=in_files,
@@ -241,11 +287,86 @@ def auto_spm_slicetime(in_files=traits.Undefined,
 
     # Connect the nodes
     wf.connect([
+                (params, stc, [("in_files",                 "in_files"),
+                               ("num_slices",               "num_slices"),
+                               ("ref_slice",                "ref_slice"),
+                               (("slice_order", sum_one),   "slice_order"),
+                               ("time_acquisition",         "time_acquisition"),
+                               ("time_repetition",          "time_repetition"),
+                              ]),
+              ])
+
+    return wf
+
+
+def auto_nipy_slicetime(in_files=traits.Undefined,
+                        time_repetition=-1,
+                        slice_order=None,
+                        loops=5,
+                        wf_name='auto_spm_slicetime'):
+    """ A workflow that tries to automatically read the slice timing correction parameters
+    from the input files and passes them to a nipy.fMRIRealign4D node.
+
+    Parameters
+    ----------
+    in_files: str or list of str
+        Path to the input file(s).
+
+    time_repetition: int or str
+        The time repetition (TR) of the input dataset in seconds
+        Default: 0
+        If left to default will read the TR from the nifti image header.
+
+    slice_order: list of int
+        List of integers with the order in which slices are acquired
+
+    loops: int
+        Number of loops used to realignment runs.
+
+    wf_name: str
+        Name of the workflow
+
+    Nipype Inputs
+    -------------
+    ## Mandatory:
+    params.in_files:
+
+    params.time_repetition
+
+    ## Optional:
+    params.slice_order
+
+    params.ref_slice
+
+    params.slice_mode
+
+    Nipype Outputs
+    --------------
+    slice_timer.out_file
+
+    slice_timer.par_file
+
+    Returns
+    -------
+    auto_nipy_stc: nipype Workflow
+        Nipy 4D alignment and slice timing correction workflow with automatic
+        parameters detection.
+    """
+    # Declare the processing nodes
+    params = pe.Node(slice_timing_params(), name='params')
+    stc    = pe.Node(nipy_fmrirealign4d(in_files=in_files,
+                                        time_repetition=time_repetition,
+                                        slice_order=slice_order,
+                                        loops=loops),
+                     name='slice_timer')
+
+    # Create the workflow object
+    wf = pe.Workflow(name=wf_name)
+
+    # Connect the nodes
+    wf.connect([
                 (params, stc, [("in_files",         "in_files"),
-                               ("num_slices",       "num_slices"),
-                               ("ref_slice",        "ref_slice"),
                                ("slice_order",      "slice_order"),
-                               ("time_acquisition", "time_acquisition"),
                                ("time_repetition",  "time_repetition"),
                               ]),
               ])
