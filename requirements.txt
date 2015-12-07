@@ -1,3 +1,4 @@
 nibabel>=2.0.0
+kaptan>=0.5.8
 git+https://github.com/nipy/nipype@master#egg=nipype
 #git+https://github.com/neurita/boyle@master#egg=boyle

@@ -54,7 +54,7 @@ setup_dict = dict(
 
     packages=find_packages(),
 
-    install_requires=['nipype', 'nibabel'],
+    install_requires=['nipype', 'nibabel', 'kaptan'],
 
     scripts=[],
 
