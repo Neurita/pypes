@@ -18,12 +18,18 @@ class Borg:
     # and whatever else you want in your class -- that's all!
 
 
-class Config(Borg, Kaptan):
-    """
+class Config(Kaptan):
+    """ This class has a shared state like a Borg.
 
+    This is a Kaptan class that infers the file handler
+    from the file extension using the `from_file` function.
     """
-    def __init__(self):
-        super(Config, self).__init__()
+    __shared_state = {}
+
+    def __init__(self, handler):
+        self.__dict__ = self.__shared_state
+
+        super(Config, self).__init__(handler=handler)
 
     @staticmethod
     def _handler_for_ext(ext):
