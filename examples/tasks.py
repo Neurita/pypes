@@ -13,7 +13,7 @@ from pypes.datasets import cobre_workflow
 
 #@task
 def run(wf_name="spm_t1_preproc", base_dir="", cache_dir="", output_dir="",
-             year="", plugin="MultiProc", n_cpus=4):
+        plugin="MultiProc", n_cpus=4):
     """
 
     ParametersA
@@ -25,8 +25,6 @@ def run(wf_name="spm_t1_preproc", base_dir="", cache_dir="", output_dir="",
     cache_dir: str
 
     output_dir: str
-
-    year: str or int
 
     plugin: str
 
