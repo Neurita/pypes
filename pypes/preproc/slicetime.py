@@ -161,7 +161,8 @@ def auto_spm_slicetime(in_files=traits.Undefined,
                        ref_slice=traits.Undefined,
                        slice_order=None,
                        wf_name='auto_spm_slicetime'):
-    """
+    """ A workflow that tries to automatically read the slice timing correction parameters
+    from the input files and passes them to a spm.SliceTiming node.
 
     Parameters
     ----------
