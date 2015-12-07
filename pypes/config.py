@@ -23,6 +23,13 @@ class Config(Kaptan):
 
     This is a Kaptan class that infers the file handler
     from the file extension using the `from_file` function.
+
+    Parameters
+    ----------
+    handler: str or kaptan.BaseHandler
+        This parameter is to keep compatibility with Kaptan's instantiation protocol.
+        See its documentation on how to use it: http://emre.github.io/kaptan/
+        I personally prefer to use the `from_file` function.
     """
     __shared_state = {}
 
