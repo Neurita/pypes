@@ -28,26 +28,30 @@ class STCParameters(object):
     This class is based on the script by Chris Rorden's Neuropsychology Lab in:
     - http://www.mccauslandcenter.sc.edu/CRNL/tools/stc
 
-    This is a callable class, the __call__ function can be wrapped for nipype.
+    This is a callable class so an instance of this class by nipype Function.
+    See `slice_timing_params` in this module.
 
     Parameters
     ----------
     in_files: str
         Path to the input files
 
-    time_repetition: int
-        The time repetition (TR) of the input dataset in seconds
-        Default: 0
-        If left to default will read the TR from the nifti image header.
+    num_slices: int
+        Number of slices of `in_files`.
 
-    time_acquisition: int
-        Time of volume acquisition. usually calculated as TR-(TR/num_slices)
+    ref_slice: int
+        Index of the reference slice
 
     slice_order: list of ints
         List of integers with the order in which slices are acquired
 
-    ref_slice: int
-        Index of the reference slice
+    time_acquisition: int
+        Time of volume acquisition. usually calculated as TR-(TR/num_slices)
+
+    time_repetition: int
+        The time repetition (TR) of the input dataset in seconds
+        Default: 0
+        If left to default will read the TR from the nifti image header.
 
     slice_mode: str
         Choices:
@@ -81,11 +85,61 @@ class STCParameters(object):
 
     def __call__(self, in_files,
                        num_slices=0,
-                       slice_order=None,
-                       time_repetition=None,
-                       time_acquisition=None,
                        ref_slice=None,
+                       slice_order=None,
+                       time_acquisition=None,
+                       time_repetition=None,
                        slice_mode='unknown'):
+        """
+
+        Parameters
+        ----------
+        in_files: str
+            Path to the input files
+
+        num_slices: int
+            Number of slices of `in_files`.
+
+        ref_slice: int
+            Index of the reference slice
+
+        slice_order: list of ints
+            List of integers with the order in which slices are acquired
+
+        time_acquisition: int
+            Time of volume acquisition. usually calculated as TR-(TR/num_slices)
+
+        time_repetition: int
+            The time repetition (TR) of the input dataset in seconds
+            Default: 0
+            If left to default will read the TR from the nifti image header.
+
+        slice_mode: str
+            Choices:
+                'unknown': auto detect if images are from Siemens and converted with dcm2nii from Nov 2013 or later #kNIFTI_SLICE_UNKNOWN
+                'seq_inc': sequential ascending kNIFTI_SLICE_SEQ_INC = 1; %1,2,3,4
+                'seq_dec': sequential descending kNIFTI_SLICE_SEQ_DEC = 2; %4,3,2,1
+                'alt_inc': Siemens: interleaved ascending with odd number of slices, interleaved for other vendors kNIFTI_SLICE_ALT_INC = 3; %1,3,2,4
+                'alt_dec': descending interleaved kNIFTI_SLICE_ALT_DEC = 4; %4,2,3,1
+                'alt_inc2': Siemens interleaved ascending with even number of slices kNIFTI_SLICE_ALT_INC2 = 5; %2,4,1,3
+                'alt_dec2': Siemens interleaved descending with even number of slices kNIFTI_SLICE_ALT_DEC2 = 6; %3,1,4,2
+
+            Default: 'unknown'
+            If left to default will try to detect the TR from the nifti image header, if it doesn't work
+            an AttributeError exception will be raise.
+
+        Returns
+        -------
+        num_slices
+
+        ref_slice
+
+        slice_order
+
+        time_acquisition
+
+        time_repetition
+        """
 
         # If you have used this class for more than once and this exception is raised check the following comment:
         # TODO: decide to remove `isdefined` or change the `is not None` checks in the `set` functions
@@ -110,13 +164,13 @@ class STCParameters(object):
         -------
         num_slices
 
-        slice_order
+        ref_slice
 
-        time_repetition
+        slice_order
 
         time_acquisition
 
-        ref_slice
+        time_repetition
         """
         num_slices       = self.set_num_slices()
         slice_order      = self.set_slice_order()
@@ -124,7 +178,7 @@ class STCParameters(object):
         time_acquisition = self.set_time_acquisition()
         ref_slice        = self.set_ref_slice()
 
-        return num_slices, slice_order, time_repetition, time_acquisition, ref_slice
+        return num_slices, ref_slice, slice_order, time_acquisition, time_repetition
 
     def _check_in_files(self):
         if isinstance(self.in_files, str):
@@ -222,7 +276,7 @@ class STCParameters(object):
 
             Returns
             -------
-
+            slice_order: list of int
             """
             mode_int = { 0: 'unknown' ,
                          1: 'seq_inc' ,
@@ -349,22 +403,46 @@ def slice_timing_params():
 
     Nipype Inputs
     -------------
-    in_files
-    num_slices
-    time_repetition
-    time_acquisition
-    slice_order
-    slice_mode
-    ref_slice
+    ## Mandatory:
+    in_files: str or list of str
+        Path to the input file(s).
+
+    ## Optional:
+    num_slices: int
+        Number of slices of `in_files`.
+
+    time_repetition: int or str
+        The time repetition (TR) of the input dataset in seconds
+        Default: 0
+        If left to default will read the TR from the nifti image header.
+
+    time_acquisition: int
+        Time of volume acquisition. usually calculated as TR-(TR/num_slices)
+
+    slice_order: list of int
+        List of integers with the order in which slices are acquired
+
+    ref_slice: int
+        Index of the reference slice
 
     Nipype Outputs
     --------------
+    num_slices: int
+        Number of slices of `in_files`.
 
-    num_slices
-    slice_order
-    time_repetition
-    time_acquisition
-    ref_slice
+    ref_slice: int
+        Index of the reference slice
+
+    slice_order: list of int
+        List of integers with the order in which slices are acquired
+
+    time_acquisition: int
+        Time of volume acquisition. usually calculated as TR-(TR/num_slices)
+
+    time_repetition: int or str
+        The time repetition (TR) of the input dataset in seconds
+        Default: 0
+        If left to default will read the TR from the nifti image header.
 
     Returns
     -------
@@ -382,10 +460,10 @@ def slice_timing_params():
                     ]
 
     output_names  = ['num_slices',
-                     'slice_order',
-                     'time_repetition',
-                     'time_acquisition',
                      'ref_slice',
+                     'slice_order',
+                     'time_acquisition',
+                     'time_repetition',
                     ]
 
     imports = ['import os.path as op',

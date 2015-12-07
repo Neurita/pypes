@@ -107,8 +107,8 @@ def spm_slicetime(in_files=traits.Undefined,
 
     Parameters
     ----------
-    in_files: str
-        Path to the input file
+    in_files: str or list of str
+        Path to the input file(s).
 
     out_prefix: str
         Prefix to the output file.
@@ -121,17 +121,12 @@ def spm_slicetime(in_files=traits.Undefined,
         Default: 0
         If left to default will read the TR from the nifti image header.
 
+    time_acquisition: int
+        Time of volume acquisition. usually calculated as TR-(TR/num_slices)
+
     ignore_first: int
         Number of acquisitions thrown away from the beginning of the
         dataset.
-
-    tzero: float
-        Align each slice to time offset `tzero`.
-        The value of 'tzero' must be between the
-        minimum and maximum slice temporal offsets.
-        Note: The default alignment time is the average
-              of the 'tpattern' values (either from the
-              dataset header or from the -tpattern option)
 
     ref_slice: int
         Index of the reference slice
@@ -162,7 +157,7 @@ def auto_spm_slicetime(in_files=traits.Undefined,
                        num_slices=0,
                        time_repetition=-1,
                        time_acquisition=-1,
-                       ignore_first=traits.Undefined,
+                       ignore_first=6,
                        ref_slice=traits.Undefined,
                        slice_order=None,
                        wf_name='auto_spm_slicetime'):
@@ -170,23 +165,43 @@ def auto_spm_slicetime(in_files=traits.Undefined,
 
     Parameters
     ----------
-    in_files
-    out_prefix
-    num_slices
-    time_repetition
-    time_acquisition
-    ignore_first
-    ref_slice
-    slice_order
-    wf_name
+    in_files: str or list of str
+        Path to the input file(s).
+
+    out_prefix: str
+        Prefix to the output file.
+        Default: 'a'
+
+    num_slices: int
+        Number of slices of `in_files`.
+
+    time_repetition: int or str
+        The time repetition (TR) of the input dataset in seconds
+        Default: 0
+        If left to default will read the TR from the nifti image header.
+
+    time_acquisition: int
+        Time of volume acquisition. usually calculated as TR-(TR/num_slices)
+
+    ignore_first: int
+        Number of acquisitions thrown away from the beginning of the
+        dataset.
+
+    ref_slice: int
+        Index of the reference slice
+
+    slice_order: list of int
+        List of integers with the order in which slices are acquired
+
+    wf_name: str
+        Name of the workflow
 
     Nipype Inputs
     -------------
-    - Mandatory:
+    ## Mandatory:
     params.in_files:
 
-
-    - Optional:
+    ## Optional:
     params.num_slices
 
     params.slice_order
@@ -201,36 +216,36 @@ def auto_spm_slicetime(in_files=traits.Undefined,
 
     Nipype Outputs
     --------------
-    slice_timer.out_files
+    slice_timer.timecorrected_files
 
     Returns
     -------
     auto_spm_stc: nipype Workflow
-    SPM slice timing correction workflow with automatic
-    parameters detection
+        SPM slice timing correction workflow with automatic
+        parameters detection.
     """
-
+    # Declare the processing nodes
     params = pe.Node(slice_timing_params(), name='params')
-    stc = pe.Node(spm_slicetime(in_files=in_files,
-                                out_prefix=out_prefix,
-                                num_slices=num_slices,
-                                time_repetition=time_repetition,
-                                time_acquisition=time_acquisition,
-                                ignore_first=ignore_first,
-                                ref_slice=ref_slice,
-                                slice_order=slice_order), name='slice_timer')
+    stc    = pe.Node(spm_slicetime(in_files=in_files,
+                                   out_prefix=out_prefix,
+                                   num_slices=num_slices,
+                                   time_repetition=time_repetition,
+                                   time_acquisition=time_acquisition,
+                                   ignore_first=ignore_first,
+                                   ref_slice=ref_slice,
+                                   slice_order=slice_order), name='slice_timer')
 
-        # Create the workflow object
+    # Create the workflow object
     wf = pe.Workflow(name=wf_name)
 
     # Connect the nodes
     wf.connect([
                 (params, stc, [("in_files",         "in_files"),
                                ("num_slices",       "num_slices"),
-                               ("slice_order",      "slice_order"),
-                               ("time_repetition",  "time_repetition"),
-                               ("time_acquisition", "time_acquisition"),
                                ("ref_slice",        "ref_slice"),
+                               ("slice_order",      "slice_order"),
+                               ("time_acquisition", "time_acquisition"),
+                               ("time_repetition",  "time_repetition"),
                               ]),
               ])
 
