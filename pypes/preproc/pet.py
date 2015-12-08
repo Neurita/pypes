@@ -153,7 +153,7 @@ def intensity_norm(wf_name='intensity_norm'):
     wf: nipype Workflow
     """
     ## calculate masked stats
-    mean_value = pe.Node(fsl.ImageStats(op_string="-M"), name='mean_value')
+    mean_value = pe.Node(fsl.ImageStats(op_string="-M -k %s"), name='mean_value')
 
     ## normalize
     gm_norm = pe.Node(fsl.BinaryMaths(operation='div'), name='gm_norm')
