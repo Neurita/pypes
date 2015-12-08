@@ -4,9 +4,6 @@ Helper functions for Slice Timing Correction
 import os.path as op
 
 import nipype.pipeline.engine as pe
-import nipype.interfaces.afni as afni
-import nipype.interfaces.nipy as nipy
-import nipype.interfaces.spm  as spm
 from   nipype.interfaces.base import traits, isdefined
 
 from   .slicetime_params import slice_timing_params
@@ -73,6 +70,8 @@ def afni_slicetime(in_file=traits.Undefined,
     -------
     tshift: nipype interface
     """
+    import nipype.interfaces.afni as afni
+
     tshift = afni.TShift()
 
     if isdefined(tr):
@@ -138,6 +137,8 @@ def spm_slicetime(in_files=traits.Undefined,
     -------
     stc: nipype interface
     """
+    import nipype.interfaces.spm  as spm
+
     stc = spm.SliceTiming()
 
     stc.inputs.in_files         = in_files
@@ -184,6 +185,8 @@ def nipy_fmrirealign4d(in_files=traits.Undefined,
     -------
     stc: nipype interface
     """
+    import nipype.interfaces.nipy as nipy
+
     stc = nipy.FmriRealign4d()
 
     stc.inputs.in_files         = in_files
