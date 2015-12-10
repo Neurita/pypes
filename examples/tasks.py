@@ -12,7 +12,7 @@ from pypes.datasets import cobre_workflow
 
 
 #@task
-def run(wf_name="spm_t1_preproc", base_dir="", cache_dir="", output_dir="",
+def run(wf_name="spm_anat_preproc", base_dir="", cache_dir="", output_dir="",
         plugin="MultiProc", n_cpus=4):
     """
 

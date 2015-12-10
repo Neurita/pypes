@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Helper functions to plot nipype workflows
 """

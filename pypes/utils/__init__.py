@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 
 from .environ import  spm_tpm_priors_path
 from .files   import  remove_ext, get_extension

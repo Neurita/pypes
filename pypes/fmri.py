@@ -1,12 +1,13 @@
-from nipype import logging
-logger = logging.getLogger('workflow')
+# -*- coding: utf-8 -*-
+"""
+fMRI pre-processing workflows
+"""
 
 import nipype.pipeline.engine as pe
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.utility as util
-#import CPAC.interfaces.afni.preprocess as preprocess
-from nipype.interfaces.afni import preprocess
-from CPAC.utils import dbg_file_lineno
+from   nipype.interfaces.afni import preprocess
+
 
 # workflow to edit the scan to the proscribed TRs
 def create_wf_edit_func( wf_name = "edit_func" ):

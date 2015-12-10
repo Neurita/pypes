@@ -1,4 +1,4 @@
-
+# -*- coding: utf-8 -*-
 from pypes._utils import format_pair_list
 
 

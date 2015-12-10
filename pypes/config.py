@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Configuration manager for workflow definitions.
 This works over Kaptan:https://github.com/emre/kaptan

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 PET image preprocessing nipype workflows.
 """

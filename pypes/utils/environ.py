@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Helper functions to check for value configurations in the system and the external tools.
 """

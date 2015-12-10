@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Workflows to grab input file structures.
 """

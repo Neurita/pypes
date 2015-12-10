@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Helper functions for joining, merging, managing the workflow nodes.
 """

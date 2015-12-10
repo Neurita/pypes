@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 """
 Nipype registration nodes
 """
@@ -10,7 +12,7 @@ from pypes.utils import spm_tpm_priors_path
 
 def spm_apply_deformations(in_imgs=traits.Undefined, trans_field=traits.Undefined):
     """Return a Normalize12 interface object.
-    SPM12’s new Normalise routine for warping an image to a template.
+    SPM12's new Normalise routine for warping an image to a template.
     For more info:
     http://www.mit.edu/~satra/nipype-nightly/interfaces/generated/nipype.interfaces.spm.preprocess.html#normalize12
     """
@@ -25,7 +27,7 @@ def spm_apply_deformations(in_imgs=traits.Undefined, trans_field=traits.Undefine
 
 def spm_normalize(in_imgs=traits.Undefined, voxel_size=(1, 1, 1), template=None):
     """Return a Normalize12 interface object.
-    SPM12’s new Normalise routine for warping an image to a template.
+    SPM12's new Normalise routine for warping an image to a template.
 
     Parameters
     ----------

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Nipype workflows to process anatomical MRI.
 """

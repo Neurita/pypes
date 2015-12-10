@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 
 from .slicetime import (afni_slicetime,
                         spm_slicetime,

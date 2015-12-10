@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Functions to create pipelines for public and not so public available datasets.
 """
@@ -65,7 +66,7 @@ def cobre_workflow(wf_name, base_dir, cache_dir, output_dir):
 
 
 def clinical_workflow(wf_name, base_dir, cache_dir, output_dir, year):
-    """ Run an specific pipeline.
+    """ Run a specific pipeline.
 
     Parameters
     ----------
@@ -93,7 +94,7 @@ def clinical_workflow(wf_name, base_dir, cache_dir, output_dir, year):
         raise IOError("Expected an existing folder for `data_dir`, got {}.".format(data_dir))
 
     wfs = {"spm_anat_preproc": attach_spm_anat_preprocessing,
-           "spm_pet_preproc": attach_spm_mrpet_preprocessing,
+           "spm_mrpet_preproc": attach_spm_mrpet_preprocessing,
           }
 
     if wf_name not in wfs:

@@ -1,5 +1,10 @@
+# -*- coding: utf-8 -*-
+"""
+Motion statistics calculation helper functions
+"""
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util
+
 
 def calc_friston_twenty_four(in_file):
     """
