@@ -4,14 +4,14 @@ Note the commented lines would set this as an `invoke` task function
  to allow this to be run from the command line.
 """
 
-#from invoke import task
+from invoke import task
 
 from pypes.run import run_wf
 from pypes.plot import plot_workflow
 from pypes.datasets import cobre_workflow
 
 
-#@task
+@task
 def run(wf_name="spm_anat_preproc", base_dir="", cache_dir="", output_dir="",
         plugin="MultiProc", n_cpus=4):
     """
