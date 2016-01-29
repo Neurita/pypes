@@ -44,6 +44,8 @@ def fsl_dti_preprocessing(wf_name="fsl_dti_preproc"):
 
     bet.inputs.mask = True
 
+    dtifit.inputs.save_tensor = True
+
     # Create the workflow object
     wf = pe.Workflow(name=wf_name)
 
