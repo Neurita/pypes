@@ -1,12 +1,18 @@
-.PHONY: help clean clean-pyc clean-build list test test-all coverage docs release sdist install develop install_deps
+.PHONY: help clean clean-pyc clean-build list test test-dbg test-cov test-all coverage docs release sdist install deps develop tag
 
 project-name = pypes
+
+version-var := "__version__ = "
+version-string := $(shell grep $(version-var) $(project-name)/version.py)
+version := $(subst __version__ = ,,$(version-string))
 
 help:
 	@echo "clean-build - remove build artifacts"
 	@echo "clean-pyc - remove Python file artifacts"
 	@echo "lint - check style with flake8"
 	@echo "test - run tests quickly with the default Python"
+	@echo "test-cov - run tests with the default Python and report coverage"
+	@echo "test-dbg - run tests and debug with ipdb"
 	@echo "testall - run tests on every Python version with tox"
 	@echo "coverage - check code coverage quickly with the default Python"
 	@echo "docs - generate Sphinx HTML documentation, including API docs"
@@ -14,6 +20,8 @@ help:
 	@echo "sdist - package"
 	@echo "install - install"
 	@echo "develop - install in development mode"
+	@echo "deps - install dependencies"
+	@echo "tag - create a git tag with current version"
 
 install: install_deps
 	python setup.py install
@@ -21,10 +29,10 @@ install: install_deps
 develop: install_deps
 	python setup.py develop
 
-install_deps:
-	./install_deps.py requirements.txt
+deps:
+	pip install -r requirements.txt
 
-clean: clean-build clean-pyc clean-others
+clean: clean-build clean-pyc
 
 clean-build:
 	rm -fr build/
@@ -36,15 +44,19 @@ clean-pyc:
 	find . -name '*.pyo' -exec rm -f {} +
 	find . -name '*~' -exec rm -f {} +
 	find . -name '__pycache__' -exec rm -rf {} +
-
-clean-others:
-	find . -name '*.nii*' -exec rm -f {} +
+	find . -name '*.log*' -delete
 
 lint:
 	flake8 $(project-name) test
 
 test:
 	py.test
+
+test-cov:
+	py.test --cov-report term-missing --cov=$(project-name)
+
+test-dbg:
+	py.test --ipdb
 
 test-all:
 	tox
@@ -63,7 +75,12 @@ docs:
 	$(MAKE) -C docs html
 	open docs/_build/html/index.html
 
-release: clean
+tag: clean
+	@echo "Creating git tag v$(version)"
+	git tag v$(version)
+	git push --tags
+
+release: clean tag
 	python setup.py sdist upload
 	python setup.py bdist_wheel upload
 
