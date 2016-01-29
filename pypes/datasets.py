@@ -10,7 +10,7 @@ from   .anat import attach_spm_anat_preprocessing
 from   .pet  import attach_spm_mrpet_preprocessing
 
 
-def cobre_workflow(wf_name, base_dir, cache_dir, output_dir):
+def cobre_workflow(wf_name, base_dir, cache_dir, output_dir, subject_ids=None):
     """ Returns a workflow for the COBRE database.
 
     Parameters
@@ -26,6 +26,9 @@ def cobre_workflow(wf_name, base_dir, cache_dir, output_dir):
 
     output_dir: str
         The output folder path
+
+    subject_ids: list of str
+        A list of the subjects IDs that you want to process.
     """
 
     data_dir = base_dir
@@ -54,7 +57,7 @@ def cobre_workflow(wf_name, base_dir, cache_dir, output_dir):
                               session_names=['session_1'],
                               file_names={'anat': 'anat_1/mprage.nii.gz',
                                           'rest': 'rest_1/rest.nii.gz'},
-                              subject_ids=None,
+                              subject_ids=subject_ids,
                               input_wf_name='input_files')
 
     wf = wfs[wf_name](main_wf=main_wf)
@@ -65,7 +68,7 @@ def cobre_workflow(wf_name, base_dir, cache_dir, output_dir):
     return wf
 
 
-def clinical_workflow(wf_name, base_dir, cache_dir, output_dir, year):
+def clinical_workflow(wf_name, base_dir, cache_dir, output_dir, subject_ids=None):
     """ Run a specific pipeline.
 
     Parameters
@@ -73,8 +76,9 @@ def clinical_workflow(wf_name, base_dir, cache_dir, output_dir, year):
     wf_name: str
         A name for the workflow.
 
-    base_dir: str
-        The folder path where the raw data is.
+    base_dir: hansel.Crumb or str
+        The folder path structure where the raw data is.
+        For example:
 
     cache_dir: str
         The working directory of the workflow.
@@ -82,8 +86,8 @@ def clinical_workflow(wf_name, base_dir, cache_dir, output_dir, year):
     output_dir: str
         The output folder path
 
-    year: str or int
-        The year of the subject set.
+    subject_ids: list of str
+        A list of the subjects IDs that you want to process.
     """
     if not year:
         data_dir = base_dir
@@ -114,8 +118,9 @@ def clinical_workflow(wf_name, base_dir, cache_dir, output_dir, year):
                               output_dir=output_dir,
                               session_names=['session_0'],
                               file_names={'anat': 'anat_hc.nii.gz',
-                                          'pet': 'pet_fdg.nii.gz'},
-                              subject_ids=None,
+                                          'pet': 'pet_fdg.nii.gz',
+                                          'diff': 'diff.nii.gz',},
+                              subject_ids=subject_ids,
                               input_wf_name='input_files')
 
     wf = wfs[wf_name](main_wf=main_wf)
