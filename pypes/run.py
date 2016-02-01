@@ -6,8 +6,80 @@ Helper functions to build base workflow and run them
 import nipype.pipeline.engine   as pe
 from   nipype.interfaces.io     import DataSink
 
-from   .input_files import subject_session_input
-from   .utils       import extend_trait_list, joinpaths
+from   .io    import subject_session_input
+from   .utils import extend_trait_list, joinpaths
+
+
+def in_out_crumb_wf(work_dir, data_dir, output_dir, file_names,
+                    input_wf_name=None, wf_name="main_workflow"):
+    """ Creates a workflow with the `subject_session_file` input nodes and an empty `datasink`.
+    The 'datasink' must be connected in order to work.
+
+    Parameters
+    ----------
+    work_dir: str
+        Path to the workflow temporary folder
+
+    data_dir: str
+        Path to where the subject folders is.
+
+    output_dir: str
+        Path to where the datasink will leave the results.
+
+    file_names: Dict[str -> str]
+        A dictionary that relates the `select` node keynames and the
+        file name.
+        Example: {'anat': 'anat_hc.nii.gz',       'pet': 'pet_fdg.nii.gz'},
+        Example: {'anat': 'anat_1/mprage.nii.gz', 'rest': 'rest_1/rest.nii.gz'},
+
+    input_wf_name: src
+        Name of the root input-output workflow
+
+    wf_name: str
+        Name of the main workflow
+
+    Returns
+    -------
+    wf: Workflow
+    """
+    # create the root workflow
+    main_wf = pe.Workflow(name=wf_name, base_dir=work_dir)
+
+    # datasink
+    datasink = pe.Node(DataSink(parameterization=False,
+                                base_directory=output_dir,),
+                       name="datasink")
+
+    # input workflow
+    input_wf = subject_session_input(base_dir=data_dir,
+                                     session_names=session_names,
+                                     file_names=file_names,
+                                     subject_ids=subject_ids,
+                                     wf_name=input_wf_name)
+
+    # basic file name substitutions for the datasink
+    substitutions = [("_subject_id", ""),]
+    if session_names is not None:
+        substitutions.append(("_session_id_", ""))
+
+    datasink.inputs.substitutions = extend_trait_list(datasink.inputs.substitutions,
+                                                      substitutions)
+
+    # connect the input_wf to the datasink
+    if session_names is None:
+        main_wf.connect([(input_wf, datasink, [("infosrc.subject_id", "container")]),])
+    else:
+        joinpath = pe.Node(joinpaths(), name='joinpath')
+
+        # Connect the infosrc node to the datasink
+        main_wf.connect([
+                         (input_wf, joinpath, [("infosrc.subject_id", "arg1"),
+                                               ("infosrc.session_id", "arg2")]),
+
+                         (joinpath, datasink, [("out",                "container")]),
+                        ])
+
+    return main_wf
 
 
 def in_out_workflow(work_dir, data_dir, output_dir, file_names, session_names=None,

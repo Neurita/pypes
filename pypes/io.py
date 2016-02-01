@@ -4,6 +4,8 @@ Workflows to grab input file structures.
 """
 import os
 import os.path as op
+from   copy import deepcopy
+
 
 import nipype.pipeline.engine as pe
 from   nipype.interfaces.utility import IdentityInterface
@@ -79,6 +81,84 @@ def subject_session_input(base_dir, session_names, file_names, subject_ids=None,
                          field_iterables=fields,
                          file_templates=files,
                          wf_name=wf_name)
+
+
+def crumb_input_wf(work_dir, data_crumb, crumb_arg_values, files_crumb_args, wf_name="input_files"):
+    """ A workflow of IdentityInterface->SelectFiles set up using a hansel.Crumb
+
+    Parameters
+    ----------
+    work_dir: str
+        Path to the working directory of the workflow
+
+    data_crumb: hansel.Crumb
+        The crumb until the subject files.
+        Example: Crumb('/home/hansel/data/{subject_id}/{session_id}/{modality}/{image_file})
+
+    crumb_arg_values: Dict[str -> list]
+        Example 1: {'session_id': ['session_0', 'session_1', 'session_2'],
+                    'subject_id': ['hansel', 'gretel'],
+                   }
+
+        This will be input to an IdentityInterface node.
+
+        **Note**: if any crumb argument is not being defined here, will use all the unique values using
+        the Crumb `ls` function. Note that this will only work if the structure tree is the same for all
+        subjects.
+
+    files_crumb_args: Dict[str -> list of 2-tuple]
+        Maps of crumb argument values to specify each file in the `data_crumb`.
+        Example: {'anat': [('modality', 'anat'), ('image_file', 'anat_hc.nii.gz')],
+                  'pet':  [('modality', 'pet'), ('image_file', ''pet_fdg.nii.gz'')],
+                 }
+
+    wf_name: str
+        Name of the workflow
+
+    Nipype Outputs
+    --------------
+    select.{template_key}: path to existing file
+        Will give you the path of the {file_name}s taken from the keys of `files_crumb_args`.
+
+    infosrc.{field_name}: str
+        Will give you the value of the field from `crumb_arg_values` keys.
+
+    Returns
+    -------
+    wf: nipype Workflow
+
+    """
+    # Input workflow
+    wf = pe.Workflow(name=wf_name, base_dir=work_dir)
+
+    # check iterables in crumb
+    param_args = deepcopy(crumb_arg_values)
+
+    crumb_args = data_crumb.args
+    arg_names = set(param_args.keys())
+    if crumb_args > arg_names: # add the missing argument values to the crumb_arg_values dictionary
+        rem_args = crumb_args - arg_names
+        for arg in rem_args:
+            param_args[arg] = sorted(list(set(data_crumb[arg])))
+
+    elif crumb_args < arg_names:
+        raise KeyError('Expected `crumb_arg_values` to have the argument names of {}, '
+                       'but got these extra: {}.'.format(data_crumb, arg_names-crumb_args))
+
+    # Infosource - a function free node to iterate over the list of subject names
+    field_names = data_crumb.args
+
+    infosource = pe.Node(IdentityInterface(fields=field_names), name="infosrc")
+    infosource.iterables = param_args
+
+    # SelectFiles
+    select = pe.Node(SelectFiles([data_crumb.replace(**fargs).path for fargs in files_crumb_args],
+                                 base_directory=data_crumb.split()[0]), name="select")
+
+    # Connect, e.g., 'infosrc.subject_id' to 'select.subject_id'
+    wf.connect([(infosource, select, [(field, field) for field in field_names])])
+
+    return wf
 
 
 def input_file_wf(work_dir, data_dir, field_iterables, file_templates, wf_name="input_files"):

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 # Comments on the `eddy` tool from FSL FDT.
 
@@ -66,24 +67,6 @@ Total readout time (FSL) = (number of echoes - 1) * echo spacing
 Total Readout Time (SPM) = 1/(BandwidthPerPixelPhaseEncode)
 Since the Bandwidth Per Pixel Phase Encode is in Hz, this will give the readout time in seconds
 
-
-# The `---index` argument
-
-The index argument is a text file with a row of numbers. Each number
-indicates what line (starting from 1) in the `acqp` file corresponds to
-each volume in the DTI acquisition.
-
-# What to do now with the `dcm2nii` files?
-
-I see two options to calculate the `acqp` lines with these files.
-
-1. We already have the `dwell` but we don't have the EPI factor.
-We know that the standard in Siemens is 128 and we could stick to that.
-
-2. Use the `slice_duration * 0.001` which is very near the calculated value.
-
-# Summary
-
 So, for example, if we had these acquisition parameters:
 
 ```
@@ -94,5 +77,23 @@ EPI factor 128
 
 We should put in the `acqp` file this line:
 0 1 0 0.095
+
+
+# The `---index` argument
+
+The index argument is a text file with a row of numbers. Each number
+indicates what line (starting from 1) in the `acqp` file corresponds to
+each volume in the DTI acquisition.
+
+
+# What to do now with the `dcm2nii` files, then?
+
+I see two options to calculate the `acqp` lines with these files:
+
+1. We already have the `dwell` but we don't have the EPI factor.
+We know that the standard in Siemens is 128 and we could stick to that.
+
+2. Use the `slice_duration * 0.001` which is very near the calculated value.
+In fact I think this is the necessary value for SPM's Total Readout Time.
 
 """

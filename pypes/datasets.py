@@ -68,7 +68,7 @@ def cobre_workflow(wf_name, base_dir, cache_dir, output_dir, subject_ids=None):
     return wf
 
 
-def clinical_workflow(wf_name, base_dir, cache_dir, output_dir, subject_ids=None):
+def clinical_workflow(wf_name, base_dir, cache_dir, output_dir, **kwargs):
     """ Run a specific pipeline.
 
     Parameters
@@ -78,7 +78,7 @@ def clinical_workflow(wf_name, base_dir, cache_dir, output_dir, subject_ids=None
 
     base_dir: hansel.Crumb or str
         The folder path structure where the raw data is.
-        For example:
+        For example: Crumb('/home/hansel/data/clinical/raw/{year}/{subject_ids}/')
 
     cache_dir: str
         The working directory of the workflow.
