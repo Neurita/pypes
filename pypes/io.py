@@ -176,60 +176,6 @@ def crumb_input_wf(work_dir, data_crumb, crumb_arg_values, files_crumb_args, wf_
     return wf
 
 
-def input_file_wf(work_dir, data_dir, field_iterables, file_templates, wf_name="input_files"):
-    """ A workflow of IdentityInterface->SelectFiles for the case where
-    you have a {subject_id}/{session_id}/{image_file} dataset structure.
-
-    Parameters
-    ----------
-    work_dir: str
-        Path to the working directory of the workflow
-
-    data_dir: str
-
-    field_iterables: List of 2-tuples (str, iterable)
-        Example: [('session_id', session_names),
-                  ('subject_id', subject_ids),]
-        This will be input to an IdentityInterface
-
-    file_templates: Dict[str -> str]
-        Example: {'anat': '{subject_id}/{session_id}/anat_hc.nii.gz',
-                  'pet': '{subject_id}/{session_id}/pet_fdg.nii.gz',
-                 }
-
-    wf_name: str
-        Name of the workflow
-
-    Nipype Outputs
-    --------------
-    select.{template_key}: path to existing file
-        Will give you the path of the {file_name}s taken from `file_templates`.
-
-    infosrc.{field_name}: str
-        Will give you the value of the field from `field_iterables`.
-
-    Returns
-    -------
-    wf: nipype Workflow
-    """
-    # Input workflow
-    wf = pe.Workflow(name=wf_name, base_dir=work_dir)
-
-    # Infosource - a function free node to iterate over the list of subject names
-    field_names = [field[0] for field in field_iterables]
-
-    infosource = pe.Node(IdentityInterface(fields=field_names), name="infosrc")
-    infosource.iterables = field_iterables
-
-    # SelectFiles
-    select = pe.Node(SelectFiles(file_templates, base_directory=data_dir), name="select")
-
-    # Connect, e.g., 'infosrc.subject_id' to 'select.subject_id'
-    wf.connect([(infosource, select, [(field, field) for field in field_names])])
-
-    return wf
-
-
 def get_input_file_name(input_node, fname_key):
     """ Return the name of the file given by the node key `fname_key` in `input_node`.
 
