@@ -120,16 +120,23 @@ def sum2args():
     return fi
 
 
-def joinpaths():
-    """ Return a nipype function that joins up two path parts: `arg1` and `arg2` and
+def joinstrings(n_args=2):
+    """ Return a nipype function that joins up to `n_args` parts. and
     leaves the result in `out`.
+    Parameters
+    ----------
+    n_args: int
+        Number of `argX` parameters the function might have.
+        Example: If `n_args` == 2, then the node will have `arg1` and `arg2` nodes.
 
     Returns
     -------
     fi: nipype.interfaces.utility.Function
     """
-    func = 'def func(arg1, arg2): import os; return os.path.join(arg1, arg2)'
-    fi = Function(input_names=['arg1', 'arg2'], output_names=['out'])
+    arg_names = ['arg{}'.format(n) for n in range(1, n_args+1)]
+
+    func = 'def func({0}): import os; return os.path.join({0})'.format(', '.join(arg_names))
+    fi = Function(input_names=arg_names, output_names=['out'])
     fi.inputs.function_str = func
     return fi
 
