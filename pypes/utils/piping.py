@@ -9,6 +9,29 @@ from   nipype.interfaces.io import SelectFiles, DataGrabber, DataSink
 import nipype.interfaces.fsl as fsl
 
 
+def get_values_map_keys(values_maps_dict):
+    """ Given a dict of str->2-tuples, e.g.:
+            {'anat': [('modality', 'anat'), ('image_file', 'anat_hc.nii.gz')],
+             'pet':  [('modality', 'pet'),  ('image_file', ''pet_fdg.nii.gz'')],
+
+    Will return the unique values of each dict value, in this case:
+    {'modality', 'image_file'}.
+
+    Parameters
+    ----------
+    values_maps_dict: Dict[str->2-tuple]
+
+    Returns
+    -------
+    keys: set[str]
+    """
+    crumb_args = set()
+    for val_map in values_maps_dict.values():
+        crumb_args = crumb_args.union(set(dict(val_map).keys()))
+
+    return crumb_args
+
+
 def get_input_node(wf):
     """ Return the file input node in `wf`
 

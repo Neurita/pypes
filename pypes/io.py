@@ -11,7 +11,9 @@ import nipype.pipeline.engine as pe
 from   nipype.interfaces.utility import IdentityInterface
 from   nipype.interfaces.io import SelectFiles
 
+from .utils.piping import get_values_map_keys
 from ._utils import _check_list
+
 
 
 def subject_session_input(base_dir, session_names, file_names, subject_ids=None,
@@ -109,7 +111,7 @@ def crumb_input_wf(work_dir, data_crumb, crumb_arg_values, files_crumb_args, wf_
     files_crumb_args: Dict[str -> list of 2-tuple]
         Maps of crumb argument values to specify each file in the `data_crumb`.
         Example: {'anat': [('modality', 'anat'), ('image_file', 'anat_hc.nii.gz')],
-                  'pet':  [('modality', 'pet'), ('image_file', ''pet_fdg.nii.gz'')],
+                  'pet':  [('modality', 'pet'),  ('image_file', ''pet_fdg.nii.gz'')],
                  }
 
     wf_name: str
@@ -134,25 +136,38 @@ def crumb_input_wf(work_dir, data_crumb, crumb_arg_values, files_crumb_args, wf_
     # check iterables in crumb
     param_args = deepcopy(crumb_arg_values)
 
-    crumb_args = data_crumb.args
-    arg_names = set(param_args.keys())
-    if crumb_args > arg_names: # add the missing argument values to the crumb_arg_values dictionary
-        rem_args = crumb_args - arg_names
+    # create the lists of argument names
+    crumb_args = list(data_crumb.keys())
+    arg_names  = list(param_args.keys())
+    arg_names.extend(get_values_map_keys(files_crumb_args))
+
+    # check their size and expand them if needed
+    n_crumbs   = len(crumb_args)
+    n_names    = len(arg_names)
+    if n_crumbs > n_names: # add the missing argument values to the crumb_arg_values dictionary
+        rem_args = set(crumb_args) - set(arg_names)
         for arg in rem_args:
             param_args[arg] = sorted(list(set(data_crumb[arg])))
 
-    elif crumb_args < arg_names:
+    elif n_crumbs < n_names:
         raise KeyError('Expected `crumb_arg_values` to have the argument names of {}, '
-                       'but got these extra: {}.'.format(data_crumb, arg_names-crumb_args))
+                       'but got these extra: {}.'.format(data_crumb, set(arg_names)-set(crumb_args)))
 
     # Infosource - a function free node to iterate over the list of subject names
-    field_names = data_crumb.args
+    field_names = list(data_crumb.keys())
 
     infosource = pe.Node(IdentityInterface(fields=field_names), name="infosrc")
-    infosource.iterables = param_args
+    infosource.iterables = list(param_args.items())
 
     # SelectFiles
-    select = pe.Node(SelectFiles([data_crumb.replace(**fargs).path for fargs in files_crumb_args],
+    # another option is to use the '*' in the selectfiles path for the argument that are not being defined in
+    # `crumb_arg_values` but then, the crumb ignore_list and regexes will be ignored.
+    # for arg_name in field_names:
+    #     if arg_name not in crumb_arg_values:
+    #         data_crumb.replace(**dict([(arg_name, '*')]))
+
+    select = pe.Node(SelectFiles({fkey: data_crumb.replace(**dict(farg)).path
+                                  for fkey, farg in files_crumb_args.items()},
                                  base_directory=data_crumb.split()[0]), name="select")
 
     # Connect, e.g., 'infosrc.subject_id' to 'select.subject_id'
