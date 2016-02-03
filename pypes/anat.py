@@ -124,7 +124,7 @@ def spm_anat_preprocessing(wf_name="spm_anat_preproc"):
     return wf
 
 
-def attach_spm_anat_preprocessing(main_wf, wf_name="spm_anat_preproc"):
+def attach_spm_anat_preprocessing(main_wf, wf_name="spm_anat_preproc", params={}):
     """ Attach the SPM12 anatomical MRI pre-processing workflow to the `main_wf`.
 
     Parameters

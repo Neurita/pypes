@@ -8,13 +8,37 @@ import nipype.interfaces.spm     as spm
 import nipype.pipeline.engine    as pe
 from   nipype.interfaces.fsl     import ExtractROI, Eddy, DTIFit, MultiImageMaths
 from   nipype.interfaces.io      import DataSink, SelectFiles
-from   nipype.interfaces.utility import Function, Select, Split
+from   nipype.interfaces.utility import Function, Select, Split, Merge, IdentityInterface
 from   nipype.algorithms.misc    import Gunzip
 
 from   .anat        import attach_spm_anat_preprocessing
-from   .preproc     import spm_coregister
-from   .utils       import find_wf_node
-from   ._utils      import flatten_list
+from   .preproc     import spm_coregister, spm_apply_deformations
+from   .utils       import find_wf_node, remove_ext, extend_trait_list
+from   ._utils      import flatten_list, format_pair_list
+
+def get_bounding_box(in_file):
+    """
+    Retrieve the bounding box of a volume in millimetres.
+    """
+
+    import nibabel
+    import numpy
+    import itertools
+
+    img = nibabel.load(in_file)
+
+    # eight corners of the 3-D unit cube [0, 0, 0] .. [1, 1, 1]
+    corners = numpy.array(list(itertools.product([0, 1], repeat=3)))
+    # scale to the index range of the volume
+    corners = corners * (numpy.array(img.shape[:3]) - 1)
+    # apply the affine transform
+    corners = img.affine.dot(numpy.hstack([corners, numpy.ones((8, 1))]).T).T[:, :3]
+
+    # get the extents
+    low_corner = numpy.min(corners, axis=0)
+    high_corner = numpy.max(corners, axis=0)
+
+    return [low_corner.tolist(), high_corner.tolist()]
 
 def write_acquisition_parameters(in_file):
     """
@@ -146,7 +170,7 @@ def write_acquisition_parameters(in_file):
 
     return os.path.abspath(acqp_file), os.path.abspath(index_file)
 
-def fsl_dti_preprocessing(wf_name="fsl_dti_preproc"):
+def fsl_dti_preprocessing(atlas_file, wf_name="fsl_dti_preproc"):
     """ Run the diffusion MRI pre-processing workflow against the diff files in `data_dir`.
 
     It does:
@@ -171,35 +195,64 @@ def fsl_dti_preprocessing(wf_name="fsl_dti_preproc"):
     wf: nipype Workflow
     """
 
+    dti_input    = pe.Node(IdentityInterface(
+        fields=["diff", "bval", "bvec", "tissues", "anat", "mni_to_anat"],
+        mandatory_inputs=True),                                 name="dti_input")
+    gunzip_atlas = pe.Node(Gunzip(in_file=atlas_file),          name="gunzip_atlas")
+    anat_bbox    = pe.Node(Function(
+        input_names=["in_file"],
+        output_names=["bbox"],
+        function=get_bounding_box),                             name="anat_bbox")
+    warp_atlas   = pe.Node(spm_apply_deformations(),            name="warp_atlas")
     write_acqp     = pe.Node(Function(
         input_names=["in_file"],
         output_names=["out_acqp", "out_index"],
         function=write_acquisition_parameters),                 name="write_acqp")
     extract_b0   = pe.Node(ExtractROI(t_min=0, t_size=1),       name="extract_b0")
     gunzip_b0    = pe.Node(Gunzip(),                            name="gunzip_b0")
+    coreg_merge  = pe.Node(Merge(2),                            name="coreg_merge")
     coreg_b0     = pe.Node(spm_coregister(cost_function="mi"),  name="coreg_b0")
     brain_sel    = pe.Node(Select(index=[0, 1, 2]),             name="brain_sel")
-    brain_split  = pe.Node(Split(splits=[1, 2], squeeze=True),  name="brain_split")
+    coreg_split  = pe.Node(Split(splits=[1, 2, 1], squeeze=True), name="coreg_split")
     brain_merge  = pe.Node(MultiImageMaths(),                   name="brain_merge")
     eddy         = pe.Node(Eddy(),                              name="eddy")
     dtifit       = pe.Node(DTIFit(save_tensor=True),            name="dtifit")
 
+    warp_atlas.inputs.write_interp = 0
+
     brain_merge.inputs.op_string = "-add '%s' -add '%s' -abs -bin"
-    brain_merge.inputs.out_file = "brain_mask.nii.gz"
+    brain_merge.inputs.out_file = "brain_mask_diff_space.nii.gz"
+
+    coreg_b0.inputs.write_interp = 0
 
     # Create the workflow object
     wf = pe.Workflow(name=wf_name)
 
     # Connect the nodes
     wf.connect([
+                (dti_input,     extract_b0,     [("diff",                   "in_file")]),
+                (dti_input,     write_acqp,     [("diff",                   "in_file")]),
+                (dti_input,     eddy,           [("diff",                   "in_file")]),
+                (dti_input,     eddy,           [("bval",                   "in_bval")]),
+                (dti_input,     eddy,           [("bvec",                   "in_bvec")]),
+                (dti_input,     dtifit,         [("bval",                   "bvals")]),
+                (dti_input,     dtifit,         [("bvec",                   "bvecs")]),
+                (dti_input,     brain_sel,      [("tissues",                "inlist")]),
+                (dti_input,     anat_bbox,      [("anat",                   "in_file")]),
+                (dti_input,     coreg_b0,       [("anat",                   "source")]),
+                (dti_input,     warp_atlas,     [("mni_to_anat",            "deformation_file")]),
+                (gunzip_atlas,  warp_atlas,     [("out_file",               "apply_to_files")]),
+                (anat_bbox,     warp_atlas,     [("bbox",                   "write_bounding_box")]),
                 (write_acqp,    eddy,           [("out_acqp",               "in_acqp"),
                                                  ("out_index",              "in_index")]),
                 (extract_b0,    gunzip_b0,      [("roi_file",               "in_file")]),
                 (gunzip_b0,     coreg_b0,       [("out_file",               "target")]),
-                (brain_sel,     coreg_b0,       [(("out", flatten_list),    "apply_to_files")]),
-                (coreg_b0,      brain_split,    [("coregistered_files",     "inlist")]),
-                (brain_split,   brain_merge,    [("out1",                   "in_file")]),
-                (brain_split,   brain_merge,    [("out2",                   "operand_files")]),
+                (brain_sel,     coreg_merge,    [(("out", flatten_list),    "in1")]),
+                (warp_atlas,    coreg_merge,    [("normalized_files",       "in2")]),
+                (coreg_merge,   coreg_b0,       [("out",                    "apply_to_files")]),
+                (coreg_b0,      coreg_split,    [("coregistered_files",     "inlist")]),
+                (coreg_split,   brain_merge,    [("out1",                   "in_file")]),
+                (coreg_split,   brain_merge,    [("out2",                   "operand_files")]),
                 (brain_merge,   eddy,           [("out_file",               "in_mask")]),
                 (eddy,          dtifit,         [("out_corrected",          "dwi")]),
                 (brain_merge,   dtifit,         [("out_file",               "mask")]),
@@ -207,12 +260,15 @@ def fsl_dti_preprocessing(wf_name="fsl_dti_preproc"):
     return wf
 
 
-def attach_fsl_dti_preprocessing(main_wf, wf_name="fsl_dti_preproc"):
+def attach_fsl_dti_preprocessing(main_wf, wf_name="fsl_dti_preproc", params={}):
     """ Attach the FSL-based diffusion MRI pre-processing workflow to the `main_wf`.
 
     Parameters
     ----------
     main_wf: nipype Workflow
+
+    atlas_file: str
+        Path to the anatomical atlas to be transformed to diffusion MRI space.
 
     wf_name: str
         Name of the preprocessing workflow
@@ -236,19 +292,27 @@ def attach_fsl_dti_preprocessing(main_wf, wf_name="fsl_dti_preproc"):
     datasink = find_wf_node(main_wf, DataSink)
     anat_wf  = main_wf.get_node("spm_anat_preproc")
 
+    atlas_file = params["atlas_file"]
+    atlas_basename = remove_ext(op.basename(atlas_file))
+
     # The workflow box
-    dti_wf = fsl_dti_preprocessing(wf_name=wf_name)
+    dti_wf = fsl_dti_preprocessing(atlas_file=atlas_file, wf_name=wf_name)
+
+    regexp_subst = [
+                     (r"/rw{atlas}\.nii$",              "/{atlas}_diff_space.nii"),
+                     (r"/dtifit__",                     "/dtifit_"),
+                   ]
+    regexp_subst = format_pair_list(regexp_subst, atlas=atlas_basename)
+    datasink.inputs.regexp_substitutions = extend_trait_list(datasink.inputs.regexp_substitutions,
+                                                             regexp_subst)
 
     # input and output diffusion MRI workflow to main workflow connections
-    main_wf.connect([(in_files, dti_wf,   [("diff",                                  "eddy.in_file"),
-                                           ("diff",                                  "write_acqp.in_file"),
-                                           ("diff",                                  "extract_b0.in_file"),
-                                           ("diff_bval",                             "dtifit.bvals"),
-                                           ("diff_bvec",                             "dtifit.bvecs"),
-                                           ("diff_bval",                             "eddy.in_bval"),
-                                           ("diff_bvec",                             "eddy.in_bvec")]),
-                     (anat_wf,  dti_wf,   [("new_segment.native_class_images",       "brain_sel.inlist"),
-                                           ("gunzip_anat.out_file",                  "coreg_b0.source")]),
+    main_wf.connect([(in_files, dti_wf,   [("diff",                                  "dti_input.diff"),
+                                           ("diff_bval",                             "dti_input.bval"),
+                                           ("diff_bvec",                             "dti_input.bvec")]),
+                     (anat_wf,  dti_wf,   [("new_segment.native_class_images",       "dti_input.tissues"),
+                                           ("new_segment.bias_corrected_images",     "dti_input.anat"),
+                                           ("new_segment.inverse_deformation_field", "dti_input.mni_to_anat")]),
                      (dti_wf,   datasink, [("eddy.out_corrected",                    "diff.@eddy_corrected"),
                                            ("dtifit.V1",                             "diff.@v1"),
                                            ("dtifit.V2",                             "diff.@v2"),
@@ -260,7 +324,9 @@ def attach_fsl_dti_preprocessing(main_wf, wf_name="fsl_dti_preproc"):
                                            ("dtifit.FA",                             "diff.@fractional_anisotropy"),
                                            ("dtifit.MO",                             "diff.@mode_of_anisotropy"),
                                            ("dtifit.S0",                             "diff.@s0"),
-                                           ("dtifit.tensor",                         "diff.@tensor"),],),
+                                           ("dtifit.tensor",                         "diff.@tensor"),
+                                           ("brain_merge.out_file",                  "diff.@mask"),
+                                           ("coreg_split.out3",                      "diff.@atlas")]),
                     ])
 
     return main_wf

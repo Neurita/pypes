@@ -138,7 +138,7 @@ def spm_mrpet_preprocessing(wf_name="spm_mrpet_preproc"):
     return wf
 
 
-def attach_spm_mrpet_preprocessing(main_wf, wf_name="spm_mrpet_preproc"):
+def attach_spm_mrpet_preprocessing(main_wf, wf_name="spm_mrpet_preproc", params={}):
     """ Attach a PET pre-processing workflow that uses SPM12 to `main_wf`.
     This workflow needs MRI based
 

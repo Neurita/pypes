@@ -66,7 +66,7 @@ def cobre_workflow(wf_name, base_dir, cache_dir, output_dir):
     return wf
 
 
-def clinical_workflow(wf_name, base_dir, cache_dir, output_dir, year):
+def clinical_workflow(wf_name, base_dir, cache_dir, output_dir, atlas_file, year):
     """ Run a specific pipeline.
 
     Parameters
@@ -123,7 +123,7 @@ def clinical_workflow(wf_name, base_dir, cache_dir, output_dir, year):
                               subject_ids=None,
                               input_wf_name='input_files')
 
-    wf = wfs[wf_name](main_wf=main_wf)
+    wf = wfs[wf_name](main_wf=main_wf, params={"atlas_file": atlas_file})
 
     # move the crash files folder elsewhere
     wf.config["execution"]["crashdump_dir"] = op.join(wf.base_dir, wf.name, "log")
