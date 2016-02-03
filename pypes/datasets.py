@@ -60,8 +60,10 @@ def cobre_crumb_workflow(wf_name, data_crumb, output_dir, cache_dir='', **kwargs
                               data_crumb=data_crumb,
                               output_dir=output_dir,
                               crumb_arg_values=dict(**kwargs),
-                              files_crumb_args={'anat':  [('modality', 'anat_1'), ('image', 'anat_hc.nii.gz')], #'anat_1/mprage.nii.gz',
-                                                'rest':  [('modality', 'rest_1'), ('image', 'anat_hc.nii.gz')], # 'rest_1/rest.nii.gz'},
+                              files_crumb_args={'anat':  [('modality', 'anat_1'),
+                                                          ('image',    'mprage.nii.gz')], #'anat_1/mprage.nii.gz',
+                                                'rest':  [('modality', 'rest_1'),
+                                                          ('image',    'rest.nii.gz')], # 'rest_1/rest.nii.gz'},
                                                },
                               input_wf_name='input_files')
 
