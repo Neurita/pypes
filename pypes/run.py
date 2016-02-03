@@ -72,27 +72,21 @@ def in_out_crumb_wf(work_dir, data_crumb, output_dir, crumb_arg_values, files_cr
                               wf_name=input_wf_name)
 
     # basic file name substitutions for the datasink
-    substitutions = []
-    arg_names = list(data_crumb.keys())
     file_args = get_values_map_keys(files_crumb_args)
-    for idx, name in enumerate(arg_names):
-        if name in file_args:
-            arg_names.pop(idx)
-            continue
+    undef_args = [name for name in set(data_crumb.keys()) if name not in file_args]
 
-        substitutions.append((name, ""))
-
+    substitutions = [(name, "") for name in undef_args]
     substitutions.append(("__", "_"))
 
     datasink.inputs.substitutions = extend_trait_list(datasink.inputs.substitutions,
                                                       substitutions)
 
     # connect the input_wf to the datasink
-    joinpath = pe.Node(joinstrings(len(arg_names)), name='joinpath')
+    joinpath = pe.Node(joinstrings(len(undef_args)), name='joinpath')
 
     # Connect the infosrc node to the datasink
-    input_joins = [('infosrc.{}'.format(arg_name), 'arg{}'.format(arg_no+1))
-                   for arg_no, arg_name in enumerate(arg_names)]
+    input_joins = [('infosrc.{}'.format(name), 'arg{}'.format(arg_no+1))
+                   for arg_no, name in enumerate(undef_args)]
 
     main_wf.connect([
                      (input_wf, joinpath, input_joins),
