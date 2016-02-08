@@ -7,6 +7,19 @@ Nipype interface for PETPVC.
 PETPVC is a software from the Nuclear Medicine Department
 of the UCL University Hospital, London, UK.
 
+Its source code is here: https://github.com/UCL/PETPVC
+
+The methods that it implement are explained here:
+K. Erlandsson, I. Buvat, P. H. Pretorius, B. A. Thomas, and B. F. Hutton,
+“A review of partial volume correction techniques for emission tomography
+and their applications in neurology, cardiology and oncology,” Phys. Med.
+Biol., vol. 57, no. 21, p. R119, 2012.
+
+There is a publication waiting to be accepted for this software tool.
+
+
+Its command line help shows this:
+
    -i --input < filename >
       = PET image file
    -o --output < filename >

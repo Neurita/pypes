@@ -78,7 +78,7 @@ class Config(Kaptan):
         -------
         cfg: Config
         """
-        fpath   = op.abspath(op.expanduser(file_path))
+        fpath = op.abspath(op.expanduser(file_path))
 
         if not op.isfile(fpath):
             raise IOError("Could not find file {}.".format(fpath))

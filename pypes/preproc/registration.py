@@ -15,6 +15,27 @@ def spm_apply_deformations(in_imgs=traits.Undefined, trans_field=traits.Undefine
     SPM12's new Normalise routine for warping an image to a template.
     For more info:
     http://www.mit.edu/~satra/nipype-nightly/interfaces/generated/nipype.interfaces.spm.preprocess.html#normalize12
+
+    Parameters
+    ----------
+    in_imgs: iterable of str
+
+    trans_field:
+        file y_*.nii containing 3 deformation fields for the deformation in
+        x, y and z dimension
+
+    Nipype Ouputs
+    -------------
+    deformation_field: (a list of items which are an existing file name)
+        NIfTI file containing 3 deformation fields for the deformation in x,
+        y and z dimension
+
+    normalized_files: (a list of items which are an existing file name)
+        Normalized other files
+
+    normalized_image: (a list of items which are an existing file name)
+        Normalized file that needed to be aligned
+
     """
     norm12 = spm.Normalize12(jobtype='write')
     norm12.inputs.deformation_file  = trans_field
@@ -40,6 +61,19 @@ def spm_normalize(in_imgs=traits.Undefined, voxel_size=(1, 1, 1), template=None)
     template: str
         Path to the target registration template.
         Default: the SPM TPM file.
+
+    Nipype Ouputs
+    -------------
+    deformation_field: (a list of items which are an existing file name)
+        NIfTI file containing 3 deformation fields for the deformation in x,
+        y and z dimension
+
+    normalized_files: (a list of items which are an existing file name)
+        Normalized other files
+
+    normalized_image: (a list of items which are an existing file name)
+        Normalized file that needed to be aligned
+
 
     Raises
     ------

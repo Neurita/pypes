@@ -318,8 +318,8 @@ def attach_fsl_dti_preprocessing(main_wf, wf_name="fsl_dti_preproc", params={}):
 
     # input and output diffusion MRI workflow to main workflow connections
     main_wf.connect([(in_files, dti_wf,   [("diff",                                  "dti_input.diff"),
-                                           ("diff_bval",                             "dti_input.bval"),
-                                           ("diff_bvec",                             "dti_input.bvec")]),
+                                           ("bval",                                  "dti_input.bval"),
+                                           ("bvec",                                  "dti_input.bvec")]),
                      (anat_wf,  dti_wf,   [("new_segment.native_class_images",       "dti_input.tissues"),
                                            ("new_segment.bias_corrected_images",     "dti_input.anat"),
                                            ("new_segment.inverse_deformation_field", "dti_input.mni_to_anat")]),
@@ -428,7 +428,7 @@ def attach_camino_tractography(main_wf, wf_name="camino_tract", params={}):
     tract_wf = camino_tractography(wf_name=wf_name)
 
     # input and output diffusion MRI workflow to main workflow connections
-    main_wf.connect([(in_files, tract_wf, [("diff_bval",                             "tract_input.bval")]),
+    main_wf.connect([(in_files, tract_wf, [("bval",                                  "tract_input.bval")]),
                      (dti_wf,   tract_wf, [("dti_output.diff_corrected",             "tract_input.diff"),
                                            ("dti_output.bvec_rotated",               "tract_input.bvec"),
                                            ("dti_output.brain_mask_diff",            "tract_input.mask"),

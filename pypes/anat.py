@@ -12,7 +12,7 @@ from   nipype.interfaces.base    import traits
 from   nipype.interfaces.io      import DataSink, SelectFiles
 
 from   .preproc     import spm_apply_deformations
-from   .input_files import get_input_file_name
+from   .io import get_input_file_name
 from   ._utils      import format_pair_list
 from   .utils       import (spm_tpm_priors_path,
                             extend_trait_list,

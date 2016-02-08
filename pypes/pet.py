@@ -10,7 +10,7 @@ from   nipype.interfaces.utility import Select, Merge
 
 from   .anat        import attach_spm_anat_preprocessing
 from   .preproc     import spm_apply_deformations, spm_coregister, petpvc_cmd, petpvc_mask, intensity_norm
-from   .input_files import get_input_file_name
+from   .io import get_input_file_name
 from   .utils       import extend_trait_list, remove_ext, get_input_node, get_datasink
 from   ._utils      import flatten_list, format_pair_list
 
