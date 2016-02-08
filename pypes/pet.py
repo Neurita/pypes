@@ -163,6 +163,11 @@ def attach_spm_mrpet_preprocessing(main_wf, wf_name="spm_mrpet_preproc"):
     wf_name: str
         Name of the preprocessing workflow
 
+    Nipype Workflow Dependencies
+    ----------------------------
+    This workflow depends on:
+    - spm_anat_preproc
+
     Returns
     -------
     main_wf: nipype Workflow
