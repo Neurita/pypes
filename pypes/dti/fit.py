@@ -3,7 +3,10 @@
 Nipype workflows to preprocess diffusion MRI.
 """
 import os.path as op
+from itertools import product
 
+import nibabel as nib
+import numpy   as np
 import nipype.pipeline.engine    as pe
 from   nipype.interfaces.fsl     import ExtractROI, Eddy, MultiImageMaths
 from   nipype.interfaces.io      import DataSink, SelectFiles
@@ -20,28 +23,23 @@ def get_bounding_box(in_file):
     """
     Retrieve the bounding box of a volume in millimetres.
     """
-
-    import nibabel
-    import numpy
-    import itertools
-
-    img = nibabel.load(in_file)
+    img = nib.load(in_file)
 
     # eight corners of the 3-D unit cube [0, 0, 0] .. [1, 1, 1]
-    corners = numpy.array(list(itertools.product([0, 1], repeat=3)))
+    corners = np.array(list(product([0, 1], repeat=3)))
     # scale to the index range of the volume
-    corners = corners * (numpy.array(img.shape[:3]) - 1)
+    corners = corners * (np.array(img.shape[:3]) - 1)
     # apply the affine transform
-    corners = img.affine.dot(numpy.hstack([corners, numpy.ones((8, 1))]).T).T[:, :3]
+    corners = img.affine.dot(np.hstack([corners, np.ones((8, 1))]).T).T[:, :3]
 
     # get the extents
-    low_corner = numpy.min(corners, axis=0)
-    high_corner = numpy.max(corners, axis=0)
+    low_corner  = np.min(corners, axis=0)
+    high_corner = np.max(corners, axis=0)
 
     return [low_corner.tolist(), high_corner.tolist()]
 
 
-def write_acquisition_parameters(in_file):
+def write_acquisition_parameters(in_file, epi_factor=128):
     """
     # Comments on the `eddy` tool from FSL FDT.
 
@@ -138,16 +136,11 @@ def write_acquisition_parameters(in_file):
 
     We should put in the `acqp` file this line:
     0 1 0 0.095
-
     """
-
-    import nibabel
-    import os.path
-
     acqp_file = "diff.acqp"
     index_file = "diff.index"
 
-    image = nibabel.load(in_file)
+    image = nib.load(in_file)
     n_directions = image.shape[-1]
     header = image.header
     descrip = dict([item.split("=", 1) for item in header["descrip"][()].split(";")])
@@ -159,8 +152,6 @@ def write_acquisition_parameters(in_file):
     else:
         raise ValueError("unexpected value for phaseDir: {}".format(descrip.get("phaseDir")))
 
-    # Siemens standard
-    epi_factor = 128
     # (number of phase-encode steps - 1) * (echo spacing time in milliseconds) * (seconds per millisecond)
     total_readout_time = (epi_factor - 1) * float(descrip["dwell"]) * 1e-3
 
@@ -169,7 +160,7 @@ def write_acquisition_parameters(in_file):
     with open(index_file, "wt") as fout:
         fout.write("{}\n".format(" ".join(n_directions * ["1"])))
 
-    return os.path.abspath(acqp_file), os.path.abspath(index_file)
+    return op.abspath(acqp_file), op.abspath(index_file)
 
 
 def fsl_dti_preprocessing(atlas_file, wf_name="fsl_dti_preproc"):
