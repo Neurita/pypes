@@ -14,24 +14,29 @@ from .utils import extend_trait_list, joinstrings
 from .utils.piping import get_values_map_keys
 
 
-def build_crumb_workflow(attach_functions, data_crumb, in_out_kwargs, output_dir, cache_dir='', crumb_replaces=None):
-    """ Returns a workflow for the give `data_crumb` with the attached workflows given by `attach_functions`.
+def build_crumb_workflow(wfname_attacher, data_crumb, in_out_kwargs, output_dir,
+                         cache_dir='', crumb_replaces=None):
+    """ Returns a workflow for the give `data_crumb` with the attached workflows
+    given by `attach_functions`.
 
     Parameters
     ----------
-    attach_functions: list of functions
-        List of functions that will be in charge of attaching workflows to the main input/output workflow.
+    wfname_attacher: dict[Str] -> function
+        Dictionary with name of the workflow and its corresponding
+         attach function that will be in charge of attaching workflows
+         to the main input/output workflow.
 
     data_crumb: hansel.Crumb
         The crumb until the subject files.
         Example: Crumb('/home/hansel/cobre/raw/{subject_id}/session_1/{modality}/{image_file})
-        The last 2 crumb arguments of `data_crumb` must be '{modality}/{image}', which indicates each of the
-        subject/session files. This argument will be replaced by the corresponding image name.
+        The last 2 crumb arguments of `data_crumb` must be '{modality}/{image}',
+        which indicates each of the subject/session files.
+        This argument will be replaced by the corresponding image name.
 
     in_out_kwargs: dict with keyword arguments
         This arguments are for the in_out_crumb_wf.
-        Mainly 'files_crumb_args' which will declare the values each file type the crumb arguments
-        in `data_crumb` must be replaced with.
+        Mainly 'files_crumb_args' which will declare the values each file
+        type the crumb arguments in `data_crumb` must be replaced with.
         Example:
               {'files_crumb_args': {'anat':  [('modality', 'anat_1'),
                                               ('image',    'mprage.nii.gz')],
@@ -55,8 +60,9 @@ def build_crumb_workflow(attach_functions, data_crumb, in_out_kwargs, output_dir
     if not data_crumb.exists():
         raise IOError("Expected an existing folder for `data_crumb`, got {}.".format(data_crumb))
 
-    if not attach_functions:
-        raise ValueError("Expected `attach_functions` to have at least one function, got {}.".format(attach_functions))
+    if not wfname_attacher:
+        raise ValueError("Expected `wfname_attacher` to have at least one function, "
+                         "got {}.".format(wfname_attacher))
 
     if not in_out_kwargs:
         raise ValueError("Expected `in_out_kwargs` to have at least the parameters for"
@@ -75,13 +81,14 @@ def build_crumb_workflow(attach_functions, data_crumb, in_out_kwargs, output_dir
                                  input_wf_name='input_files',
                                  **in_out_kwargs)
 
-    for attach_subwf in attach_functions:
-        wf = attach_subwf(main_wf=main_wf)
+    for wf_name, attach_wf in wfname_attacher.items():
+        main_wf = attach_wf(main_wf=main_wf, wf_name=wf_name)
 
     # move the crash files folder elsewhere
-    wf.config["execution"]["crashdump_dir"] = op.join(wf.base_dir, wf.name, "log")
+    main_wf.config["execution"]["crashdump_dir"] = op.join(main_wf.base_dir,
+                                                           main_wf.name, "log")
 
-    return wf
+    return main_wf
 
 
 def crumb_input(work_dir, data_crumb, crumb_arg_values, files_crumb_args, wf_name="input_files"):

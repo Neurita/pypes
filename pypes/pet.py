@@ -8,11 +8,10 @@ import nipype.pipeline.engine    as pe
 from   nipype.algorithms.misc    import Gunzip
 from   nipype.interfaces.utility import Select, Merge
 
-from   .anat        import attach_spm_anat_preprocessing
-from   .preproc     import spm_apply_deformations, spm_coregister, petpvc_cmd, petpvc_mask, intensity_norm
-from   .io import get_input_file_name
-from   .utils       import extend_trait_list, remove_ext, get_input_node, get_datasink
-from   ._utils      import flatten_list, format_pair_list
+from   .preproc import spm_apply_deformations, spm_coregister, petpvc_cmd, petpvc_mask, intensity_norm
+from   .io      import get_input_file_name
+from   .utils   import extend_trait_list, remove_ext, get_input_node, get_datasink
+from   ._utils  import flatten_list, format_pair_list
 
 
 def spm_mrpet_preprocessing(wf_name="spm_mrpet_preproc"):
@@ -138,7 +137,7 @@ def spm_mrpet_preprocessing(wf_name="spm_mrpet_preproc"):
     return wf
 
 
-def attach_spm_mrpet_preprocessing(main_wf, wf_name="spm_mrpet_preproc"):
+def attach_spm_mrpet_preprocessing(main_wf, wf_name="spm_pet_preproc"):
     """ Attach a PET pre-processing workflow that uses SPM12 to `main_wf`.
     This workflow needs MRI based
 
@@ -169,9 +168,6 @@ def attach_spm_mrpet_preprocessing(main_wf, wf_name="spm_mrpet_preproc"):
     main_wf: nipype Workflow
     """
     # Dependency workflows
-    main_wf = attach_spm_anat_preprocessing(main_wf=main_wf,
-                                            wf_name="spm_anat_preproc")
-
     anat_wf  = main_wf.get_node("spm_anat_preproc")
     in_files = get_input_node(main_wf)
     datasink = get_datasink  (main_wf)
