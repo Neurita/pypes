@@ -10,6 +10,8 @@ from   nipype.interfaces.fsl     import ExtractROI, Eddy, DTIFit, MultiImageMath
 from   nipype.interfaces.io      import DataSink, SelectFiles
 from   nipype.interfaces.utility import Function, Select, Split, Merge, IdentityInterface
 from   nipype.algorithms.misc    import Gunzip
+from   nipype.workflows.dmri.fsl.utils import eddy_rotate_bvecs
+from   nipype.interfaces.camino  import Image2Voxel, FSL2Scheme, DTIFit, Track, Conmat
 
 from   .anat        import attach_spm_anat_preprocessing
 from   .preproc     import spm_coregister, spm_apply_deformations
@@ -173,22 +175,23 @@ def write_acquisition_parameters(in_file):
 def fsl_dti_preprocessing(atlas_file, wf_name="fsl_dti_preproc"):
     """ Run the diffusion MRI pre-processing workflow against the diff files in `data_dir`.
 
-    It does:
-    - Eddy
-    - DTIFit
+    This estimates an affine transform from anat to diff space, applies it to
+    the brain mask and an atlas, and performs eddy-current correction.
 
     Nipype Inputs
     -------------
-    eddy.in_file: traits.File
+    dti_input.diff: traits.File
         path to the diffusion MRI image
-    extract_b0.in_file: traits.File
-        path to the diffusion MRI image
-    coreg_b0.source: traits.File
-        path to the anatomical image for co-registration
-    dtifit.bvecs: traits.File
-        path to the b vectors file
-    dtifit.bvals: traits.File
-        path to the b values file
+    dti_input.bval: traits.File
+        path to the bvals file
+    dti_input.bvec: traits.File
+        path to the bvecs file
+    dti_input.tissues: traits.File
+        paths to the NewSegment c*.nii output files
+    dti_input.anat: traits.File
+        path to the high-contrast anatomical image
+    dti_input.mni_to_anat: traits.File
+        path to the warp from MNI space to anat space
 
     Returns
     -------
@@ -216,7 +219,13 @@ def fsl_dti_preprocessing(atlas_file, wf_name="fsl_dti_preproc"):
     coreg_split  = pe.Node(Split(splits=[1, 2, 1], squeeze=True), name="coreg_split")
     brain_merge  = pe.Node(MultiImageMaths(),                   name="brain_merge")
     eddy         = pe.Node(Eddy(),                              name="eddy")
-    dtifit       = pe.Node(DTIFit(save_tensor=True),            name="dtifit")
+    rot_bvec     = pe.Node(Function(
+        input_names=["in_bvec", "eddy_params"],
+        output_names=["out_file"],
+        function=eddy_rotate_bvecs),                            name="rot_bvec")
+    dti_output   = pe.Node(IdentityInterface(
+        fields=["diff_corrected", "bvec_rotated", "brain_mask_diff", "atlas_diff"]),
+                                                                name="dti_output")
 
     warp_atlas.inputs.write_interp = 0
 
@@ -235,8 +244,7 @@ def fsl_dti_preprocessing(atlas_file, wf_name="fsl_dti_preproc"):
                 (dti_input,     eddy,           [("diff",                   "in_file")]),
                 (dti_input,     eddy,           [("bval",                   "in_bval")]),
                 (dti_input,     eddy,           [("bvec",                   "in_bvec")]),
-                (dti_input,     dtifit,         [("bval",                   "bvals")]),
-                (dti_input,     dtifit,         [("bvec",                   "bvecs")]),
+                (dti_input,     rot_bvec,       [("bvec",                   "in_bvec")]),
                 (dti_input,     brain_sel,      [("tissues",                "inlist")]),
                 (dti_input,     anat_bbox,      [("anat",                   "in_file")]),
                 (dti_input,     coreg_b0,       [("anat",                   "source")]),
@@ -253,9 +261,12 @@ def fsl_dti_preprocessing(atlas_file, wf_name="fsl_dti_preproc"):
                 (coreg_b0,      coreg_split,    [("coregistered_files",     "inlist")]),
                 (coreg_split,   brain_merge,    [("out1",                   "in_file")]),
                 (coreg_split,   brain_merge,    [("out2",                   "operand_files")]),
+                (coreg_split,   dti_output,     [("out3",                   "atlas_diff")]),
                 (brain_merge,   eddy,           [("out_file",               "in_mask")]),
-                (eddy,          dtifit,         [("out_corrected",          "dwi")]),
-                (brain_merge,   dtifit,         [("out_file",               "mask")]),
+                (brain_merge,   dti_output,     [("out_file",               "brain_mask_diff")]),
+                (eddy,          dti_output,     [("out_corrected",          "diff_corrected")]),
+                (eddy,          rot_bvec,       [("out_parameter",          "eddy_params")]),
+                (rot_bvec,      dti_output,     [("out_file",               "bvec_rotated")]),
               ])
     return wf
 
@@ -300,7 +311,6 @@ def attach_fsl_dti_preprocessing(main_wf, wf_name="fsl_dti_preproc", params={}):
 
     regexp_subst = [
                      (r"/rw{atlas}\.nii$",              "/{atlas}_diff_space.nii"),
-                     (r"/dtifit__",                     "/dtifit_"),
                    ]
     regexp_subst = format_pair_list(regexp_subst, atlas=atlas_basename)
     datasink.inputs.regexp_substitutions = extend_trait_list(datasink.inputs.regexp_substitutions,
@@ -313,20 +323,119 @@ def attach_fsl_dti_preprocessing(main_wf, wf_name="fsl_dti_preproc", params={}):
                      (anat_wf,  dti_wf,   [("new_segment.native_class_images",       "dti_input.tissues"),
                                            ("new_segment.bias_corrected_images",     "dti_input.anat"),
                                            ("new_segment.inverse_deformation_field", "dti_input.mni_to_anat")]),
-                     (dti_wf,   datasink, [("eddy.out_corrected",                    "diff.@eddy_corrected"),
-                                           ("dtifit.V1",                             "diff.@v1"),
-                                           ("dtifit.V2",                             "diff.@v2"),
-                                           ("dtifit.V3",                             "diff.@v3"),
-                                           ("dtifit.L1",                             "diff.@l1"),
-                                           ("dtifit.L2",                             "diff.@l2"),
-                                           ("dtifit.L3",                             "diff.@l3"),
-                                           ("dtifit.MD",                             "diff.@mean_diffusivity"),
-                                           ("dtifit.FA",                             "diff.@fractional_anisotropy"),
-                                           ("dtifit.MO",                             "diff.@mode_of_anisotropy"),
-                                           ("dtifit.S0",                             "diff.@s0"),
-                                           ("dtifit.tensor",                         "diff.@tensor"),
-                                           ("brain_merge.out_file",                  "diff.@mask"),
-                                           ("coreg_split.out3",                      "diff.@atlas")]),
+                     (dti_wf,   datasink, [("dti_output.diff_corrected",             "diff.@eddy_corrected"),
+                                           ("dti_output.brain_mask_diff",            "diff.@mask"),
+                                           ("dti_output.atlas_diff",                 "diff.@atlas"),
+                                           ("dti_output.bvec_rotated",               "diff.@bvec_rotated")]),
+                    ])
+
+    return main_wf
+
+
+def camino_tractography(wf_name="camino_tract"):
+    """ Run the diffusion MRI pre-processing workflow against the diff files in `data_dir`.
+
+    Nipype Inputs
+    -------------
+    tract_input.diff: traits.File
+        path to the diffusion MRI image
+    tract_input.bval: traits.File
+        path to the bvals file
+    tract_input.bvec: traits.File
+        path to the bvecs file
+    tract_input.mask: traits.File
+        path to the brain mask file
+    tract_input.atlas: traits.File
+        path to the atlas file
+
+    Returns
+    -------
+    wf: nipype Workflow
+    """
+
+    tract_input  = pe.Node(IdentityInterface(
+        fields=["diff", "bvec", "bval", "mask", "atlas"],
+        mandatory_inputs=True),                                 name="tract_input")
+    img2vox_diff = pe.Node(Image2Voxel(out_type="float"),       name="img2vox_diff")
+    img2vox_mask = pe.Node(Image2Voxel(out_type="short"),       name="img2vox_mask")
+    fsl2scheme   = pe.Node(FSL2Scheme(),                        name="fsl2scheme")
+    dtifit       = pe.Node(DTIFit(),                            name="dtifit")
+    track        = pe.Node(Track(
+        inputmodel="dt",
+        out_file="tracts.Bfloat"),                              name="track")
+    conmat       = pe.Node(Conmat(output_root="conmat_"),       name="conmat")
+    tract_output = pe.Node(IdentityInterface(
+        fields=["tensor", "tracks", "connectivity"]),
+                                                                name="tract_output")
+
+    # Create the workflow object
+    wf = pe.Workflow(name=wf_name)
+
+    # Connect the nodes
+    wf.connect([
+                (tract_input,   img2vox_diff,   [("diff",                   "in_file")]),
+                (tract_input,   fsl2scheme,     [("bvec",                   "bvec_file"),
+                                                 ("bval",                   "bval_file")]),
+                (tract_input,   track,          [("atlas",                  "seed_file")]),
+                (tract_input,   conmat,         [("atlas",                  "target_file")]),
+                (tract_input,   img2vox_mask,   [("mask",                   "in_file")]),
+                (img2vox_diff,  dtifit,         [("voxel_order",            "in_file")]),
+                (img2vox_mask,  dtifit,         [("voxel_order",            "bgmask")]),
+                (fsl2scheme,    dtifit,         [("scheme",                 "scheme_file")]),
+                (dtifit,        tract_output,   [("tensor_fitted",          "tensor")]),
+                (dtifit,        track,          [("tensor_fitted",          "in_file")]),
+                (track,         conmat,         [("tracked",                "in_file")]),
+                (track,         tract_output,   [("tracked",                "tracks")]),
+                (conmat,        tract_output,   [("conmat_sc",              "connectivity")])
+              ])
+    return wf
+
+
+def attach_camino_tractography(main_wf, wf_name="camino_tract", params={}):
+    """ Attach the Camino-based tractography workflow to the `main_wf`.
+
+    Parameters
+    ----------
+    main_wf: nipype Workflow
+
+    atlas_file: str
+        Path to the anatomical atlas.
+
+    wf_name: str
+        Name of the preprocessing workflow
+
+    Nipype Inputs for `main_wf`
+    ---------------------------
+    Note: The `main_wf` workflow is expected to have an `input_files` and a `datasink` nodes.
+
+    input_files.select.diff: input node
+
+    datasink: nipype Node
+
+    Returns
+    -------
+    main_wf: nipype Workflow
+    """
+    main_wf = attach_fsl_dti_preprocessing(main_wf=main_wf,
+                                           wf_name="fsl_dti_preproc",
+                                           params=params)
+
+    in_files = find_wf_node(main_wf, SelectFiles)
+    datasink = find_wf_node(main_wf, DataSink)
+    dti_wf   = main_wf.get_node("fsl_dti_preproc")
+
+    # The workflow box
+    tract_wf = camino_tractography(wf_name=wf_name)
+
+    # input and output diffusion MRI workflow to main workflow connections
+    main_wf.connect([(in_files, tract_wf, [("diff_bval",                             "tract_input.bval")]),
+                     (dti_wf,   tract_wf, [("dti_output.diff_corrected",             "tract_input.diff"),
+                                           ("dti_output.bvec_rotated",               "tract_input.bvec"),
+                                           ("dti_output.brain_mask_diff",            "tract_input.mask"),
+                                           ("dti_output.atlas_diff",                 "tract_input.atlas")]),
+                     (tract_wf, datasink, [("tract_output.tensor",                   "tract.@tensor"),
+                                           ("tract_output.tracks",                   "tract.@tracks"),
+                                           ("tract_output.connectivity",             "tract.@connectivity")])
                     ])
 
     return main_wf

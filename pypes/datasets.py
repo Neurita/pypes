@@ -8,7 +8,7 @@ import os.path as op
 from   .run  import in_out_workflow
 from   .anat import attach_spm_anat_preprocessing
 from   .pet  import attach_spm_mrpet_preprocessing
-from   .dti  import attach_fsl_dti_preprocessing
+from   .dti  import attach_fsl_dti_preprocessing, attach_camino_tractography
 
 
 def cobre_workflow(wf_name, base_dir, cache_dir, output_dir):
@@ -97,6 +97,7 @@ def clinical_workflow(wf_name, base_dir, cache_dir, output_dir, atlas_file, year
     wfs = {"spm_anat_preproc": attach_spm_anat_preprocessing,
            "spm_mrpet_preproc": attach_spm_mrpet_preprocessing,
            "fsl_dti_preproc": attach_fsl_dti_preprocessing,
+           "camino_tract": attach_camino_tractography,
           }
 
     if wf_name not in wfs:
