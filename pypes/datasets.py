@@ -3,12 +3,91 @@
 Functions to create pipelines for public and not so public available datasets.
 """
 
-import os.path as op
+from collections import OrderedDict
 
-from   .run  import in_out_crumb_wf
+from   .io   import build_crumb_workflow
 from   .anat import attach_spm_anat_preprocessing
 from   .pet  import attach_spm_mrpet_preprocessing
 from   .dti  import attach_fsl_dti_preprocessing, attach_camino_tractography
+
+
+def _cobre_wf_setup(wf_name):
+    """ Return a list of workflow-attach functions and a dict with kwargs for
+    the `in_out_crumb_wf` function to run workflows against the COBRE database.
+
+    Parameters
+    ----------
+    wf_name
+
+    Returns
+    -------
+    wf_attachers: dict with wf attachers
+
+    in_out_wf_kwargs: dict with kwargs
+    """
+    attach_functions = {"spm_anat_preproc": [attach_spm_anat_preprocessing],
+                        # TODO: "spm_rest_preproc": [attach_spm_anat_preprocessing, attach_rest_preprocessing],
+                       }
+
+    files_crumb_args = {'anat':  [('modality', 'anat_1'),
+                                  ('image',    'mprage.nii.gz')]} #'anat_1/mprage.nii.gz',
+
+    if wf_name == 'spm_rest_preproc':
+        raise NotImplementedError('A rsfMRI preprocessing pipeline has not been created yet.')
+        #files_crumb_args.update({'rest':  [('modality', 'rest_1'),
+        #                                   ('image',    'rest.nii.gz')], # 'rest_1/rest.nii.gz'},
+        #                        })
+
+    kwargs       = {'files_crumb_args': files_crumb_args}
+    wf_attachers = OrderedDict(attach_functions[wf_name])
+
+    return wf_attachers, kwargs
+
+
+def _clinical_wf_setup(wf_name):
+    """ Return a list of workflow-attach functions and a dict with kwargs for
+    the `in_out_crumb_wf` function to run workflows against the clinical database.
+
+    Parameters
+    ----------
+    wf_name
+
+    Returns
+    -------
+    wf_attachers: dict with wf attachers
+
+    in_out_wf_kwargs: dict with kwargs
+    """
+    attach_functions = {"spm_anat_preproc":     [("spm_anat_preproc",  attach_spm_anat_preprocessing)],
+
+                        "spm_anat_pet_preproc": [("spm_anat_preproc",  attach_spm_anat_preprocessing),
+                                                 ("spm_mrpet_preproc", attach_spm_mrpet_preprocessing)],
+
+                        "fsl_dti_preproc":      [("spm_anat_preproc",  attach_spm_anat_preprocessing),
+                                                 ("fsl_dti_preproc",   attach_fsl_dti_preprocessing),
+                                                 ],
+
+                        "camino_tract":         [("spm_anat_preproc",  attach_spm_anat_preprocessing),
+                                                 ("fsl_dti_preproc",   attach_fsl_dti_preprocessing),
+                                                 ("camino_tract" ,     attach_camino_tractography),
+                                                 ],
+                       }
+
+    files_crumb_args = {'anat':  [('image', 'anat_hc.nii.gz')]}
+
+    if wf_name == 'spm_mrpet_preproc':
+        files_crumb_args.update({'pet':  [('image', 'pet_fdg.nii.gz')],})
+
+    if wf_name == 'fsl_dti_preproc' or wf_name == 'camino_tract':
+        files_crumb_args.update({'diff': [('image', 'diff.nii.gz')],
+                                 'bval': [('image', 'diff.bval')],
+                                 'bvec': [('image', 'diff.bvec')],
+                                })
+
+    kwargs       = {'files_crumb_args': files_crumb_args}
+    wf_attachers = {wf_name: attach_functions[wf_name]}
+
+    return wf_attachers, kwargs
 
 
 def cobre_crumb_workflow(wf_name, data_crumb, output_dir, cache_dir='', **kwargs):
@@ -23,7 +102,7 @@ def cobre_crumb_workflow(wf_name, data_crumb, output_dir, cache_dir='', **kwargs
 
     data_crumb: hansel.Crumb
         The crumb until the subject files.
-        Example: Crumb('/home/hansel/cobre/raw/{subject_id}/session_1/{modality}/{image_file})
+        Example: Crumb('/home/hansel/cobre/raw/{subject_id}/session_1/{modality}/{image})
         The last 2 crumb arguments of `data_crumb` must be '{modality}/{image}', which indicates each of the
         subject/session files. This argument will be replaced by the corresponding image name.
 
@@ -36,59 +115,29 @@ def cobre_crumb_workflow(wf_name, data_crumb, output_dir, cache_dir='', **kwargs
     kwargs: keyword arguments
         Keyword arguments with values for the data_crumb crumb path.
     """
-    if kwargs:
-        data_crumb = data_crumb.replace(**kwargs)
+    attach_funcs, in_out_wf_kwargs = _cobre_wf_setup(wf_name)
 
-    if not data_crumb.exists():
-        raise IOError("Expected an existing folder for `data_crumb`, got {}.".format(data_crumb))
-
-
-    wfs = {"spm_anat_preproc": attach_spm_anat_preprocessing,
-           # TODO: "spm_rest_preproc": attach_rest_preprocessing,
-          }
-
-    if wf_name not in wfs:
-        raise ValueError("Expected `wf_name` to be in {}, got {}.".format(list(wfs.keys()),
-                                                                          wf_name))
-
-    # check some args
-    if not cache_dir:
-        cache_dir = op.join(op.dirname(output_dir), "wd")
-
-    # generate the workflow
-    main_wf = in_out_crumb_wf(
-                              work_dir=cache_dir,
-                              data_crumb=data_crumb,
-                              output_dir=output_dir,
-                              crumb_arg_values=dict(**kwargs),
-                              files_crumb_args={'anat':  [('modality', 'anat_1'),
-                                                          ('image',    'mprage.nii.gz')], #'anat_1/mprage.nii.gz',
-                                                'rest':  [('modality', 'rest_1'),
-                                                          ('image',    'rest.nii.gz')], # 'rest_1/rest.nii.gz'},
-                                               },
-                              input_wf_name='input_files')
-
-    wf = wfs[wf_name](main_wf=main_wf)
-
-    # move the crash files folder elsewhere
-    wf.config["execution"]["crashdump_dir"] = op.join(wf.base_dir, wf.name, "log")
-
-    return wf
+    return build_crumb_workflow(attach_funcs,
+                                data_crumb=data_crumb,
+                                in_out_kwargs=in_out_wf_kwargs,
+                                output_dir=output_dir,
+                                cache_dir=cache_dir,
+                                crumb_replaces=kwargs)
 
 
-def clinical_crumb_workflow(wf_name, data_crumb, output_dir, atlas_file=None, cache_dir='', **kwargs):
+def clinical_crumb_workflow(wf_name, data_crumb, output_dir, cache_dir='', **kwargs):
     """ Returns a workflow for the a clinical database.
 
     Parameters
     ----------
     wf_name: str
         A name for the workflow to be created.
-        Choices: 'spm_anat_preproc': MPRAGE preprocessing with SPM12
-                 'spm_mrpet_preproc': MPRAGE+FDGPET preprocessing with SPM12
+        Choices: 'spm_anat_preproc':     MPRAGE preprocessing with SPM12
+                 'spm_anat_pet_preproc': MPRAGE+FDGPET preprocessing with SPM12
 
     data_crumb: hansel.Crumb
         The crumb until the subject files.
-        Example: Crumb('/home/hansel/data/{subject_id}/{session_id}/{modality}/{image_file})
+        Example: Crumb('/home/hansel/data/{subject_id}/{session_id}/{modality}/{image})
         The last crumb argument of `data_crumb` must be '{image}', which indicates each of the
         subject/session files. This argument will be replaced by the corresponding image name.
 
@@ -101,41 +150,11 @@ def clinical_crumb_workflow(wf_name, data_crumb, output_dir, atlas_file=None, ca
     kwargs: keyword arguments
         Keyword arguments with values for the data_crumb crumb path.
     """
-    if kwargs:
-        data_crumb = data_crumb.replace(**kwargs)
+    attach_funcs, in_out_wf_kwargs = _clinical_wf_setup(wf_name)
 
-    if not data_crumb.exists():
-        raise IOError("Expected an existing folder for `data_crumb`, got {}.".format(data_crumb))
-
-    wfs = {"spm_anat_preproc": attach_spm_anat_preprocessing,
-           "spm_mrpet_preproc": attach_spm_mrpet_preprocessing,
-           "fsl_dti_preproc": attach_fsl_dti_preprocessing,
-           "camino_tract": attach_camino_tractography,
-          }
-
-    if wf_name not in wfs:
-        raise ValueError("Expected `wf_name` to be in {}, got {}.".format(list(wfs.keys()),
-                                                                          wf_name))
-
-    if not cache_dir:
-        cache_dir = op.join(op.dirname(output_dir), "wd")
-
-    # generate the workflow
-    main_wf = in_out_crumb_wf(work_dir=cache_dir,
-                              data_crumb=data_crumb,
-                              output_dir=output_dir,
-                              crumb_arg_values=dict(**kwargs),
-                              files_crumb_args={'anat': [('image', 'anat_hc.nii.gz')],
-                                                'pet':  [('image', 'pet_fdg.nii.gz')],
-                                                'diff': [('image', 'diff.nii.gz')],
-                                                'bval': [('image', 'diff.bval')],
-                                                'bvec': [('image', 'diff.bvec')],
-                                               },
-                              input_wf_name='input_files')
-
-    wf = wfs[wf_name](main_wf=main_wf, params={"atlas_file": atlas_file})
-
-    # move the crash files folder elsewhere
-    wf.config["execution"]["crashdump_dir"] = op.join(wf.base_dir, wf.name, "log")
-
-    return wf
+    return build_crumb_workflow(attach_funcs,
+                                data_crumb=data_crumb,
+                                in_out_kwargs=in_out_wf_kwargs,
+                                output_dir=output_dir,
+                                cache_dir=cache_dir,
+                                crumb_replaces=kwargs)

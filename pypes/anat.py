@@ -33,7 +33,6 @@ def biasfield_correct(anat_filepath=traits.Undefined):
     -------
     seg: N4BiasFieldCorrection interface
     """
-
     n4 = N4BiasFieldCorrection()
     n4.inputs.dimension = 3
     n4.inputs.bspline_fitting_distance = 300
@@ -68,12 +67,12 @@ def spm_segment(anat_filepath=traits.Undefined, priors_path=None):
 
     seg = spm.NewSegment()
 
-    tissue1 = ((priors_path, 1), 1, (True, True), (True, True))
-    tissue2 = ((priors_path, 2), 1, (True, True), (True, True))
-    tissue3 = ((priors_path, 3), 2, (True, True), (True, True))
-    tissue4 = ((priors_path, 4), 3, (True, True), (True, True))
-    tissue5 = ((priors_path, 5), 4, (True, False), (False, False))
-    tissue6 = ((priors_path, 6), 2, (False, False), (False, False))
+    tissue1 = ((priors_path, 1), 1, (True,  True),   (True,  True))
+    tissue2 = ((priors_path, 2), 1, (True,  True),   (True,  True))
+    tissue3 = ((priors_path, 3), 2, (True,  True),   (True,  True))
+    tissue4 = ((priors_path, 4), 3, (True,  True),   (True,  True))
+    tissue5 = ((priors_path, 5), 4, (True,  False),  (False, False))
+    tissue6 = ((priors_path, 6), 2, (False, False),  (False, False))
     seg.inputs.tissues = [tissue1, tissue2, tissue3, tissue4, tissue5, tissue6]
     seg.inputs.channel_info = (0.0001, 60, (True, True))
     #seg.inputs.warping_regularization = [0, 0.001, 0.5, 0.05, 0.2]

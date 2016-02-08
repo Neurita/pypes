@@ -4,9 +4,8 @@ Nipype workflows to process diffusion MRI.
 """
 import os.path as op
 
-import nipype.interfaces.spm     as spm
 import nipype.pipeline.engine    as pe
-from   nipype.interfaces.fsl     import ExtractROI, Eddy, DTIFit, MultiImageMaths
+from   nipype.interfaces.fsl     import ExtractROI, Eddy, MultiImageMaths
 from   nipype.interfaces.io      import DataSink, SelectFiles
 from   nipype.interfaces.utility import Function, Select, Split, Merge, IdentityInterface
 from   nipype.algorithms.misc    import Gunzip
@@ -17,6 +16,7 @@ from   .anat        import attach_spm_anat_preprocessing
 from   .preproc     import spm_coregister, spm_apply_deformations
 from   .utils       import find_wf_node, remove_ext, extend_trait_list
 from   ._utils      import flatten_list, format_pair_list
+
 
 def get_bounding_box(in_file):
     """
@@ -41,6 +41,7 @@ def get_bounding_box(in_file):
     high_corner = numpy.max(corners, axis=0)
 
     return [low_corner.tolist(), high_corner.tolist()]
+
 
 def write_acquisition_parameters(in_file):
     """
@@ -172,6 +173,7 @@ def write_acquisition_parameters(in_file):
 
     return os.path.abspath(acqp_file), os.path.abspath(index_file)
 
+
 def fsl_dti_preprocessing(atlas_file, wf_name="fsl_dti_preproc"):
     """ Run the diffusion MRI pre-processing workflow against the diff files in `data_dir`.
 
@@ -296,9 +298,6 @@ def attach_fsl_dti_preprocessing(main_wf, wf_name="fsl_dti_preproc", params={}):
     -------
     main_wf: nipype Workflow
     """
-    main_wf = attach_spm_anat_preprocessing(main_wf=main_wf,
-                                            wf_name="spm_anat_preproc")
-
     in_files = find_wf_node(main_wf, SelectFiles)
     datasink = find_wf_node(main_wf, DataSink)
     anat_wf  = main_wf.get_node("spm_anat_preproc")
@@ -310,7 +309,7 @@ def attach_fsl_dti_preprocessing(main_wf, wf_name="fsl_dti_preproc", params={}):
     dti_wf = fsl_dti_preprocessing(atlas_file=atlas_file, wf_name=wf_name)
 
     regexp_subst = [
-                     (r"/rw{atlas}\.nii$",              "/{atlas}_diff_space.nii"),
+                     (r"/rw{atlas}\.nii$", "/{atlas}_diff_space.nii"),
                    ]
     regexp_subst = format_pair_list(regexp_subst, atlas=atlas_basename)
     datasink.inputs.regexp_substitutions = extend_trait_list(datasink.inputs.regexp_substitutions,
@@ -373,20 +372,20 @@ def camino_tractography(wf_name="camino_tract"):
 
     # Connect the nodes
     wf.connect([
-                (tract_input,   img2vox_diff,   [("diff",                   "in_file")]),
-                (tract_input,   fsl2scheme,     [("bvec",                   "bvec_file"),
-                                                 ("bval",                   "bval_file")]),
-                (tract_input,   track,          [("atlas",                  "seed_file")]),
-                (tract_input,   conmat,         [("atlas",                  "target_file")]),
-                (tract_input,   img2vox_mask,   [("mask",                   "in_file")]),
-                (img2vox_diff,  dtifit,         [("voxel_order",            "in_file")]),
-                (img2vox_mask,  dtifit,         [("voxel_order",            "bgmask")]),
-                (fsl2scheme,    dtifit,         [("scheme",                 "scheme_file")]),
-                (dtifit,        tract_output,   [("tensor_fitted",          "tensor")]),
-                (dtifit,        track,          [("tensor_fitted",          "in_file")]),
-                (track,         conmat,         [("tracked",                "in_file")]),
-                (track,         tract_output,   [("tracked",                "tracks")]),
-                (conmat,        tract_output,   [("conmat_sc",              "connectivity")])
+                (tract_input,   img2vox_diff,   [("diff",          "in_file")]),
+                (tract_input,   fsl2scheme,     [("bvec",          "bvec_file"),
+                                                 ("bval",          "bval_file")]),
+                (tract_input,   track,          [("atlas",         "seed_file")]),
+                (tract_input,   conmat,         [("atlas",         "target_file")]),
+                (tract_input,   img2vox_mask,   [("mask",          "in_file")]),
+                (img2vox_diff,  dtifit,         [("voxel_order",   "in_file")]),
+                (img2vox_mask,  dtifit,         [("voxel_order",   "bgmask")]),
+                (fsl2scheme,    dtifit,         [("scheme",        "scheme_file")]),
+                (dtifit,        tract_output,   [("tensor_fitted", "tensor")]),
+                (dtifit,        track,          [("tensor_fitted", "in_file")]),
+                (track,         conmat,         [("tracked",       "in_file")]),
+                (track,         tract_output,   [("tracked",       "tracks")]),
+                (conmat,        tract_output,   [("conmat_sc",     "connectivity")])
               ])
     return wf
 
@@ -428,14 +427,14 @@ def attach_camino_tractography(main_wf, wf_name="camino_tract", params={}):
     tract_wf = camino_tractography(wf_name=wf_name)
 
     # input and output diffusion MRI workflow to main workflow connections
-    main_wf.connect([(in_files, tract_wf, [("bval",                                  "tract_input.bval")]),
-                     (dti_wf,   tract_wf, [("dti_output.diff_corrected",             "tract_input.diff"),
-                                           ("dti_output.bvec_rotated",               "tract_input.bvec"),
-                                           ("dti_output.brain_mask_diff",            "tract_input.mask"),
-                                           ("dti_output.atlas_diff",                 "tract_input.atlas")]),
-                     (tract_wf, datasink, [("tract_output.tensor",                   "tract.@tensor"),
-                                           ("tract_output.tracks",                   "tract.@tracks"),
-                                           ("tract_output.connectivity",             "tract.@connectivity")])
+    main_wf.connect([(in_files, tract_wf, [("bval",                       "tract_input.bval")]),
+                     (dti_wf,   tract_wf, [("dti_output.diff_corrected",  "tract_input.diff"),
+                                           ("dti_output.bvec_rotated",    "tract_input.bvec"),
+                                           ("dti_output.brain_mask_diff", "tract_input.mask"),
+                                           ("dti_output.atlas_diff",      "tract_input.atlas")]),
+                     (tract_wf, datasink, [("tract_output.tensor",        "tract.@tensor"),
+                                           ("tract_output.tracks",        "tract.@tracks"),
+                                           ("tract_output.connectivity",  "tract.@connectivity")])
                     ])
 
     return main_wf

@@ -10,7 +10,7 @@ from   nipype.interfaces.afni import preprocess
 
 
 # workflow to edit the scan to the proscribed TRs
-def create_wf_edit_func( wf_name = "edit_func" ):
+def create_wf_edit_func(wf_name = "edit_func" ):
     """
     Workflow Inputs::
     
