@@ -105,13 +105,10 @@ class Config(Kaptan):
         return self
 
     def __getitem__(self, item):
+        if item not in self.configuration_data:
+            raise KeyError('Could not find key {} in configuration content.'.format(item))
+
         return self.configuration_data[item]
 
     def __setitem__(self, key, value):
         return self.setitem(key, value)
-
-    def setitem(self, key, value):
-        self.configuration_data[key] = value
-
-    def getitem(self, item):
-        return self.configuration_data[item]

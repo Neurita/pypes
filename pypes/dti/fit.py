@@ -163,6 +163,7 @@ def write_acquisition_parameters(in_file, epi_factor=128):
     return op.abspath(acqp_file), op.abspath(index_file)
 
 
+
 def fsl_dti_preprocessing(atlas_file, wf_name="fsl_dti_preproc"):
     """ Run the diffusion MRI pre-processing workflow against the diff files in `data_dir`.
 
@@ -267,18 +268,20 @@ def fsl_dti_preprocessing(atlas_file, wf_name="fsl_dti_preproc"):
     return wf
 
 
-def attach_fsl_dti_preprocessing(main_wf, wf_name="fsl_dti_preproc", params={}):
+def attach_fsl_dti_preprocessing(main_wf, wf_name="fsl_dti_preproc", params=None):
     """ Attach the FSL-based diffusion MRI pre-processing workflow to the `main_wf`.
 
     Parameters
     ----------
     main_wf: nipype Workflow
 
-    atlas_file: str
-        Path to the anatomical atlas to be transformed to diffusion MRI space.
-
     wf_name: str
         Name of the preprocessing workflow
+
+    params: dict with parameter values
+        atlas_file: str
+            Path to the anatomical atlas to be transformed to diffusion MRI space.
+
 
     Nipype Inputs for `main_wf`
     ---------------------------
@@ -296,7 +299,12 @@ def attach_fsl_dti_preprocessing(main_wf, wf_name="fsl_dti_preproc", params={}):
     datasink = find_wf_node(main_wf, DataSink)
     anat_wf  = main_wf.get_node("spm_anat_preproc")
 
-    atlas_file = params["atlas_file"]
+    atlas_file = config.get("atlas_file", None)
+    if atlas_file is None:
+        raise ValueError('Expected an existing atlas_file, got {}.'.format(atlas_file))
+    if not op.exists(atlas_file):
+        raise IOError('Expected an existing atlas_file, got {}.'.format(atlas_file))
+
     atlas_basename = remove_ext(op.basename(atlas_file))
 
     # The workflow box
@@ -323,4 +331,3 @@ def attach_fsl_dti_preprocessing(main_wf, wf_name="fsl_dti_preproc", params={}):
                     ])
 
     return main_wf
-

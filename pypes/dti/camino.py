@@ -2,10 +2,6 @@
 """
 Nipype workflows to use Camino for tractography.
 """
-# -*- coding: utf-8 -*-
-"""
-Nipype workflows to preprocess diffusion MRI.
-"""
 import nipype.pipeline.engine    as pe
 from   nipype.interfaces.io      import DataSink, SelectFiles
 from   nipype.interfaces.utility import IdentityInterface
@@ -73,7 +69,7 @@ def camino_tractography(wf_name="camino_tract"):
     return wf
 
 
-def attach_camino_tractography(main_wf, wf_name="camino_tract", params={}):
+def attach_camino_tractography(main_wf, wf_name="camino_tract", params=None):
     """ Attach the Camino-based tractography workflow to the `main_wf`.
 
     Parameters
