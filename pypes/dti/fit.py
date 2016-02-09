@@ -5,8 +5,6 @@ Nipype workflows to preprocess diffusion MRI.
 import os.path as op
 from itertools import product
 
-import nibabel as nib
-import numpy   as np
 import nipype.pipeline.engine    as pe
 from   nipype.interfaces.fsl     import ExtractROI, Eddy, MultiImageMaths
 from   nipype.interfaces.io      import DataSink, SelectFiles
@@ -21,6 +19,11 @@ from   .._utils  import flatten_list, format_pair_list
 
 def get_bounding_box(in_file):
     """ Retrieve the bounding box of a volume in millimetres."""
+
+    # the imports must be inside if you want them to work in a nipype.Function node.
+    import nibabel as nib
+    import numpy   as np
+
     img = nib.load(in_file)
 
     # eight corners of the 3-D unit cube [0, 0, 0] .. [1, 1, 1]
@@ -135,6 +138,9 @@ def write_acquisition_parameters(in_file, epi_factor=128):
     We should put in the `acqp` file this line:
     0 1 0 0.095
     """
+    # the imports must be inside if you want them to work in a nipype.Function node.
+    import nibabel as nib
+
     acqp_file = "diff.acqp"
     index_file = "diff.index"
 
