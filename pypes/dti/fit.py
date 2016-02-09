@@ -139,6 +139,7 @@ def write_acquisition_parameters(in_file, epi_factor=128):
     0 1 0 0.095
     """
     # the imports must be inside if you want them to work in a nipype.Function node.
+    import os.path as op
     import nibabel as nib
 
     acqp_file = "diff.acqp"
@@ -146,8 +147,10 @@ def write_acquisition_parameters(in_file, epi_factor=128):
 
     image = nib.load(in_file)
     n_directions = image.shape[-1]
-    header = image.header
-    descrip = dict([item.split("=", 1) for item in header["descrip"][()].split(";")])
+
+    # read the value of the descrip field in the nifti header
+    descrip_field = image.header["descrip"].astype(str)[()]
+    descrip = dict([item.split("=", 1) for item in descrip_field.split(";")])
 
     if descrip.get("phaseDir") == "+":
         pe_axis = "0 1 0"
@@ -161,6 +164,7 @@ def write_acquisition_parameters(in_file, epi_factor=128):
 
     with open(acqp_file, "wt") as fout:
         fout.write("{} {}\n".format(pe_axis, total_readout_time))
+
     with open(index_file, "wt") as fout:
         fout.write("{}\n".format(" ".join(n_directions * ["1"])))
 
