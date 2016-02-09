@@ -15,7 +15,7 @@ from .utils.piping import get_values_map_keys
 
 
 def build_crumb_workflow(wfname_attacher, data_crumb, in_out_kwargs, output_dir,
-                         cache_dir='', crumb_replaces=None):
+                         cache_dir='', crumb_replaces=None, params=None):
     """ Returns a workflow for the give `data_crumb` with the attached workflows
     given by `attach_functions`.
 
@@ -82,7 +82,7 @@ def build_crumb_workflow(wfname_attacher, data_crumb, in_out_kwargs, output_dir,
                                  **in_out_kwargs)
 
     for wf_name, attach_wf in wfname_attacher.items():
-        main_wf = attach_wf(main_wf=main_wf, wf_name=wf_name)
+        main_wf = attach_wf(main_wf=main_wf, wf_name=wf_name, params=params)
 
     # move the crash files folder elsewhere
     main_wf.config["execution"]["crashdump_dir"] = op.join(main_wf.base_dir,

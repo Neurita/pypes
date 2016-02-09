@@ -38,10 +38,10 @@ def _cobre_wf_setup(wf_name):
         #                                   ('image',    'rest.nii.gz')], # 'rest_1/rest.nii.gz'},
         #                        })
 
-    kwargs       = {'files_crumb_args': files_crumb_args}
+    params       = {'files_crumb_args': files_crumb_args}
     wf_attachers = OrderedDict(attach_functions[wf_name])
 
-    return wf_attachers, kwargs
+    return wf_attachers, params
 
 
 def _clinical_wf_setup(wf_name):
@@ -84,13 +84,13 @@ def _clinical_wf_setup(wf_name):
                                  'bvec': [('image', 'diff.bvec')],
                                 })
 
-    kwargs       = {'files_crumb_args': files_crumb_args}
+    params       = {'files_crumb_args': files_crumb_args}
     wf_attachers = {wf_name: attach_functions[wf_name]}
 
-    return wf_attachers, kwargs
+    return wf_attachers, params
 
 
-def cobre_crumb_workflow(wf_name, data_crumb, output_dir, cache_dir='', **kwargs):
+def cobre_crumb_workflow(wf_name, data_crumb, output_dir, cache_dir='', params=None):
     """ Returns a workflow for the COBRE database.
 
     Parameters
@@ -112,8 +112,10 @@ def cobre_crumb_workflow(wf_name, data_crumb, output_dir, cache_dir='', **kwargs
     output_dir: str
         The output folder path
 
-    kwargs: keyword arguments
-        Keyword arguments with values for the data_crumb crumb path.
+    params: dict with arguments
+        crumb_replace
+
+        atlas_file
     """
     attach_funcs, in_out_wf_kwargs = _cobre_wf_setup(wf_name)
 
@@ -125,7 +127,7 @@ def cobre_crumb_workflow(wf_name, data_crumb, output_dir, cache_dir='', **kwargs
                                 crumb_replaces=kwargs)
 
 
-def clinical_crumb_workflow(wf_name, data_crumb, output_dir, cache_dir='', **kwargs):
+def clinical_crumb_workflow(wf_name, data_crumb, output_dir, cache_dir='', params=None):
     """ Returns a workflow for the a clinical database.
 
     Parameters
@@ -147,14 +149,22 @@ def clinical_crumb_workflow(wf_name, data_crumb, output_dir, cache_dir='', **kwa
     output_dir: str
         The output folder path
 
-    kwargs: keyword arguments
-        Keyword arguments with values for the data_crumb crumb path.
+    params: dict with arguments
+        crumb_replace
+
+        atlas_file
     """
     attach_funcs, in_out_wf_kwargs = _clinical_wf_setup(wf_name)
+
+    if params is None:
+        params = {}
+
+    params.update(in_out_wf_kwargs)
 
     return build_crumb_workflow(attach_funcs,
                                 data_crumb=data_crumb,
                                 in_out_kwargs=in_out_wf_kwargs,
                                 output_dir=output_dir,
                                 cache_dir=cache_dir,
-                                crumb_replaces=kwargs)
+                                params=params,
+                                crumb_replaces=params.get('crumb_replace', None))
