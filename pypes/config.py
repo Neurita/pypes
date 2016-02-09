@@ -104,6 +104,17 @@ class Config(Kaptan):
 
         return self
 
+    def check_file(self, item):
+        """ This is a __getitem__ operator for file path values, if the file does not exist an IOError is raised."""
+        try:
+            fpath = self.__getitem__(item)
+        except KeyError:
+            raise
+        else:
+            if not op.exists(fpath):
+                raise IOError('Could not find file for key {} in the {}.'.format(item, fpath))
+            return fpath
+
     def __getitem__(self, item):
         if item not in self.configuration_data:
             raise KeyError('Could not find key {} in configuration content.'.format(item))
