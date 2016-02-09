@@ -20,9 +20,7 @@ from   .._utils  import flatten_list, format_pair_list
 
 
 def get_bounding_box(in_file):
-    """
-    Retrieve the bounding box of a volume in millimetres.
-    """
+    """ Retrieve the bounding box of a volume in millimetres."""
     img = nib.load(in_file)
 
     # eight corners of the 3-D unit cube [0, 0, 0] .. [1, 1, 1]
@@ -299,7 +297,7 @@ def attach_fsl_dti_preprocessing(main_wf, wf_name="fsl_dti_preproc", params=None
     datasink = find_wf_node(main_wf, DataSink)
     anat_wf  = main_wf.get_node("spm_anat_preproc")
 
-    atlas_file = config.get("atlas_file", None)
+    atlas_file = params.get("atlas_file", None)
     if atlas_file is None:
         raise ValueError('Expected an existing atlas_file, got {}.'.format(atlas_file))
     if not op.exists(atlas_file):

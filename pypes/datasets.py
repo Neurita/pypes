@@ -39,9 +39,8 @@ def _cobre_wf_setup(wf_name):
         #                        })
 
     params       = {'files_crumb_args': files_crumb_args}
-    wf_attachers = OrderedDict(attach_functions[wf_name])
 
-    return wf_attachers, params
+    return OrderedDict(attach_functions[wf_name]), params
 
 
 def _clinical_wf_setup(wf_name):
@@ -58,36 +57,41 @@ def _clinical_wf_setup(wf_name):
 
     in_out_wf_kwargs: dict with kwargs
     """
-    attach_functions = {"spm_anat_preproc":     [("spm_anat_preproc",  attach_spm_anat_preprocessing)],
+    attach_functions = {"spm_anat_preproc":         [("spm_anat_preproc",  attach_spm_anat_preprocessing)],
 
-                        "spm_anat_pet_preproc": [("spm_anat_preproc",  attach_spm_anat_preprocessing),
-                                                 ("spm_mrpet_preproc", attach_spm_mrpet_preprocessing)],
+                        "spm_anat_pet_preproc":     [("spm_anat_preproc",  attach_spm_anat_preprocessing),
+                                                     ("spm_mrpet_preproc", attach_spm_mrpet_preprocessing)],
 
-                        "fsl_dti_preproc":      [("spm_anat_preproc",  attach_spm_anat_preprocessing),
-                                                 ("fsl_dti_preproc",   attach_fsl_dti_preprocessing),
-                                                 ],
+                        "fsl_dti_preproc":          [("spm_anat_preproc",  attach_spm_anat_preprocessing),
+                                                     ("fsl_dti_preproc",   attach_fsl_dti_preprocessing),
+                                                     ],
 
-                        "camino_tract":         [("spm_anat_preproc",  attach_spm_anat_preprocessing),
-                                                 ("fsl_dti_preproc",   attach_fsl_dti_preprocessing),
-                                                 ("camino_tract" ,     attach_camino_tractography),
-                                                 ],
+                        "camino_dti_tract":         [("spm_anat_preproc",  attach_spm_anat_preprocessing),
+                                                     ("fsl_dti_preproc",   attach_fsl_dti_preprocessing),
+                                                     ("camino_tract" ,     attach_camino_tractography),
+                                                    ],
+
+                        "camino_dti_tract_and_pet": [("spm_anat_preproc",  attach_spm_anat_preprocessing),
+                                                     ("spm_mrpet_preproc", attach_spm_mrpet_preprocessing),
+                                                     ("fsl_dti_preproc",   attach_fsl_dti_preprocessing),
+                                                     ("camino_tract",      attach_camino_tractography),
+                                                    ],
                        }
 
     files_crumb_args = {'anat':  [('image', 'anat_hc.nii.gz')]}
 
-    if wf_name == 'spm_mrpet_preproc':
+    if 'pet' in wf_name:
         files_crumb_args.update({'pet':  [('image', 'pet_fdg.nii.gz')],})
 
-    if wf_name == 'fsl_dti_preproc' or wf_name == 'camino_tract':
+    if 'dti' in wf_name:
         files_crumb_args.update({'diff': [('image', 'diff.nii.gz')],
                                  'bval': [('image', 'diff.bval')],
                                  'bvec': [('image', 'diff.bvec')],
                                 })
 
     params       = {'files_crumb_args': files_crumb_args}
-    wf_attachers = {wf_name: attach_functions[wf_name]}
 
-    return wf_attachers, params
+    return OrderedDict(attach_functions[wf_name]), params
 
 
 def cobre_crumb_workflow(wf_name, data_crumb, output_dir, cache_dir='', params=None):
@@ -167,5 +171,5 @@ def clinical_crumb_workflow(wf_name, data_crumb, output_dir, cache_dir='', param
                                 in_out_kwargs=in_out_wf_kwargs,
                                 output_dir=output_dir,
                                 cache_dir=cache_dir,
-                                params=params,
-                                crumb_replaces=params.get('crumb_replaces', None))
+                                crumb_replaces=params.get('crumb_replaces', None),
+                                params=params)
