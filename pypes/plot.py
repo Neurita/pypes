@@ -4,13 +4,19 @@ Helper functions to plot nipype workflows
 """
 
 
-def plot_workflow(wf):
-    """ Plot `wf` nodes in 3 different ways in its working directory.
+def plot_workflow(wf, detailed=False):
+    """ Plot the `wf` pipeline nodes in different ways in its working directory.
 
     Parameters
     ----------
     wf: nipype Workflow
+
+    detailed: bool
+        If True will also plot the detailed execution plot.
+        This takes a very long time if the number of subjects if large.
     """
     # print the graph of the workflow in the working directory
     wf.write_graph("{}_colored_workflow".format(wf.name), graph2use="colored")
-    wf.write_graph("{}_exec_workflow".format(wf.name),    graph2use="exec")
+
+    if detailed:
+        wf.write_graph("{}_exec_workflow".format(wf.name),    graph2use="exec")
