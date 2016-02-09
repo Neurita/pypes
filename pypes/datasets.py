@@ -113,7 +113,7 @@ def cobre_crumb_workflow(wf_name, data_crumb, output_dir, cache_dir='', params=N
         The output folder path
 
     params: dict with arguments
-        crumb_replace
+        crumb_replaces
 
         atlas_file
     """
@@ -124,7 +124,8 @@ def cobre_crumb_workflow(wf_name, data_crumb, output_dir, cache_dir='', params=N
                                 in_out_kwargs=in_out_wf_kwargs,
                                 output_dir=output_dir,
                                 cache_dir=cache_dir,
-                                crumb_replaces=kwargs)
+                                params=params,
+                                crumb_replaces=params.get('crumb_replaces', None))
 
 
 def clinical_crumb_workflow(wf_name, data_crumb, output_dir, cache_dir='', params=None):
@@ -150,7 +151,7 @@ def clinical_crumb_workflow(wf_name, data_crumb, output_dir, cache_dir='', param
         The output folder path
 
     params: dict with arguments
-        crumb_replace
+        crumb_replaces
 
         atlas_file
     """
@@ -167,4 +168,4 @@ def clinical_crumb_workflow(wf_name, data_crumb, output_dir, cache_dir='', param
                                 output_dir=output_dir,
                                 cache_dir=cache_dir,
                                 params=params,
-                                crumb_replaces=params.get('crumb_replace', None))
+                                crumb_replaces=params.get('crumb_replaces', None))
