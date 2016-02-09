@@ -3,7 +3,6 @@
 Nipype workflows to preprocess diffusion MRI.
 """
 import os.path as op
-from itertools import product
 
 import nipype.pipeline.engine    as pe
 from   nipype.interfaces.fsl     import ExtractROI, Eddy, MultiImageMaths
@@ -21,6 +20,8 @@ def get_bounding_box(in_file):
     """ Retrieve the bounding box of a volume in millimetres."""
 
     # the imports must be inside if you want them to work in a nipype.Function node.
+    from itertools import product
+
     import nibabel as nib
     import numpy   as np
 
