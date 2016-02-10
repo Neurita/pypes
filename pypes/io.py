@@ -152,7 +152,7 @@ def input_output_crumb(work_dir, data_crumb, output_dir, crumb_arg_values, files
 
     # basic file name substitutions for the datasink
     file_args = get_values_map_keys(files_crumb_args)
-    undef_args = [name for name in set(data_crumb.keys()) if name not in file_args]
+    undef_args = [name for name in list(data_crumb.open_args()) if name not in file_args]
 
     substitutions = [(name, "") for name in undef_args]
     substitutions.append(("__", "_"))
