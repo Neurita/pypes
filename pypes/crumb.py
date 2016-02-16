@@ -64,11 +64,12 @@ def crumb_input(work_dir, data_crumb, crumb_arg_values, files_crumb_args, wf_nam
     param_args = deepcopy(crumb_arg_values) if crumb_arg_values else {}
 
     # create the lists of argument names
-    crumb_args = list(data_crumb.keys())
+    crumb_args = list(data_crumb.all_args())
     arg_names  = list(param_args.keys()) if param_args else []
     arg_names.extend(get_values_map_keys(files_crumb_args))
 
-    # check their size and expand them if needed
+    # check their size and expand them if needed#
+    # TODO: this has to be fixed to list only folders that exist in the complete path, not only all possible combinations.
     n_crumbs   = len(crumb_args)
     n_names    = len(arg_names)
     if n_crumbs > n_names: # add the missing argument values to the crumb_arg_values dictionary
@@ -81,7 +82,7 @@ def crumb_input(work_dir, data_crumb, crumb_arg_values, files_crumb_args, wf_nam
                        'but got these extra: {}.'.format(data_crumb, set(arg_names)-set(crumb_args)))
 
     # Infosource - a function free node to iterate over the list of subject names
-    field_names = list(data_crumb.keys())
+    field_names = list(data_crumb.all_args())
 
     infosource = pe.Node(IdentityInterface(fields=field_names), name="infosrc")
     infosource.iterables = list(param_args.items())

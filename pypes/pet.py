@@ -189,8 +189,8 @@ def attach_spm_mrpet_preprocessing(main_wf, wf_name="spm_mrpet_preproc", params=
                      (r"/r{pet}_.*_pvc.nii.gz$",        "/{pet}_anat_pvc.nii.gz"),
                      (r"/r{pet}_.*_pvc_maths.nii.gz$",  "/{pet}_anat_pvc_norm.nii.gz"),
                      (r"/wr{pet}.nii",                  "/{pet}_mni.nii"),
-                     (r"/wr{pet}_.*_pvc.nii$",          "/{pet}_mni_pvc.nii.gz"),
-                     (r"/wr{pet}_.*_pvc_maths.nii$",    "/{pet}_mni_pvc_norm.nii.gz"),
+                     (r"/wr{pet}_.*_pvc.nii$",          "/{pet}_mni_pvc.nii"),
+                     (r"/wr{pet}_.*_pvc_maths.nii$",    "/{pet}_mni_pvc_norm.nii"),
                      (r"/wbrain_mask.nii",              "/brain_mask_mni.nii"),
                    ]
     regexp_subst = format_pair_list(regexp_subst, pet=pet_fbasename)
