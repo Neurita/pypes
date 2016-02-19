@@ -4,7 +4,8 @@ Nipype workflows to use Camino for tractography.
 """
 import nipype.pipeline.engine    as pe
 from   nipype.interfaces.utility import IdentityInterface
-from   nipype.interfaces.camino  import Image2Voxel, FSL2Scheme, DTIFit, Track, Conmat
+from   nipype.interfaces.camino  import (Image2Voxel, FSL2Scheme, DTIFit, Track,
+                                         Conmat, ComputeFractionalAnisotropy)
 
 from   ..utils import (get_datasink,
                        get_input_node,
@@ -39,12 +40,13 @@ def camino_tractography(wf_name="camino_tract"):
     img2vox_mask = pe.Node(Image2Voxel(out_type="short"),       name="img2vox_mask")
     fsl2scheme   = pe.Node(FSL2Scheme(),                        name="fsl2scheme")
     dtifit       = pe.Node(DTIFit(),                            name="dtifit")
+    fa           = pe.Node(ComputeFractionalAnisotropy(),       name="fa")
     track        = pe.Node(Track(
         inputmodel="dt",
         out_file="tracts.Bfloat"),                              name="track")
     conmat       = pe.Node(Conmat(output_root="conmat_"),       name="conmat")
     tract_output = pe.Node(IdentityInterface(
-        fields=["tensor", "tracks", "connectivity"]),
+        fields=["tensor", "tracks", "connectivity", "mean_fa"]),
                                                                 name="tract_output")
 
     # Create the workflow object
@@ -61,11 +63,15 @@ def camino_tractography(wf_name="camino_tract"):
                 (img2vox_diff,  dtifit,         [("voxel_order",   "in_file")]),
                 (img2vox_mask,  dtifit,         [("voxel_order",   "bgmask")]),
                 (fsl2scheme,    dtifit,         [("scheme",        "scheme_file")]),
+                (fsl2scheme,    fa,             [("scheme",        "scheme_file")]),
+                (dtifit,        fa,             [("tensor_fitted", "in_file")]),
                 (dtifit,        tract_output,   [("tensor_fitted", "tensor")]),
                 (dtifit,        track,          [("tensor_fitted", "in_file")]),
                 (track,         conmat,         [("tracked",       "in_file")]),
                 (track,         tract_output,   [("tracked",       "tracks")]),
-                (conmat,        tract_output,   [("conmat_sc",     "connectivity")])
+                (fa,            conmat,         [("fa",            "scalar_file")]),
+                (conmat,        tract_output,   [("conmat_sc",     "connectivity"),
+                                                 ("conmat_ts",     "mean_fa")]
               ])
     return wf
 
@@ -116,7 +122,8 @@ def attach_camino_tractography(main_wf, wf_name="camino_tract", params=None):
                                            ("dti_output.atlas_diff",      "tract_input.atlas")]),
                      (tract_wf, datasink, [("tract_output.tensor",        "tract.@tensor"),
                                            ("tract_output.tracks",        "tract.@tracks"),
-                                           ("tract_output.connectivity",  "tract.@connectivity")])
+                                           ("tract_output.connectivity",  "tract.@connectivity"),
+                                           ("tract_output.mean_fa",       "tract.@mean_fa")])
                     ])
 
     return main_wf
