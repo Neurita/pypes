@@ -2,50 +2,89 @@
 """
 Helper functions for joining, merging, managing the workflow nodes.
 """
-from   nipype import Function
-from   nipype.interfaces.traits_extension import isdefined
-from   nipype.interfaces.base import traits
-from   nipype.interfaces.io import SelectFiles, DataGrabber, DataSink
 import nipype.interfaces.fsl as fsl
+from nipype import Function, Node, SelectFiles, DataSink, DataGrabber
+from nipype.interfaces.base import (traits, isdefined)
+
+from ..crumb import DataCrumb
 
 
-def get_values_map_keys(values_maps_dict):
-    """ Given a dict of str->2-tuples, e.g.:
-            {'anat': [('modality', 'anat'), ('image_file', 'anat_hc.nii.gz')],
-             'pet':  [('modality', 'pet'),  ('image_file', ''pet_fdg.nii.gz'')],
-
-    Will return the unique values of each dict value, in this case:
-    {'modality', 'image_file'}.
-
+def iterable_record_node(records, node_name):
+    """ A node to iterate over each set of parameters given in records, e.g.
+            [[('subjid', '001'), ('diagnosis', 'ad')],
+              ('subjid', '002'), ('diagnosis', 'hc')],
+              ...
+            ]
     Parameters
     ----------
-    values_maps_dict: Dict[str->2-tuple]
+    records: list of list of 2-tuple of str
+        The set of
+
+    node_name: str
+        A name for the node
 
     Returns
     -------
-    keys: set[str]
+    node: nipype.Node
+
+    Raises
+    ------
+    IndexError
+        If the keys in the records are not the same.
     """
-    crumb_args = set()
-    for val_map in values_maps_dict.values():
-        crumb_args = crumb_args.union(set(dict(val_map).keys()))
+    # check if all of them have the same set of keys
+    one_fields = set(dict(records[0]).keys())
+    for idx, rec in enumerate(records):
+        if one_fields != set(dict(rec).keys()):
+            raise ValueError('Expected that all `records` were the same, '
+                             'got sets of keys {} in index {}, given '
+                             'the first set {}.'.format(set(dict(rec).keys()),
+                                                        idx, one_fields))
 
-    return crumb_args
+    # defined the getter function
+    def get_record(index, items, fields):
+        idict = dict(items[index])
+        if len(fields) == 1:
+            return idict[fields[0]]
+        else:
+            return tuple([idict[fname] for fname in fields])
+
+    # define the get_record Function interface
+    fiface = Function(input_names=['index', 'items', 'fields'],
+                      output_names=one_fields,
+                      function=get_record)
+
+    # define the node
+    node = Node(fiface, name=node_name)
+    node.inputs.items = records
+    node.inputs.fields = list(one_fields)
+    node.iterables = [('index', list(range(len(records)))),]
+
+    return node
 
 
-def get_input_node(wf):
-    """ Return the file input node in `wf`
+def get_node(wf, node_types):
+    """ Return the first node found in `wf` of any of the types in `node_types`.
 
     Parameters
     ----------
     wf: nipype Workflow
 
+    node_types: sequence of node types
+
     Returns
     -------
     nodes: nipype Node
-        The file input nodes in `wf`.
+        The DataSink in `wf`.
     """
-    input_types = (SelectFiles, DataGrabber)
-    return find_wf_node(wf, input_types)
+    node = None
+    for ionode in node_types:
+        node = find_wf_node(wf, ionode)
+        if node is not None:
+            return node
+
+    if node is None:
+        raise KeyError('Could not find a node of type {} in the worflow.'.format(node_types))
 
 
 def get_datasink(wf):
@@ -60,7 +99,12 @@ def get_datasink(wf):
     nodes: nipype Node
         The DataSink in `wf`.
     """
-    return find_wf_node(wf, DataSink)
+    return get_node(wf, (DataSink, ))
+
+
+def get_input_node(wf):
+    """ Return the first node of type: (DataCrumb, SelectFiles, DataGrabber) in wf."""
+    return get_node(wf, (DataCrumb, SelectFiles, DataGrabber))
 
 
 def wf_nodes(wf, iface_type):
@@ -158,7 +202,7 @@ def joinstrings(n_args=2):
     """
     arg_names = ['arg{}'.format(n) for n in range(1, n_args+1)]
 
-    func = 'def func({0}): import os; return os.path.join({0})'.format(', '.join(arg_names))
+    func = '''def func({0}): import os; return os.path.join({0})'''.format(', '.join(arg_names))
     fi = Function(input_names=arg_names, output_names=['out'])
     fi.inputs.function_str = func
     return fi
@@ -187,3 +231,48 @@ def fsl_merge(in_files=traits.Undefined, dimension='t'):
     merger.inputs.in_files = in_files
 
     return merger
+
+
+def get_input_file_name(input_node, fname_key):
+    """ Return the name of the file given by the node key `fname_key` in `input_node`.
+
+    Parameters
+    ----------
+    input_node: nipype Node
+        a node with a file input interface (SelectFiles, DataCrumb), for now.
+
+    fname_key: str
+        The key that is used to access the file path using `input_node`.
+        Example: 'anat'
+
+    Returns
+    -------
+    filename: str
+        The path template of the input file `fname_key` path from the `input_node`.
+    """
+    if isinstance(input_node.interface, SelectFiles):
+        try:
+            fname = input_node.interface._templates[fname_key]
+        except AttributeError:
+            raise
+        except KeyError:
+            raise KeyError('Could not find file key {} in node {}({}).'.format(fname_key, input_node.name,
+                                                                           type(input_node.interface)))
+        else:
+            return fname
+
+    if isinstance(input_node.interface, DataCrumb):
+        try:
+            crumb_args = input_node.interface._templates[fname_key]
+            incrumb    = input_node.interface._crumb.replace(**dict(crumb_args))
+        except AttributeError:
+            raise
+        except KeyError:
+            raise KeyError('Could not find file key {} in node {}({}).'.format(fname_key, input_node.name,
+                                                                           type(input_node.interface)))
+        else:
+            return incrumb.path
+
+    else:
+        raise NotImplementedError('`get_input_file_name` has not been implemented for nodes'
+                                  ' of type {}.'.format(type(input_node.interface)))

@@ -72,3 +72,38 @@ def _check_list(str_or_list):
                      'got {}.'.format(type(str_or_list)))
 
 
+def get_values_map_keys(records, keyidx=0):
+    """ Given a dict of str->2-tuples, e.g.:
+            {'anat': [('modality', 'anat'), ('image_file', 'anat_hc.nii.gz')],
+             'pet':  [('modality', 'pet'),  ('image_file', 'pet_fdg.nii.gz')],
+
+        or
+
+       Given a list of list of 2-tuples of str, e.g.:
+            [[('modality', 'anat'), ('image_file', 'anat_hc.nii.gz')],
+              ('modality', 'pet'),  ('image_file', 'pet_fdg.nii.gz')],
+
+
+    Will return the unique values of each record value, in this case:
+    {'modality', 'image_file'}.
+
+    Parameters
+    ----------
+    values_maps_dict: Dict[str->2-tuple]
+
+    Returns
+    -------
+    keys: set[str]
+    """
+    if isinstance(records, dict):
+        itemset = records.values()
+    elif isinstance(records, list):
+        itemset = records
+    else:
+        raise NotImplementedError('Expected a `dict` or a `list of list` as `records, '
+                                  'got {}.'.format(type(records)))
+
+    crumb_args = set()
+    for items in itemset:
+        crumb_args = crumb_args.union(set([t[keyidx] for t in items]))
+    return crumb_args

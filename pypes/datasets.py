@@ -25,20 +25,23 @@ def _cobre_wf_setup(wf_name):
 
     in_out_wf_kwargs: dict with kwargs
     """
-    attach_functions = {"spm_anat_preproc": [attach_spm_anat_preprocessing],
+    attach_functions = {"spm_anat_preproc":         [("spm_anat_preproc",  attach_spm_anat_preprocessing)],
+
+                        "spm_anat_rest_preproc":    [("spm_anat_preproc",  attach_spm_anat_preprocessing),
+                                                     ],
                         # TODO: "spm_rest_preproc": [attach_spm_anat_preprocessing, attach_rest_preprocessing],
                        }
 
     files_crumb_args = {'anat':  [('modality', 'anat_1'),
                                   ('image',    'mprage.nii.gz')]} #'anat_1/mprage.nii.gz',
 
-    if wf_name == 'spm_rest_preproc':
+    if 'rest' in wf_name:
         raise NotImplementedError('A rsfMRI preprocessing pipeline has not been created yet.')
         #files_crumb_args.update({'rest':  [('modality', 'rest_1'),
         #                                   ('image',    'rest.nii.gz')], # 'rest_1/rest.nii.gz'},
         #                        })
 
-    params       = {'files_crumb_args': files_crumb_args}
+    params = {'file_templates': files_crumb_args}
 
     return OrderedDict(attach_functions[wf_name]), params
 
@@ -89,7 +92,7 @@ def _clinical_wf_setup(wf_name):
                                  'bvec': [('image', 'diff.bvec')],
                                 })
 
-    params       = {'files_crumb_args': files_crumb_args}
+    params = {'file_templates': files_crumb_args}
 
     return OrderedDict(attach_functions[wf_name]), params
 
@@ -129,7 +132,7 @@ def cobre_crumb_workflow(wf_name, data_crumb, output_dir, cache_dir='', params=N
                                 output_dir=output_dir,
                                 cache_dir=cache_dir,
                                 params=params,
-                                crumb_replaces=params.get('crumb_replaces', None))
+                                )
 
 
 def clinical_crumb_workflow(wf_name, data_crumb, output_dir, cache_dir='', params=None):
@@ -158,6 +161,8 @@ def clinical_crumb_workflow(wf_name, data_crumb, output_dir, cache_dir='', param
         crumb_replaces
 
         atlas_file
+
+        raise_on_filenotfound
     """
     attach_funcs, in_out_wf_kwargs = _clinical_wf_setup(wf_name)
 
@@ -171,5 +176,4 @@ def clinical_crumb_workflow(wf_name, data_crumb, output_dir, cache_dir='', param
                                 in_out_kwargs=in_out_wf_kwargs,
                                 output_dir=output_dir,
                                 cache_dir=cache_dir,
-                                crumb_replaces=params.get('crumb_replaces', None),
                                 params=params)

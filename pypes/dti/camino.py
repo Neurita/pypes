@@ -3,11 +3,12 @@
 Nipype workflows to use Camino for tractography.
 """
 import nipype.pipeline.engine    as pe
-from   nipype.interfaces.io      import DataSink, SelectFiles
 from   nipype.interfaces.utility import IdentityInterface
 from   nipype.interfaces.camino  import Image2Voxel, FSL2Scheme, DTIFit, Track, Conmat
 
-from ..utils import find_wf_node
+from   ..utils import (get_datasink,
+                       get_input_node,
+                       )
 
 
 def camino_tractography(wf_name="camino_tract"):
@@ -100,8 +101,8 @@ def attach_camino_tractography(main_wf, wf_name="camino_tract", params=None):
     -------
     main_wf: nipype Workflow
     """
-    in_files = find_wf_node(main_wf, SelectFiles)
-    datasink = find_wf_node(main_wf, DataSink)
+    in_files = get_input_node(main_wf)
+    datasink = get_datasink  (main_wf)
     dti_wf   = main_wf.get_node("fsl_dti_preproc")
 
     # The workflow box

@@ -8,10 +8,20 @@ import nipype.pipeline.engine    as pe
 from   nipype.algorithms.misc    import Gunzip
 from   nipype.interfaces.utility import Select, Merge
 
-from   .preproc import spm_apply_deformations, spm_coregister, petpvc_cmd, petpvc_mask, intensity_norm
-from   .io      import get_input_file_name
-from   .utils   import extend_trait_list, remove_ext, get_input_node, get_datasink
-from   ._utils  import flatten_list, format_pair_list
+from   .preproc import (spm_apply_deformations,
+                        spm_coregister,
+                        petpvc_cmd,
+                        petpvc_mask,
+                        intensity_norm)
+
+from   .utils   import (get_datasink,
+                        extend_trait_list,
+                        get_input_node,
+                        remove_ext,
+                        get_input_file_name)
+
+from   ._utils  import (flatten_list,
+                        format_pair_list)
 
 
 def spm_mrpet_preprocessing(wf_name="spm_mrpet_preproc"):

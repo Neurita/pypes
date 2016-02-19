@@ -9,15 +9,15 @@ import nipype.pipeline.engine    as pe
 from   nipype.algorithms.misc    import Gunzip
 from   nipype.interfaces.ants    import N4BiasFieldCorrection
 from   nipype.interfaces.base    import traits
-from   nipype.interfaces.io      import DataSink, SelectFiles
 
 from   .preproc     import spm_apply_deformations
-from   .io import get_input_file_name
 from   ._utils      import format_pair_list
-from   .utils       import (spm_tpm_priors_path,
+from   .utils       import (remove_ext,
+                            spm_tpm_priors_path,
                             extend_trait_list,
-                            find_wf_node,
-                            remove_ext)
+                            get_input_node,
+                            get_datasink,
+                            get_input_file_name)
 
 
 def biasfield_correct(anat_filepath=traits.Undefined):
@@ -145,8 +145,8 @@ def attach_spm_anat_preprocessing(main_wf, wf_name="spm_anat_preproc", params=No
     -------
     main_wf: nipype Workflow
     """
-    in_files = find_wf_node(main_wf, SelectFiles)
-    datasink = find_wf_node(main_wf, DataSink)
+    in_files = get_input_node(main_wf)
+    datasink = get_datasink  (main_wf)
 
     # The workflow box
     t1_wf = spm_anat_preprocessing(wf_name=wf_name)

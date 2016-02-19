@@ -6,13 +6,12 @@ import os.path as op
 
 import nipype.pipeline.engine    as pe
 from   nipype.interfaces.fsl     import ExtractROI, Eddy, MultiImageMaths
-from   nipype.interfaces.io      import DataSink, SelectFiles
 from   nipype.interfaces.utility import Function, Select, Split, Merge, IdentityInterface
 from   nipype.algorithms.misc    import Gunzip
 from   nipype.workflows.dmri.fsl.utils import eddy_rotate_bvecs
 
 from   ..preproc import spm_coregister, spm_apply_deformations
-from   ..utils   import find_wf_node, remove_ext, extend_trait_list
+from   ..utils   import get_datasink, get_input_node, remove_ext, extend_trait_list
 from   .._utils  import flatten_list, format_pair_list
 
 
@@ -304,8 +303,8 @@ def attach_fsl_dti_preprocessing(main_wf, wf_name="fsl_dti_preproc", params=None
     -------
     main_wf: nipype Workflow
     """
-    in_files = find_wf_node(main_wf, SelectFiles)
-    datasink = find_wf_node(main_wf, DataSink)
+    in_files = get_input_node(main_wf)
+    datasink = get_datasink  (main_wf)
     anat_wf  = main_wf.get_node("spm_anat_preproc")
 
     atlas_file = params.get("atlas_file", None)

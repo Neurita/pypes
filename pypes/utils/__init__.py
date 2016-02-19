@@ -7,4 +7,6 @@ from .piping  import  (extend_trait_list,
                        joinstrings,
                        find_wf_node,
                        get_datasink,
-                       get_input_node)
+                       get_input_node,
+                       get_input_file_name,
+                       )
