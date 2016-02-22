@@ -71,7 +71,7 @@ def camino_tractography(wf_name="camino_tract"):
                 (track,         tract_output,   [("tracked",       "tracks")]),
                 (fa,            conmat,         [("fa",            "scalar_file")]),
                 (conmat,        tract_output,   [("conmat_sc",     "connectivity"),
-                                                 ("conmat_ts",     "mean_fa")]
+                                                 ("conmat_ts",     "mean_fa")]),
               ])
     return wf
 
