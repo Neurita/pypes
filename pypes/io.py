@@ -145,9 +145,6 @@ def crumb_wf(work_dir, data_crumb, output_dir, file_templates,
     if undef_args:  # check the missing argument values for the info source.
         valuesmap = joint_value_map(data_crumb, undef_args)
 
-        import ipdb
-        ipdb.set_trace()
-
         # write the indexes in the working dir
         os.makedirs(work_dir, exist_ok=True)
         out_json = op.join(work_dir, 'index_paramlist.json')
