@@ -3,16 +3,20 @@
 Nipype workflows to use Camino for tractography.
 """
 import nipype.pipeline.engine    as pe
+import nipype.algorithms.misc    as misc
 from   nipype.interfaces.utility import IdentityInterface
 from   nipype.interfaces.camino  import (Image2Voxel, FSL2Scheme, DTIFit, Track,
-                                         Conmat, ComputeFractionalAnisotropy)
+                                         Conmat, ComputeFractionalAnisotropy, AnalyzeHeader)
 
 from   ..utils import (get_datasink,
                        get_input_node,
+                       get_data_dims,
+                       get_vox_dims,
+                       get_affine,
                        )
 
 
-def camino_tractography(wf_name="camino_tract"):
+def camino_tractography(wf_name="camino_tract", fa_tract_stat='mean'):
     """ Run the diffusion MRI pre-processing workflow against the diff files in `data_dir`.
 
     Nipype Inputs
@@ -41,6 +45,11 @@ def camino_tractography(wf_name="camino_tract"):
     fsl2scheme   = pe.Node(FSL2Scheme(),                        name="fsl2scheme")
     dtifit       = pe.Node(DTIFit(),                            name="dtifit")
     fa           = pe.Node(ComputeFractionalAnisotropy(),       name="fa")
+
+    analyzehdr_fa = pe.Node(interface=AnalyzeHeader(), name="analyzeheader_fa")
+    analyzehdr_fa.inputs.datatype = "double"
+    fa2nii = pe.Node(interface=misc.CreateNifti(), name='fa2nii')
+
     track        = pe.Node(Track(
         inputmodel="dt",
         out_file="tracts.Bfloat"),                              name="track")
@@ -49,29 +58,37 @@ def camino_tractography(wf_name="camino_tract"):
         fields=["tensor", "tracks", "connectivity", "mean_fa"]),
                                                                 name="tract_output")
 
+    conmat.inputs.tract_stat = fa_tract_stat
+
     # Create the workflow object
     wf = pe.Workflow(name=wf_name)
 
     # Connect the nodes
     wf.connect([
-                (tract_input,   img2vox_diff,   [("diff",          "in_file")]),
-                (tract_input,   fsl2scheme,     [("bvec",          "bvec_file"),
-                                                 ("bval",          "bval_file")]),
-                (tract_input,   track,          [("atlas",         "seed_file")]),
-                (tract_input,   conmat,         [("atlas",         "target_file")]),
-                (tract_input,   img2vox_mask,   [("mask",          "in_file")]),
-                (img2vox_diff,  dtifit,         [("voxel_order",   "in_file")]),
-                (img2vox_mask,  dtifit,         [("voxel_order",   "bgmask")]),
-                (fsl2scheme,    dtifit,         [("scheme",        "scheme_file")]),
-                (fsl2scheme,    fa,             [("scheme",        "scheme_file")]),
-                (dtifit,        fa,             [("tensor_fitted", "in_file")]),
-                (dtifit,        tract_output,   [("tensor_fitted", "tensor")]),
-                (dtifit,        track,          [("tensor_fitted", "in_file")]),
-                (track,         conmat,         [("tracked",       "in_file")]),
-                (track,         tract_output,   [("tracked",       "tracks")]),
-                (fa,            conmat,         [("fa",            "scalar_file")]),
-                (conmat,        tract_output,   [("conmat_sc",     "connectivity"),
-                                                 ("conmat_ts",     "mean_fa")]),
+                (tract_input,   img2vox_diff,     [("diff",                  "in_file"     )]),
+                (tract_input,   fsl2scheme,       [("bvec",                  "bvec_file"   ),
+                                                   ("bval",                  "bval_file"   )]),
+                (tract_input,   track,            [("atlas",                 "seed_file"   )]),
+                (tract_input,   conmat,           [("atlas",                 "target_file" )]),
+                (tract_input,   img2vox_mask,     [("mask",                  "in_file"     )]),
+                (img2vox_diff,  dtifit,           [("voxel_order",           "in_file"     )]),
+                (img2vox_mask,  dtifit,           [("voxel_order",           "bgmask"      )]),
+                (fsl2scheme,    dtifit,           [("scheme",                "scheme_file" )]),
+                (fsl2scheme,    fa,               [("scheme",                "scheme_file" )]),
+                (dtifit,        fa,               [("tensor_fitted",         "in_file"     )]),
+                (dtifit,        tract_output,     [("tensor_fitted",         "tensor"      )]),
+                (dtifit,        track,            [("tensor_fitted",         "in_file"     )]),
+                (track,         conmat,           [("tracked",               "in_file"     )]),
+                (track,         tract_output,     [("tracked",               "tracks"      )]),
+                (fa,            analyzehdr_fa,    [("fa",                    "in_file"     )]),
+                (tract_input,   analyzehdr_fa,    [(('diff', get_vox_dims),  "voxel_dims"  ),
+                                                   (('diff', get_data_dims), "data_dims"   )]),
+                (analyzehdr_fa, fa2nii,           [("header",                "header_file" )]),
+                (tract_input,   fa2nii,           [(("diff", get_affine),    "affine"      )]),
+                (fa,            fa2nii,           [("fa",                    "data_file"   )]),
+                (fa2nii,        conmat,           [("nifti_file",            "scalar_file" )]),
+                (conmat,        tract_output,     [("conmat_sc",             "connectivity"),
+                                                   ("conmat_ts",             "mean_fa"     )]),
               ])
     return wf
 

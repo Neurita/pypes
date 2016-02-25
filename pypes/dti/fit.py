@@ -139,6 +139,7 @@ def write_acquisition_parameters(in_file, epi_factor=128):
     0 1 0 0.095
     """
     # the imports must be inside if you want them to work in a nipype.Function node.
+    import warnings
     import os.path as op
     import nibabel as nib
 
@@ -146,18 +147,22 @@ def write_acquisition_parameters(in_file, epi_factor=128):
     index_file = "diff.index"
 
     image = nib.load(in_file)
-    n_directions = image.shape[-1]
+    n_volumes = image.shape[-1]
 
     # read the value of the descrip field in the nifti header
     descrip_field = image.header["descrip"].astype(str)[()]
     descrip = dict([item.split("=", 1) for item in descrip_field.split(";")])
 
-    if descrip.get("phaseDir") == "+":
-        pe_axis = "0 1 0"
-    elif descrip.get("phaseDir") == "-":
+    # assume by default phaseDir = '+'
+    phase_dir = descrip.get("phaseDir", '+')
+    pe_axis   = "0 1 0"
+    if phase_dir == "-":
         pe_axis = "0 -1 0"
-    else:
-        raise ValueError("unexpected value for phaseDir: {}".format(descrip.get("phaseDir")))
+
+    if 'phaseDir' not in descrip:
+        warnings.warn("Could not find or understand the value for phaseDir: {}. "
+                      "Using default PE axis {}.".format(descrip.get("phaseDir"), pe_axis),
+                      category=RuntimeWarning, stacklevel=2)
 
     # (number of phase-encode steps - 1) * (echo spacing time in milliseconds) * (seconds per millisecond)
     total_readout_time = (epi_factor - 1) * float(descrip["dwell"]) * 1e-3
@@ -166,7 +171,7 @@ def write_acquisition_parameters(in_file, epi_factor=128):
         fout.write("{} {}\n".format(pe_axis, total_readout_time))
 
     with open(index_file, "wt") as fout:
-        fout.write("{}\n".format(" ".join(n_directions * ["1"])))
+        fout.write("{}\n".format(" ".join(n_volumes * ["1"])))
 
     return op.abspath(acqp_file), op.abspath(index_file)
 
