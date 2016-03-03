@@ -640,9 +640,9 @@ def calculate_FD_J(in_file):
     T_rb_prev = np.matrix(np.eye(4))
     
     for i in range(0, pm.shape[0]):
-	T_rb = np.matrix(pm[i].reshape(4,4)) # making use of the fact that the order of aff12 matrix is "row-by-row"
+        T_rb = np.matrix(pm[i].reshape(4,4)) # making use of the fact that the order of aff12 matrix is "row-by-row"
         
-	if flag == 0:
+        if flag == 0:
             flag = 1
             # first timepoint
             print >> f, 0 

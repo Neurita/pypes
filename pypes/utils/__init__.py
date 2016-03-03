@@ -15,3 +15,5 @@ from .piping  import  (extend_trait_list,
                        get_input_node,
                        get_input_file_name,
                        )
+
+from .spatial import get_bounding_box
