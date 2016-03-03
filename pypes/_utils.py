@@ -4,6 +4,13 @@ Private helper functions
 """
 
 
+def grep(lines, substr):
+    """ Return a list of strings from `lines` that have
+    `substr` as a substring.
+    """
+    return [l for l in lines if substr in l]
+
+
 def check_equal(lst):
     """ Return True if all items in `lst` are equal, False otherwise.
     Note that check_equal([1, True]) is True.

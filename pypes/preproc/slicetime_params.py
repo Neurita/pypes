@@ -12,7 +12,61 @@ import numpy as np
 # Nipype imports
 from nipype.interfaces.utility import Function
 
-from .._utils import check_equal
+from .._utils import check_equal, grep
+from ..preproc.dicom import split_dcm_ahdr, dcm_ascii_hdr
+
+
+def slicing_mode(dcm_file):
+    """ Return the slicing mode of the fMRI acquisition file given
+    one of its DICOM files. Avoid giving the first DICOM file.
+
+    Parameters
+    ----------
+    dcm_file: str
+       Path to the DICOM file
+
+    Returns
+    -------
+    mode: str
+        Choices: ('ascending', 'descending', 'interleaved')
+
+    References
+    ----------
+    https://wiki.cimec.unitn.it/tiki-index.php?page=MRIBOLDfMRI
+    http://www.mccauslandcenter.sc.edu/CRNL/tools/stc
+
+    https://www.jiscmail.ac.uk/cgi-bin/webadmin?A2=ind03&L=SPM&D=0&P=5914721
+    The timing can be found out most easily by looking into some shadow
+    information: In any image from the syngo systems the measurement-protocol is
+    present (in ascii). You may find it by looking for "### ASCCONV BEGIN ###"
+    and "### ASCCONV END ###". Here you may also find the slice positions of the
+    single images.
+    > Now find "sSliceArray.ucMode". This is
+    > 0x1 for ascending
+    > 0x2 for descending
+    > 0x4 for interleaved
+    > In the interleaved mode, the information given by Peter Erhard is correct;
+    for the rest it's clear anyway.
+
+    Example
+    -------
+    import os.path as op
+    from glob import glob
+    dcmdir   = '/home/alexandre/data/pet_stadhauders/hiswork/FTD/'
+    restdirs = [glob(op.join(op.abspath(sd), '*ep2d*')) for sd in glob(op.join(dcmdir, '*'))]
+    dcms    = [glob(op.join(rd[0], '*.dcm'))[10] for rd in restdirs if rd]
+    modes   = [slicing_mode(dcm) for dcm in dcms]
+    print(modes)
+    """
+    _, ascconv = split_dcm_ahdr(dcm_ascii_hdr(dcm_file))
+
+    mode_code = grep(ascconv, 'sSliceArray.ucMode')[0].split('=')[1].strip()
+
+    code_modes = {'0x1': 'ascending',
+                  '0x2': 'descending',
+                  '0x4': 'interleaved'}
+
+    return code_modes[mode_code]
 
 
 class STCParameters(object):
@@ -29,8 +83,8 @@ class STCParameters(object):
     This class is based on the script by Chris Rorden's Neuropsychology Lab in:
     - http://www.mccauslandcenter.sc.edu/CRNL/tools/stc
 
-    This is a callable class so an instance of this class by nipype Function.
-    See `slice_timing_params` in this module.
+    This is a callable class so you can instance this class in a nipype Function object.
+    See `slice_timing_params` in this module after the declaration of this class.
 
     Parameters
     ----------

@@ -10,13 +10,14 @@ from   nipype.algorithms.misc    import Gunzip
 from   nipype.interfaces.utility import Function, Select, Split, Merge, IdentityInterface
 from nipype.interfaces.nipy.preprocess import Trim
 
-from   pypes.preproc import spm_apply_deformations
-from   pypes._utils import format_pair_list
-from   pypes.utils import (remove_ext,
-                           extend_trait_list,
-                           get_input_node,
-                           get_datasink,
-                           get_input_file_name)
+from   ..preproc import spm_apply_deformations, slice_timing_params
+
+from   .._utils import format_pair_list
+from   ..utils import (remove_ext,
+                       extend_trait_list,
+                       get_input_node,
+                       get_datasink,
+                       get_input_file_name)
 
 
 
@@ -33,33 +34,39 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
     rest_input.rest: traits.File
         path to the resting-state image
 
-    rest_input.tissues: traits.File
-        path to the
+
+    Nipype Outputs
+    --------------
+    rest_output
 
     Returns
     -------
     wf: nipype Workflow
     """
-    dti_input    = pe.Node(IdentityInterface(fields=["rest"], mandatory_inputs=True), #, "tissues", "anat", "mni_to_anat"],
-                           name="rest_input")
+    # input identities
+    rest_input = pe.Node(IdentityInterface(fields=["rest"], mandatory_inputs=True), #, "tissues", "anat", "mni_to_anat"],
+                         name="rest_input")
 
     # rs-fMRI preprocessing nodes
-    trim        = pe.Node(Trim(begin_idx=6),        name="trim")
-    slice_time  =
+    trim      = pe.Node(Trim(begin_idx=6), name="trim")
+    st_params = pe.Node(slice_timing_params(), name='st_params')
 
+    # output identities
+    rest_output = pe.Node(IdentityInterface(fields=["rest"], mandatory_inputs=True),
+                          name="rest_output")
 
     # Create the workflow object
     wf = pe.Workflow(name=wf_name)
 
     # Connect the nodes
     wf.connect([
-                # new segment
-                (biascor,      gunzip_anat, [("output_image", "in_file"      )]),
-                (gunzip_anat,  segment,     [("out_file",     "channel_files")]),
+                # trim
+                (rest_input,    trim,    [("rest",      "in_file"      )]),
 
-                # Normalize12
-                (segment, warp_anat, [("forward_deformation_field", "deformation_file")]),
-                (segment, warp_anat, [("bias_corrected_images",     "apply_to_files")]),
+                #slice time correction
+                (trim,     st_params,   [("out_file",  "in_file"      )]),
+
+
               ])
     return wf
 
@@ -90,7 +97,7 @@ def attach_rest_preprocessing(main_wf, wf_name="rest_preproc"):
     datasink = get_datasink  (main_wf)
 
     # The workflow box
-    rest_wf = rest_preprocessing(wf_name=wf_name)
+    rest_wf = rest_preprocessing_wf(wf_name=wf_name)
 
     # The base name of the 'rest' file for the substitutions
     rest_fbasename = remove_ext(op.basename(get_input_file_name(in_files, 'rest')))
