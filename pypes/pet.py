@@ -6,7 +6,7 @@ import os.path as op
 
 import nipype.pipeline.engine    as pe
 from   nipype.algorithms.misc    import Gunzip
-from   nipype.interfaces.utility import Select, Merge
+from   nipype.interfaces.utility import Select, Merge, IdentityInterface
 
 from   .preproc import (spm_apply_deformations,
                         spm_coregister,
@@ -40,47 +40,41 @@ def spm_mrpet_preprocessing(wf_name="spm_mrpet_preproc"):
 
     Nipype Inputs
     -------------
-    gunzip_pet.in_file: traits.File
+    pet_input.in_file: traits.File
         The raw NIFTI_GZ PET image file
 
-    coreg_pet.target: traits.File
+    pet_input.coreg_target: traits.File
         Target of the co-registration process, i.e., the anatomical image in native space.
 
-    warp_pet.deformation_file: traits.File
+    pet_input.warp_field: traits.File
         The DARTEL deformation file for warping the PET to MNI
 
-    tissues.inlist: list of traits.File
+    pet_input.tissues: list of traits.File
         List of tissues files from the New Segment process. At least the first
         3 tissues must be present.
 
     Nipype outputs
     --------------
-    petpvc.out_file: existing file
+    pet_output.out_file: existing file
         The results of the PVC process
 
-    brain_mask.in: existing file
+    pet_output.brain_mask: existing file
         A brain mask calculated with the tissues file.
 
-    coreg_pet.coregistered_files: list of existing files
-        List of coregistered files from coreg_pet.apply_to_files
-
-    coreg_pet.coregistered_source: existing file
+    pet_output.coreg_pet: existing file
         The coregistered PET file
 
-    warp_pet.normalized_files:
+    pet_output.coreg_others: list of existing files
+        List of coregistered files from coreg_pet.apply_to_files
+
+    pet_output.mni_pet: existing file
         PET images normalized to MNI.
         The result of every internal pre-processing step is normalized to MNI here.
 
-    warp_pet.normalization_parameters: existing files
+    pet_output.warp_field: existing files
         Spatial normalization parameters .mat files
 
-    rbvpvc.out_file: existing file
-        The result of the PETPVC correction step.
-
-    petpvc_mask.brain_mask.out_file: existing file
-        A brain mask calculated through the sum of the 3 tissue files.
-
-    intensity_norm_gm.gm_norm.out_file: existing file
+    pet_output.gm_norm: existing file
         The output of the Global Mean intensity normalization process.
 
     Returns
@@ -89,6 +83,11 @@ def spm_mrpet_preprocessing(wf_name="spm_mrpet_preproc"):
     """
     # fixed parameters of the NUK mMR
     psf_fwhm = (4.3, 4.3, 4.3)
+
+    # input
+    pet_input = pe.Node(IdentityInterface(fields=["in_file", "coreg_target", "warp_field", "tissues"]),
+                                          name="pet_input")
+
 
     # coreg pet
     gunzip_pet  = pe.Node(Gunzip(),                           name="gunzip_pet")
@@ -103,6 +102,18 @@ def spm_mrpet_preprocessing(wf_name="spm_mrpet_preproc"):
     unzip_mrg = pe.Node(Merge(3),                             name='merge_for_unzip')
     gunzipper = pe.MapNode(Gunzip(),                          name="gunzip", iterfield=['in_file'])
 
+    # output
+    pet_output = pe.Node(IdentityInterface(fields=["out_file",
+                                                   "brain_mask",
+                                                   "coreg_others",
+                                                   "coreg_pet",
+                                                   "mni_pet",
+                                                   "warp_field",
+                                                   "pvc_out",
+                                                   "pvc_mask",
+                                                   "gm_norm"]),
+                                           name="pet_output")
+
     # workflow to create the mask
     mask_wf = petpvc_mask(wf_name="petpvc_mask")
 
@@ -113,6 +124,12 @@ def spm_mrpet_preprocessing(wf_name="spm_mrpet_preproc"):
     wf = pe.Workflow(name=wf_name)
 
     wf.connect([
+                # inputs
+                (pet_input,   gunzip_pet,  [("in_file"             "in_file")]),
+                (pet_input,   coreg_pet,   [("coreg_target",       "target")]),
+                (pet_input,   warp_pet,    [("warp_field",         "deformation_field")]),
+                (pet_input,   tissues_sel, [("tissues",            "inlist")]),
+
                 # unzip to coregister to anatomical image. 'coreg_pet.target' is an input for this wf.
                 (gunzip_pet,  coreg_pet,  [("out_file",            "source")]),
 
@@ -142,6 +159,15 @@ def spm_mrpet_preprocessing(wf_name="spm_mrpet_preproc"):
                 (coreg_pet,  merge_lists, [("coregistered_source", "in2")]),
 
                 (merge_lists, warp_pet,   [("out",                 "apply_to_files")]),
+
+                # output
+                (rbvpvc,      pet_output, [("out_file",             "out_file")]),
+                (petpvc_mask, pet_output, [("brain_mask.out_file",  "brain_mask")]),
+                (coreg_pet,   pet_output, [("coregistered_source",  "coreg_pet")]),
+                (coreg_pet,   pet_output, [("coregistered_files",   "coreg_others")]),
+                (norm_wf,     pet_output, [("gm_norm.out_file",     "gm_norm")]),
+                (warp_pet,    pet_output, [("normalized_files",     "mni_pet")]),
+                (warp_pet,    pet_output, [("deformation_field",    "warp_field")]),
                ])
 
     return wf
@@ -210,22 +236,21 @@ def attach_spm_mrpet_preprocessing(main_wf, wf_name="spm_mrpet_preproc", params=
     # Connect the nodes
     main_wf.connect([
                 # pet file input
-                (in_files, pet_wf, [("pet",                                  "gunzip_pet.in_file")]),
+                (in_files, pet_wf, [("pet",                                   "pet_input.in_file")]),
 
                 # pet to anat registration
-                (anat_wf,  pet_wf, [("new_segment.bias_corrected_images",     "coreg_pet.target" )]),
-                (anat_wf,  pet_wf, [("new_segment.forward_deformation_field", "warp_pet.deformation_file")]),
+                (anat_wf,  pet_wf, [("new_segment.bias_corrected_images",     "pet_input.coreg_target"),
+                                    ("new_segment.forward_deformation_field", "pet_input.warp_field"),
+                                    ("new_segment.native_class_images",       "pet_input.tissues"),
+                                   ]),
 
-                # pet pvc
-                (anat_wf,  pet_wf, [("new_segment.native_class_images",       "tissues.inlist")]),
-
-                # datasink
-                (pet_wf, datasink, [("coreg_pet.coregistered_files",       "pet.others"),
-                                    ("coreg_pet.coregistered_source",      "pet.@anat"),
-                                    ("rbvpvc.out_file",                    "pet.@pvc"  ),
-                                    ("petpvc_mask.brain_mask.out_file",    "pet.@brain_mask"),
-                                    ("intensity_norm_gm.gm_norm.out_file", "pet.@norm"),
-                                    ("warp_pet.normalized_files",          "pet.warped2mni"),
+                (pet_wf, datasink, [
+                                    ("pet_output.out_file",     "pet.@pvc"),
+                                    ("pet_output.coreg_others", "pet.others"),
+                                    ("pet_output.coreg_pet",    "pet.@anat"),
+                                    ("pet_output.brain_mask",   "pet.@brain_mask"),
+                                    ("pet_output.gm_norm",      "pet.@norm"),
+                                    ("pet_output.mni_pet",      "pet.warped2mni"),
                                    ]),
               ])
 

@@ -9,6 +9,7 @@ from   .io   import build_crumb_workflow
 from   .anat import attach_spm_anat_preprocessing
 from   .pet  import attach_spm_mrpet_preprocessing
 from   .dti  import attach_fsl_dti_preprocessing, attach_camino_tractography
+from   .fmri import attach_rest_preprocessing
 
 
 def _cobre_wf_setup(wf_name):
@@ -28,18 +29,17 @@ def _cobre_wf_setup(wf_name):
     attach_functions = {"spm_anat_preproc":         [("spm_anat_preproc",  attach_spm_anat_preprocessing)],
 
                         "spm_anat_rest_preproc":    [("spm_anat_preproc",  attach_spm_anat_preprocessing),
+                                                     ("spm_rest_preproc",  attach_rest_preprocessing),
                                                      ],
-                        # TODO: "spm_rest_preproc": [attach_spm_anat_preprocessing, attach_rest_preprocessing],
                        }
 
     files_crumb_args = {'anat':  [('modality', 'anat_1'),
                                   ('image',    'mprage.nii.gz')]} #'anat_1/mprage.nii.gz',
 
     if 'rest' in wf_name:
-        raise NotImplementedError('A rsfMRI preprocessing pipeline has not been created yet.')
-        #files_crumb_args.update({'rest':  [('modality', 'rest_1'),
-        #                                   ('image',    'rest.nii.gz')], # 'rest_1/rest.nii.gz'},
-        #                        })
+        files_crumb_args.update({'rest':  [('modality', 'rest_1'),
+                                           ('image',    'rest.nii.gz')], # 'rest_1/rest.nii.gz'},
+                                })
 
     params = {'file_templates': files_crumb_args}
 
