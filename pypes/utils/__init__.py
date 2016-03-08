@@ -7,7 +7,9 @@ from .files   import  (remove_ext,
                        get_data_dims,
                        get_vox_dims,
                        )
-from .piping  import  (extend_trait_list,
+
+from .piping  import  (setup_node,
+                       extend_trait_list,
                        fsl_merge,
                        joinstrings,
                        find_wf_node,

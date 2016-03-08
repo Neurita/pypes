@@ -5,11 +5,12 @@ Functions to create pipelines for public and not so public available datasets.
 
 from collections import OrderedDict
 
-from   .io   import build_crumb_workflow
-from   .anat import attach_spm_anat_preprocessing
-from   .pet  import attach_spm_mrpet_preprocessing
-from   .dti  import attach_fsl_dti_preprocessing, attach_camino_tractography
-from   .fmri import attach_rest_preprocessing
+from   .io     import build_crumb_workflow
+from   .anat   import attach_spm_anat_preprocessing
+from   .pet    import attach_spm_mrpet_preprocessing
+from   .dti    import attach_fsl_dti_preprocessing, attach_camino_tractography
+from   .fmri   import attach_rest_preprocessing
+from   .config import update_config
 
 
 def _cobre_wf_setup(wf_name):
@@ -97,7 +98,7 @@ def _clinical_wf_setup(wf_name):
     return OrderedDict(attach_functions[wf_name]), params
 
 
-def cobre_crumb_workflow(wf_name, data_crumb, output_dir, cache_dir='', params=None):
+def cobre_crumb_workflow(wf_name, data_crumb, output_dir, cache_dir='', config_file='', params=None):
     """ Returns a workflow for the COBRE database.
 
     Parameters
@@ -119,12 +120,18 @@ def cobre_crumb_workflow(wf_name, data_crumb, output_dir, cache_dir='', params=N
     output_dir: str
         The output folder path
 
+    config_file: str
+        Path to a configuration file. Will use anything compatible with Kaptan.
+        Have a look at config.py.
+
     params: dict with arguments
         crumb_replaces
 
         atlas_file
     """
     attach_funcs, in_out_wf_kwargs = _cobre_wf_setup(wf_name)
+
+    update_config(config_file)
 
     return build_crumb_workflow(attach_funcs,
                                 data_crumb=data_crumb,
@@ -135,7 +142,7 @@ def cobre_crumb_workflow(wf_name, data_crumb, output_dir, cache_dir='', params=N
                                 )
 
 
-def clinical_crumb_workflow(wf_name, data_crumb, output_dir, cache_dir='', params=None):
+def clinical_crumb_workflow(wf_name, data_crumb, output_dir, cache_dir='', config_file='', params=None):
     """ Returns a workflow for the a clinical database.
 
     Parameters
@@ -157,6 +164,10 @@ def clinical_crumb_workflow(wf_name, data_crumb, output_dir, cache_dir='', param
     output_dir: str
         The output folder path
 
+    config_file: str
+        Path to a configuration file. Will use anything compatible with Kaptan.
+        Have a look at config.py.
+
     params: dict with arguments
         crumb_replaces
 
@@ -170,6 +181,8 @@ def clinical_crumb_workflow(wf_name, data_crumb, output_dir, cache_dir='', param
         params = {}
 
     params.update(in_out_wf_kwargs)
+
+    update_config(config_file)
 
     return build_crumb_workflow(attach_funcs,
                                 data_crumb=data_crumb,

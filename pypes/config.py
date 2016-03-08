@@ -2,6 +2,8 @@
 """
 Configuration manager for workflow definitions.
 This works over Kaptan:https://github.com/emre/kaptan
+
+The global configuration registry is declared in the bottom of this file.
 """
 import os.path as op
 
@@ -159,3 +161,22 @@ class Config(object):
 
     def __repr__(self):
         return '<config.Config> ({})'.format(list(self.items()))
+
+
+# the global configuration registry
+PYPES_CFG = Config()
+
+
+def node_settings(node_name):
+    #TODO: items from PYPES_CFG that startwith node_name
+    global PYPES_CFG
+    for k, v in PYPES_CFG.keys():
+        if k.startswith(node_name):
+            yield k, v
+
+
+def update_config(file_path):
+    global PYPES_CFG
+    PYPES_CFG.update_from_file(file_path)
+
+
