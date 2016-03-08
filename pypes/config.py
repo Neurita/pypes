@@ -102,9 +102,7 @@ class Config(object):
         """
         _check_file(file_path)
         cfg = Config()
-        cpt = _load_config(file_path)
-        cfg.__shared_state.update({'_cpt': cpt})
-
+        cfg._cpt = _load_config(file_path)
         return cfg
 
     def update_from_file(self, file_path):
