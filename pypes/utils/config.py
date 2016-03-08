@@ -9,7 +9,7 @@ import os.path as op
 
 from   kaptan import Kaptan, HANDLER_EXT
 
-from .utils import get_extension
+from pypes.utils import get_extension
 
 
 def _handler_for_ext(ext):
@@ -180,3 +180,44 @@ def update_config(file_path):
     PYPES_CFG.update_from_file(file_path)
 
 
+def _set_node_inputs(node, params):
+    for k, v in params.items():
+        setattr(node.inputs, k, v)
+
+
+def _get_params_for(node_name):
+    pars = {}
+    for k, v in node_settings(node_name):
+        nuk = '.'.join(k.split('.')[1:]) if '.' in k else k
+        pars[nuk] = v
+
+    return pars
+
+
+def setup_node(node_element, name, inputs=None):
+    """ Create a pe.Node from `node_element` with a given name.
+    Check in the global configuration if there is any value for the node name and will set it.
+
+    Parameters
+    ----------
+    node_element: nipype.interface
+
+    name: str
+
+    inputs: dict
+        Dictionary with values for the pe.Node inputs.
+        These will have higher priority than the ones in the global Configuration.
+
+    Returns
+    -------
+    node: nipype.Node
+    """
+    node = pe.Node(node_element, name=name)
+
+    params = _get_params_for(name)
+    if inputs is not None:
+        params.update(inputs)
+
+    _set_node_inputs(node, params)
+
+    return node

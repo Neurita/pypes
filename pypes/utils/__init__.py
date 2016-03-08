@@ -8,8 +8,7 @@ from .files   import  (remove_ext,
                        get_vox_dims,
                        )
 
-from .piping  import  (setup_node,
-                       extend_trait_list,
+from .piping  import  (extend_trait_list,
                        fsl_merge,
                        joinstrings,
                        find_wf_node,
@@ -17,5 +16,9 @@ from .piping  import  (setup_node,
                        get_input_node,
                        get_input_file_name,
                        )
+
+from .config import (node_settings,
+                     setup_node,
+                     update_config)
 
 from .spatial import get_bounding_box
