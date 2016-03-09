@@ -2,13 +2,13 @@
 """
 PET image preprocessing nipype function helpers.
 """
-import nipype.pipeline.engine    as pe
 from   nipype.interfaces         import fsl
 from   nipype.interfaces.base    import traits
 from   nipype.interfaces.utility import Merge, Split
+from   nipype.pipeline import Workflow
 
 from   .petpvc import PETPVC
-from   ..utils import fsl_merge
+from   ..utils import fsl_merge, setup_node
 
 
 def petpvc_cmd(in_file=traits.Undefined, mask_file=traits.Undefined, out_file=traits.Undefined,
@@ -79,25 +79,24 @@ def petpvc_mask(wf_name="petpvc_mask"):
     wf: nipype Workflow
     """
     # define nodes
-    merge_list = pe.Node(Merge(3), name="merge_list")
-
-    split_tissues = pe.Node(Split(splits=[1, 2], squeeze=True), name="split_tissues")
+    merge_list    = setup_node(Merge(3), name="merge_list")
+    split_tissues = setup_node(Split(splits=[1, 2], squeeze=True), name="split_tissues")
 
     ## maths for background
-    img_bkg = pe.Node(fsl.MultiImageMaths(), name="background")
+    img_bkg = setup_node(fsl.MultiImageMaths(), name="background")
     img_bkg.inputs.op_string = "-add '%s' -add '%s' -sub 1 -mul -1 -thr 0"
     img_bkg.inputs.out_file  = "tissue_bkg.nii.gz"
 
     ## maths for brain mask
-    brain_mask = pe.Node(fsl.MultiImageMaths(), name="brain_mask")
+    brain_mask = setup_node(fsl.MultiImageMaths(), name="brain_mask")
     brain_mask.inputs.op_string = "-add '%s' -add '%s' -abs -bin"
     brain_mask.inputs.out_file  = "brain_mask.nii.gz"
 
-    merge_tissu = pe.Node(fsl_merge(), name="merge_tissues")
+    merge_tissu = setup_node(fsl_merge(), name="merge_tissues")
     merge_tissu.inputs.merged_file = "merged_tissues.nii.gz"
 
     # Create the workflow object
-    wf = pe.Workflow(name=wf_name)
+    wf = Workflow(name=wf_name)
 
     # Connect the nodes
     wf.connect([
@@ -154,13 +153,12 @@ def intensity_norm(wf_name='intensity_norm'):
     wf: nipype Workflow
     """
     ## calculate masked stats
-    mean_value = pe.Node(fsl.ImageStats(op_string="-M -k %s"), name='mean_value')
-
+    mean_value = setup_node(fsl.ImageStats(op_string="-M -k %s"), name='mean_value')
     ## normalize
-    gm_norm = pe.Node(fsl.BinaryMaths(operation='div'), name='gm_norm')
+    gm_norm    = setup_node(fsl.BinaryMaths(operation='div'), name='gm_norm')
 
     # Create the workflow object
-    wf = pe.Workflow(name=wf_name)
+    wf = Workflow(name=wf_name)
 
     wf.connect([
                 (mean_value, gm_norm,   [("out_stat",  "operand_value")]),

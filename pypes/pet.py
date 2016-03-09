@@ -14,7 +14,8 @@ from   .preproc import (spm_apply_deformations,
                         petpvc_mask,
                         intensity_norm)
 
-from   .utils   import (get_datasink,
+from   .utils   import (setup_node,
+                        get_datasink,
                         extend_trait_list,
                         get_input_node,
                         remove_ext,
@@ -85,34 +86,34 @@ def spm_mrpet_preprocessing(wf_name="spm_mrpet_preproc"):
     psf_fwhm = (4.3, 4.3, 4.3)
 
     # input
-    pet_input = pe.Node(IdentityInterface(fields=["in_file", "coreg_target", "warp_field", "tissues"]),
-                                          name="pet_input")
+    pet_input = setup_node(IdentityInterface(fields=["in_file", "coreg_target", "warp_field", "tissues"]),
+                                             name="pet_input")
 
 
     # coreg pet
-    gunzip_pet  = pe.Node(Gunzip(),                           name="gunzip_pet")
-    coreg_pet   = pe.Node(spm_coregister(cost_function="mi"), name="coreg_pet")
-    tissues_sel = pe.Node(Select(index=[0, 1, 2]),            name="tissues")
-    select_gm   = pe.Node(Select(index=[0]),                  name="select_gm")
-    rbvpvc      = pe.Node(petpvc_cmd(fwhm_mm=psf_fwhm,
-                                     pvc_method='RBV'),       name="rbvpvc")
-    warp_pet    = pe.Node(spm_apply_deformations(),           name="warp_pet")
-    merge_lists = pe.Node(Merge(2),                           name='merge_for_warp')
+    gunzip_pet  = setup_node(Gunzip(),                           name="gunzip_pet")
+    coreg_pet   = setup_node(spm_coregister(cost_function="mi"), name="coreg_pet")
+    tissues_sel = setup_node(Select(index=[0, 1, 2]),            name="tissues")
+    select_gm   = setup_node(Select(index=[0]),                  name="select_gm")
+    rbvpvc      = setup_node(petpvc_cmd(fwhm_mm=psf_fwhm,
+                                        pvc_method='RBV'),       name="rbvpvc")
+    warp_pet    = setup_node(spm_apply_deformations(),           name="warp_pet")
+    merge_lists = setup_node(Merge(2),                           name='merge_for_warp')
 
-    unzip_mrg = pe.Node(Merge(3),                             name='merge_for_unzip')
-    gunzipper = pe.MapNode(Gunzip(),                          name="gunzip", iterfield=['in_file'])
+    unzip_mrg = setup_node(Merge(3),                             name='merge_for_unzip')
+    gunzipper = pe.MapNode(Gunzip(),                             name="gunzip", iterfield=['in_file'])
 
     # output
-    pet_output = pe.Node(IdentityInterface(fields=["out_file",
-                                                   "brain_mask",
-                                                   "coreg_others",
-                                                   "coreg_pet",
-                                                   "mni_pet",
-                                                   "warp_field",
-                                                   "pvc_out",
-                                                   "pvc_mask",
-                                                   "gm_norm"]),
-                                           name="pet_output")
+    pet_output = setup_node(IdentityInterface(fields=["out_file",
+                                                      "brain_mask",
+                                                      "coreg_others",
+                                                      "coreg_pet",
+                                                      "mni_pet",
+                                                      "warp_field",
+                                                      "pvc_out",
+                                                      "pvc_mask",
+                                                      "gm_norm"]),
+                                               name="pet_output")
 
     # workflow to create the mask
     mask_wf = petpvc_mask(wf_name="petpvc_mask")
@@ -173,7 +174,7 @@ def spm_mrpet_preprocessing(wf_name="spm_mrpet_preproc"):
     return wf
 
 
-def attach_spm_mrpet_preprocessing(main_wf, wf_name="spm_mrpet_preproc", params=None):
+def attach_spm_mrpet_preprocessing(main_wf, wf_name="spm_mrpet_preproc"):
     """ Attach a PET pre-processing workflow that uses SPM12 to `main_wf`.
     This workflow needs MRI based
 

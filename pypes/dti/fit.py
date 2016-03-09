@@ -13,14 +13,17 @@ from   nipype.workflows.dmri.fsl.utils import eddy_rotate_bvecs
 from   .utils import dti_acquisition_parameters
 from   ..preproc import spm_coregister, spm_apply_deformations
 from   .._utils  import flatten_list, format_pair_list
-from   ..utils   import (get_datasink,
+from   ..utils   import (setup_node,
+                         get_config_setting,
+                         check_mandatory_inputs,
+                         get_datasink,
                          get_input_node,
                          remove_ext,
                          extend_trait_list,
                          get_bounding_box)
 
 
-def fsl_dti_preprocessing(atlas_file, wf_name="fsl_dti_preproc"):
+def fsl_dti_preprocessing(wf_name="fsl_dti_preproc"):
     """ Run the diffusion MRI pre-processing workflow against the diff files in `data_dir`.
 
     This estimates an affine transform from anat to diff space, applies it to
@@ -51,32 +54,30 @@ def fsl_dti_preprocessing(atlas_file, wf_name="fsl_dti_preproc"):
     wf: nipype Workflow
     """
 
-    dti_input    = pe.Node(IdentityInterface(
-        fields=["diff", "bval", "bvec", "tissues", "anat", "mni_to_anat"],
-        mandatory_inputs=True),                                 name="dti_input")
-    gunzip_atlas = pe.Node(Gunzip(in_file=atlas_file),          name="gunzip_atlas")
-    anat_bbox    = pe.Node(Function(
-        input_names=["in_file"],
-        output_names=["bbox"],
-        function=get_bounding_box),                             name="anat_bbox")
-    warp_atlas   = pe.Node(spm_apply_deformations(),            name="warp_atlas")
-    write_acqp     = pe.Node(Function(
-        input_names=["in_file"],
-        output_names=["out_acqp", "out_index"],
-        function=dti_acquisition_parameters),                   name="write_acqp")
-    extract_b0   = pe.Node(ExtractROI(t_min=0, t_size=1),       name="extract_b0")
-    gunzip_b0    = pe.Node(Gunzip(),                            name="gunzip_b0")
-    coreg_merge  = pe.Node(Merge(2),                            name="coreg_merge")
-    coreg_b0     = pe.Node(spm_coregister(cost_function="mi"),  name="coreg_b0")
-    brain_sel    = pe.Node(Select(index=[0, 1, 2]),             name="brain_sel")
-    coreg_split  = pe.Node(Split(splits=[1, 2, 1], squeeze=True), name="coreg_split")
-    brain_merge  = pe.Node(MultiImageMaths(),                   name="brain_merge")
-    eddy         = pe.Node(Eddy(),                              name="eddy")
-    rot_bvec     = pe.Node(Function(
-        input_names=["in_bvec", "eddy_params"],
-        output_names=["out_file"],
-        function=eddy_rotate_bvecs),                            name="rot_bvec")
-    dti_output   = pe.Node(IdentityInterface(
+    dti_input    = setup_node(IdentityInterface(
+        fields=["diff", "bval", "bvec", "tissues", "anat", "mni_to_anat", "atlas_file"],
+        mandatory_inputs=True),                                    name="dti_input")
+    gunzip_atlas = setup_node(Gunzip(),          name="gunzip_atlas")
+    anat_bbox    = setup_node(Function(function=get_bounding_box, input_names=["in_file"], output_names=["bbox"]),
+                              name="anat_bbox")
+    warp_atlas   = setup_node(spm_apply_deformations(),            name="warp_atlas")
+    write_acqp     = setup_node(Function(function=dti_acquisition_parameters,
+                                         input_names=["in_file"],
+                                         output_names=["out_acqp", "out_index"],
+        ),                      name="write_acqp")
+    extract_b0   = setup_node(ExtractROI(t_min=0, t_size=1),         name="extract_b0")
+    gunzip_b0    = setup_node(Gunzip(),                              name="gunzip_b0")
+    coreg_merge  = setup_node(Merge(2),                              name="coreg_merge")
+    coreg_b0     = setup_node(spm_coregister(cost_function="mi"),    name="coreg_b0")
+    brain_sel    = setup_node(Select(index=[0, 1, 2]),               name="brain_sel")
+    coreg_split  = setup_node(Split(splits=[1, 2, 1], squeeze=True), name="coreg_split")
+    brain_merge  = setup_node(MultiImageMaths(),                     name="brain_merge")
+    eddy         = setup_node(Eddy(),                                name="eddy")
+    rot_bvec     = setup_node(Function(function=eddy_rotate_bvecs,
+                                       input_names=["in_bvec", "eddy_params"],
+                                       output_names=["out_file"],
+        ),                    name="rot_bvec")
+    dti_output   = setup_node(IdentityInterface(
         fields=["diff_corrected", "bvec_rotated", "brain_mask_diff", "atlas_diff"]),
                                                                 name="dti_output")
 
@@ -98,6 +99,7 @@ def fsl_dti_preprocessing(atlas_file, wf_name="fsl_dti_preproc"):
                 (dti_input,     eddy,           [("bval",                   "in_bval")]),
                 (dti_input,     eddy,           [("bvec",                   "in_bvec")]),
                 (dti_input,     rot_bvec,       [("bvec",                   "in_bvec")]),
+                (dti_input,     gunzip_atlas,   [("atlas_file",             "in_file")]),
                 (dti_input,     brain_sel,      [("tissues",                "inlist")]),
                 (dti_input,     anat_bbox,      [("anat",                   "in_file")]),
                 (dti_input,     coreg_b0,       [("anat",                   "source")]),
@@ -124,7 +126,7 @@ def fsl_dti_preprocessing(atlas_file, wf_name="fsl_dti_preproc"):
     return wf
 
 
-def attach_fsl_dti_preprocessing(main_wf, wf_name="fsl_dti_preproc", params=None):
+def attach_fsl_dti_preprocessing(main_wf, wf_name="fsl_dti_preproc"):
     """ Attach the FSL-based diffusion MRI pre-processing workflow to the `main_wf`.
 
     Parameters
@@ -155,16 +157,14 @@ def attach_fsl_dti_preprocessing(main_wf, wf_name="fsl_dti_preproc", params=None
     datasink = get_datasink  (main_wf)
     anat_wf  = main_wf.get_node("spm_anat_preproc")
 
-    atlas_file = params.get("atlas_file", None)
-    if atlas_file is None:
-        raise ValueError('Expected an existing atlas_file, got {}.'.format(atlas_file))
-    if not op.exists(atlas_file):
-        raise IOError('Expected an existing atlas_file, got {}.'.format(atlas_file))
+    check_mandatory_inputs(["dti_input.atlas_file"])
 
-    atlas_basename = remove_ext(op.basename(atlas_file))
+    atlas_basename = remove_ext(op.basename(get_config_setting("dti_input.atlas_file")))
 
     # The workflow box
-    dti_wf = fsl_dti_preprocessing(atlas_file=atlas_file, wf_name=wf_name)
+    dti_wf = fsl_dti_preprocessing(wf_name=wf_name)
+
+    # add the atlas file name to the regex substitutions.
 
     regexp_subst = [
                      (r"/rw{atlas}\.nii$", "/{atlas}_diff_space.nii"),

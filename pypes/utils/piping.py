@@ -2,9 +2,10 @@
 """
 Helper functions for joining, merging, managing the workflow nodes.
 """
+
 from nipype import Function, Node, SelectFiles, DataSink, DataGrabber
-import nipype.interfaces.fsl as fsl
 from nipype.interfaces.base import (traits, isdefined)
+import nipype.interfaces.fsl as fsl
 
 from ..crumb  import DataCrumb
 

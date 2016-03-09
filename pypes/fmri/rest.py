@@ -21,7 +21,6 @@ from   ..utils import (setup_node,
                        get_input_file_name)
 
 
-
 def rest_preprocessing_wf(wf_name="rest_preproc"):
     """ Run the resting-state fMRI pre-processing workflow against the rest files in `data_dir`.
 
@@ -46,16 +45,16 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
     wf: nipype Workflow
     """
     # input identities
-    rest_input = pe.Node(IdentityInterface(fields=["in_file"], mandatory_inputs=True), #, "tissues", "anat", "mni_to_anat"],
-                         name="rest_input")
+    rest_input = setup_node(IdentityInterface(fields=["in_file"], mandatory_inputs=True), #, "tissues", "anat", "mni_to_anat"],
+                            name="rest_input")
 
     # rs-fMRI preprocessing nodes
     trim      = setup_node(Trim(), name="trim")
-    st_params = pe.Node(slice_timing_params(), name='st_params')
+    #st_params = setup_node(slice_timing_params(), name='st_params')
 
     # output identities
-    rest_output = pe.Node(IdentityInterface(fields=["out_file"], mandatory_inputs=True),
-                          name="rest_output")
+    rest_output = setup_node(IdentityInterface(fields=["out_file"], mandatory_inputs=True),
+                             name="rest_output")
 
     # Create the workflow object
     wf = pe.Workflow(name=wf_name)
@@ -63,10 +62,10 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
     # Connect the nodes
     wf.connect([
                 # trim
-                (rest_input,    trim,    [("rest",     "in_file")]),
+                (rest_input,   trim,    [("in_file",     "in_file")]),
 
                 #slice time correction
-                (trim,     st_params,   [("out_file",  "in_file")]),
+                #(trim,     st_params,   [("out_file",  "in_file")]),
 
                 #output test
                 (trim, rest_output,     [("out_file",  "out_file")]),
@@ -76,7 +75,7 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
     return wf
 
 
-def attach_rest_preprocessing(main_wf, wf_name="rest_preproc", params=None):
+def attach_rest_preprocessing(main_wf, wf_name="rest_preproc"):
     """ Attach the resting-state MRI pre-processing workflow to the `main_wf`.
 
     Parameters

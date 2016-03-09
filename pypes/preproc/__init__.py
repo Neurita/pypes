@@ -14,4 +14,4 @@ from .registration import (spm_apply_deformations,
 
 from .petpvc import PETPVC
 
-from .pet import petpvc_cmd, petpvc_mask, intensity_norm
+from .pet_utils import petpvc_cmd, petpvc_mask, intensity_norm

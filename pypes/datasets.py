@@ -131,14 +131,17 @@ def cobre_crumb_workflow(wf_name, data_crumb, output_dir, cache_dir='', config_f
     """
     attach_funcs, in_out_wf_kwargs = _cobre_wf_setup(wf_name)
 
-    update_config(config_file)
+    if config_file:
+        update_config(config_file)
+
+    if params:
+        update_config(params)
 
     return build_crumb_workflow(attach_funcs,
                                 data_crumb=data_crumb,
                                 in_out_kwargs=in_out_wf_kwargs,
                                 output_dir=output_dir,
                                 cache_dir=cache_dir,
-                                params=params,
                                 )
 
 
@@ -182,11 +185,14 @@ def clinical_crumb_workflow(wf_name, data_crumb, output_dir, cache_dir='', confi
 
     params.update(in_out_wf_kwargs)
 
-    update_config(config_file)
+    if config_file:
+        update_config(config_file)
+
+    if params:
+        update_config(params)
 
     return build_crumb_workflow(attach_funcs,
                                 data_crumb=data_crumb,
                                 in_out_kwargs=in_out_wf_kwargs,
                                 output_dir=output_dir,
-                                cache_dir=cache_dir,
-                                params=params)
+                                cache_dir=cache_dir,)

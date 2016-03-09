@@ -93,7 +93,7 @@ def camino_tractography(wf_name="camino_tract", fa_tract_stat='mean'):
     return wf
 
 
-def attach_camino_tractography(main_wf, wf_name="camino_tract", params=None):
+def attach_camino_tractography(main_wf, wf_name="camino_tract"):
     """ Attach the Camino-based tractography workflow to the `main_wf`.
 
     Parameters

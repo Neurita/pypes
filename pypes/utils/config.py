@@ -7,34 +7,8 @@ The global configuration registry is declared in the bottom of this file.
 """
 import os.path as op
 
-from   kaptan import Kaptan, HANDLER_EXT
-
-from pypes.utils import get_extension
-
-
-def _handler_for_ext(ext):
-    """
-
-    Parameters
-    ----------
-    ext: str
-        The file extension without the dot.
-
-    Returns
-    -------
-    handler: a Kaptan.BaseHandler
-    """
-    if ext not in HANDLER_EXT:
-        raise ValueError("Expected a file with an extension "
-                         "in {}, got {}.".format(HANDLER_EXT.keys(), ext))
-
-    return HANDLER_EXT[ext]
-
-
-def _handler_for_file(file_path):
-    fname = op.basename(file_path)
-    fext  = get_extension(fname)[1:]
-    return _handler_for_ext(fext)
+from   nipype import Node
+from   kaptan import Kaptan
 
 
 def _load_config(file_path):
@@ -46,7 +20,7 @@ def _check_file(file_path):
     fpath = op.abspath(op.expanduser(file_path))
 
     if not op.isfile(fpath):
-        raise IOError("Could not find file {}.".format(fpath))
+        raise IOError("Could not find configuration file {}.".format(fpath))
 
 
 def _update_kaptan(kptn, new_values):
@@ -144,6 +118,10 @@ class Config(object):
                 raise IOError('Could not find file for key {} in the {}.'.format(item, fpath))
             return fpath
 
+    def update(self, adict):
+        for k, v in adict.items():
+            self._cpt.upsert(k, v)
+
     def keys(self):
         return self._cpt.configuration_data.keys()
 
@@ -168,16 +146,22 @@ PYPES_CFG = Config()
 
 
 def node_settings(node_name):
-    #TODO: items from PYPES_CFG that startwith node_name
     global PYPES_CFG
-    for k, v in PYPES_CFG.keys():
+    for k, v in PYPES_CFG.items():
         if k.startswith(node_name):
             yield k, v
 
 
-def update_config(file_path):
+def update_config(value):
+    """ Value can be a configuration file path or a dictionary with
+    configuration settings."""
     global PYPES_CFG
-    PYPES_CFG.update_from_file(file_path)
+    if isinstance(value, str) and op.isfile(value):
+        PYPES_CFG.update_from_file(value)
+    elif isinstance(value, dict):
+        PYPES_CFG.update(value)
+    else:
+        raise NotImplementedError('Cannot update the configuration with {}.'.format(value))
 
 
 def _set_node_inputs(node, params):
@@ -194,7 +178,21 @@ def _get_params_for(node_name):
     return pars
 
 
-def setup_node(node_element, name, inputs=None):
+def check_mandatory_inputs(node_names):
+    """ Raise an exception if any of the items in the List[str] `node_names` is not
+    present in the global configuration settings."""
+    for name in node_names:
+        if name not in PYPES_CFG:
+            raise AttributeError('Could not find a configuration parameter for {}. '
+                                 'Please set it in the an input configuration file.'.format(name))
+
+
+def get_config_setting(param_name):
+    """ Return the value for the entry with name `param_name` in the global configuration."""
+    return PYPES_CFG[param_name]
+
+
+def setup_node(node_element, name, settings=None, **kwargs):
     """ Create a pe.Node from `node_element` with a given name.
     Check in the global configuration if there is any value for the node name and will set it.
 
@@ -204,19 +202,22 @@ def setup_node(node_element, name, inputs=None):
 
     name: str
 
-    inputs: dict
+    settings: dict
         Dictionary with values for the pe.Node inputs.
         These will have higher priority than the ones in the global Configuration.
+
+    kwargs: keyword arguments
+        Extra arguments to pass to nipype.Node __init__ function.
 
     Returns
     -------
     node: nipype.Node
     """
-    node = pe.Node(node_element, name=name)
+    node = Node(node_element, name=name, **kwargs)
 
     params = _get_params_for(name)
-    if inputs is not None:
-        params.update(inputs)
+    if settings is not None:
+        params.update(settings)
 
     _set_node_inputs(node, params)
 

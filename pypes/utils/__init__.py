@@ -17,7 +17,9 @@ from .piping  import  (extend_trait_list,
                        get_input_file_name,
                        )
 
-from .config import (node_settings,
+from .config import (get_config_setting,
+                     check_mandatory_inputs,
+                     node_settings,
                      setup_node,
                      update_config)
 
