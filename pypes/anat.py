@@ -9,10 +9,12 @@ import nipype.pipeline.engine    as pe
 from   nipype.algorithms.misc    import Gunzip
 from   nipype.interfaces.ants    import N4BiasFieldCorrection
 from   nipype.interfaces.base    import traits
+from   nipype.interfaces.utility import IdentityInterface
 
 from   .preproc     import spm_apply_deformations
 from   ._utils      import format_pair_list
-from   .utils       import (remove_ext,
+from   .utils       import (setup_node,
+                            remove_ext,
                             spm_tpm_priors_path,
                             extend_trait_list,
                             get_input_node,
@@ -94,24 +96,64 @@ def spm_anat_preprocessing(wf_name="spm_anat_preproc"):
 
     Nipype Inputs
     -------------
-    bias_correction.input_image: traits.File
+    anat_input.in_file: traits.File
         path to the anatomical image
+
+    Nipype Outputs
+    --------------
+    anat_output.anat_mni: traits.File
+        The bias-field normalized to MNI anatomical image.
+
+    anat_output.tissues_warped: traits.File
+        The tissue segmentation in MNI space from SPM.
+
+    anat_output.tissues_native: traits.File
+        The tissue segmentation in native space from SPM
+
+    anat_output.affine_transform: traits.File
+        The affine transformation file.
+
+    anat_output.warp_forward: traits.File
+        The forward (anat to MNI) warp field from SPM.
+
+    anat_output.warp_inverse: traits.File
+        The inverse (MNI to anat) warp field from SPM.
+
+    anat_output.anat_biascorr: traits.File
+        The bias-field corrected anatomical image
 
     Returns
     -------
     wf: nipype Workflow
     """
+    # input node
+    anat_input = setup_node(IdentityInterface(fields=["in_file"]),
+                                              name="anat_input")
+
     # T1 preprocessing nodes
-    biascor     = pe.Node(biasfield_correct(),      name="bias_correction")
-    gunzip_anat = pe.Node(Gunzip(),                 name="gunzip_anat")
-    segment     = pe.Node(spm_segment(),            name="new_segment")
-    warp_anat   = pe.Node(spm_apply_deformations(), name="warp_anat")
+    biascor     = setup_node(biasfield_correct(),      name="bias_correction")
+    gunzip_anat = setup_node(Gunzip(),                 name="gunzip_anat")
+    segment     = setup_node(spm_segment(),            name="new_segment")
+    warp_anat   = setup_node(spm_apply_deformations(), name="warp_anat")
+
+    # output node
+    anat_output = setup_node(IdentityInterface(fields=["anat_mni",
+                                                       "tissues_warped",
+                                                       "tissues_native",
+                                                       "affine_transform",
+                                                       "warp_forward",
+                                                       "warp_inverse",
+                                                       "anat_biascorr",
+                                                      ]),
+                                               name="anat_output")
 
     # Create the workflow object
     wf = pe.Workflow(name=wf_name)
 
     # Connect the nodes
     wf.connect([
+                # input
+                (anat_input,   biascor    , [("in_file",      "input_image")]),
                 # new segment
                 (biascor,      gunzip_anat, [("output_image", "in_file"      )]),
                 (gunzip_anat,  segment,     [("out_file",     "channel_files")]),
@@ -119,11 +161,20 @@ def spm_anat_preprocessing(wf_name="spm_anat_preproc"):
                 # Normalize12
                 (segment, warp_anat, [("forward_deformation_field", "deformation_file")]),
                 (segment, warp_anat, [("bias_corrected_images",     "apply_to_files")]),
+
+                # output
+                (warp_anat, anat_output, [("normalized_files",           "anat_mni")]),
+                (segment,   anat_output, [("modulated_class_images",     "tissues_warped"),
+                                          ("native_class_images",        "tissues_native"),
+                                          ("transformation_mat",         "affine_transform"),
+                                          ("forward_deformation_field",  "warp_forward"),
+                                          ("inverse_deformation_field",  "warp_inverse"),
+                                          ("bias_corrected_images",      "anat_biascorr")]),
               ])
     return wf
 
 
-def attach_spm_anat_preprocessing(main_wf, wf_name="spm_anat_preproc", params=None):
+def attach_spm_anat_preprocessing(main_wf, wf_name="spm_anat_preproc"):
     """ Attach the SPM12 anatomical MRI pre-processing workflow to the `main_wf`.
 
     Parameters
@@ -176,14 +227,14 @@ def attach_spm_anat_preprocessing(main_wf, wf_name="spm_anat_preproc", params=No
                                                              regexp_subst)
 
     # input and output anat workflow to main workflow connections
-    main_wf.connect([(in_files, t1_wf,    [("anat",                                  "bias_correction.input_image")]),
-                     (t1_wf,    datasink, [("warp_anat.normalized_files",            "anat.@mni")],),
-                     (t1_wf,    datasink, [("new_segment.modulated_class_images",    "anat.tissues.@warped"),
-                                           ("new_segment.native_class_images",       "anat.tissues.@native"),
-                                           ("new_segment.transformation_mat",        "anat.transform.@linear"),
-                                           ("new_segment.forward_deformation_field", "anat.transform.@forward"),
-                                           ("new_segment.inverse_deformation_field", "anat.transform.@inverse"),
-                                           ("new_segment.bias_corrected_images",     "anat.@biascor"),
+    main_wf.connect([(in_files, t1_wf,    [("anat",                         "anat_input.in_file")]),
+                     (t1_wf,    datasink, [("anat_output.anat_mni",         "anat.@mni")],),
+                     (t1_wf,    datasink, [("anat_output.tissues_warped",   "anat.tissues.@warped"),
+                                           ("anat_output.tissues_native",   "anat.tissues.@native"),
+                                           ("anat_output.affine_transform", "anat.transform.@linear"),
+                                           ("anat_output.warp_forward",     "anat.transform.@forward"),
+                                           ("anat_output.warp_inverse",     "anat.transform.@inverse"),
+                                           ("anat_output.anat_biascorr",    "anat.@biascor"),
                                           ]),
                     ])
 
