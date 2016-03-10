@@ -4,7 +4,7 @@ from .slicetime import (afni_slicetime,
                         spm_slicetime,
                         auto_spm_slicetime)
 
-from .slicetime_params import slice_timing_params
+from .slicetime_params import STCParametersInterface
 
 from .registration import (spm_apply_deformations,
                            spm_coregister,

@@ -9,10 +9,13 @@ import os.path as op
 import nibabel as nib
 import numpy as np
 
-# Nipype imports
-from nipype.interfaces.utility import Function
+from nipype.interfaces.base import (BaseInterface,
+                                    TraitedSpec,
+                                    BaseInterfaceInputSpec,
+                                    isdefined,
+                                    traits,)
 
-from .._utils import check_equal, grep
+from .._utils        import check_equal, grep
 from ..preproc.dicom import split_dcm_ahdr, dcm_ascii_hdr
 
 
@@ -85,6 +88,10 @@ def _get_n_slices(in_file):
 
 def _get_time_repetition(in_file):
     tr = nib.load(in_file).header.get_dim_info()[2]
+
+    if tr is None:
+        raise ValueError('Could not pick the TR value from {}. Please set time_repetition in the configuration.')
+
     if tr < 1.0 or tr > 5.0:
         raise ValueError('Aborting: strange Repeat Time (TR), got {}.'.format(tr))
     if  tr > 5.0:
@@ -98,7 +105,8 @@ def _get_time_repetition(in_file):
 def _get_time_acquisition(in_file, TR, n_slices):
     if n_slices <= 0: # not only to avoid division by zero
         raise ValueError('Null number of slices when calculating time '
-                         'acquisition for {}, got {}'.format(in_file, n_slices))
+                         'acquisition for {}, got {}. Please set num_slices '
+                         'in the configuration.'.format(in_file, n_slices))
 
     return (TR/n_slices) * (n_slices-1)
 
@@ -181,13 +189,14 @@ def _get_slice_order(in_file, n_slices, slice_mode):
             if is_siemens and '2' in slice_mode: #siemens and even number of slices
                 slice_order = list(range(1, n_slices, 2)) + list(range(0, n_slices, 2))
             else:
-                slice_order = list(range(0, n_slices, 2)) + list(range(0, n_slices, 2))
+                slice_order = list(range(0, n_slices, 2)) + list(range(1, n_slices, 2))
 
         if 'dec' in slice_mode: # descending
             slice_order = [n_slices - 1 - i for i in slice_order]
 
         return slice_order
 
+    # starts the function
     if slice_mode == 'unknown':
         # check if the slice times are in the NifTI header
         img = nib.load(in_file)
@@ -195,15 +204,17 @@ def _get_slice_order(in_file, n_slices, slice_mode):
         if times is not None:
             return order_from_times(times)
 
-    # read the code from the file
+    # read the slice mode code from the file
     if slice_mode == 'unknown':
         slice_mode = read_slice_mode_byte(in_file)
+        if slice_mode <= 0:
+            slice_mode = 'unknown'
 
-    if slice_mode > 0:
-        return calculate_slice_order(n_slices, slice_mode)
-    else:
+    if slice_mode == 'unknown':
         raise AttributeError("Don't have enough information to calculate the "
-                             "slice order from {}.".format(in_file))
+                             "slice order from {}. Please set the slice_mode argument.".format(in_file))
+
+    return calculate_slice_order(n_slices, slice_mode)
 
 
 class STCParameters(object):
@@ -222,66 +233,23 @@ class STCParameters(object):
 
     This is a callable class so you can instance this class in a nipype Function object.
     See `slice_timing_params` in this module after the declaration of this class.
-
-    Parameters
-    ----------
-    in_files: str
-        Path to the input files
-
-    num_slices: int
-        Number of slices of `in_files`.
-
-    ref_slice: int
-        Index of the reference slice
-
-    slice_order: list of ints
-        List of integers with the order in which slices are acquired
-
-    time_acquisition: int
-        Time of volume acquisition. usually calculated as TR-(TR/num_slices)
-
-    time_repetition: int
-        The time repetition (TR) of the input dataset in seconds
-        Default: 0
-        If left to default will read the TR from the nifti image header.
-
-    slice_mode: str
-        Choices:
-            'unknown': auto detect if images are from Siemens and converted with dcm2nii from Nov 2013 or later #kNIFTI_SLICE_UNKNOWN
-            'seq_inc': sequential ascending kNIFTI_SLICE_SEQ_INC = 1; %1,2,3,4
-            'seq_dec': sequential descending kNIFTI_SLICE_SEQ_DEC = 2; %4,3,2,1
-            'alt_inc': Siemens: interleaved ascending with odd number of slices, interleaved for other vendors kNIFTI_SLICE_ALT_INC = 3; %1,3,2,4
-            'alt_dec': descending interleaved kNIFTI_SLICE_ALT_DEC = 4; %4,2,3,1
-            'alt_inc2': Siemens interleaved ascending with even number of slices kNIFTI_SLICE_ALT_INC2 = 5; %2,4,1,3
-            'alt_dec2': Siemens interleaved descending with even number of slices kNIFTI_SLICE_ALT_DEC2 = 6; %3,1,4,2
-
-        Default: 'unknown'
-        If left to default will try to detect the TR from the nifti image header, if it doesn't work
-        an AttributeError exception will be raise.
     """
-    def __init__(self, in_files=None,
-                       num_slices=0,
-                       time_repetition=None,
-                       time_acquisition=None,
-                       slice_order=None,
-                       ref_slice=None,
-                       slice_mode='unknown',):
+    def __init__(self):
+        self.in_files         = None
+        self.num_slices       = 0
+        self.slice_order      = None
+        self.time_repetition  = None
+        self.time_acquisition = None
+        self.ref_slice        = None
+        self.slice_mode       = 'unknown'
 
-        self.in_files         = in_files
-        self.num_slices       = num_slices
-        self.slice_order      = slice_order
-        self.time_repetition  = time_repetition
-        self.time_acquisition = time_acquisition
-        self.ref_slice        = ref_slice
-        self.slice_mode       = slice_mode
-
-    def __call__(self, in_files,
-                       num_slices=0,
-                       ref_slice=None,
-                       slice_order=None,
-                       time_acquisition=None,
-                       time_repetition=None,
-                       slice_mode='unknown'):
+    def fit(self, in_files,
+                  num_slices       = 0,
+                  ref_slice        = None,
+                  slice_order      = None,
+                  time_acquisition = None,
+                  time_repetition  = None,
+                  slice_mode       = 'unknown'):
         """
 
         Parameters
@@ -348,23 +316,6 @@ class STCParameters(object):
         self.ref_slice        = ref_slice
         self.slice_mode       = slice_mode
 
-        return self.fit()
-
-    def fit(self):
-        """
-
-        Returns
-        -------
-        num_slices
-
-        ref_slice
-
-        slice_order
-
-        time_acquisition
-
-        time_repetition
-        """
         num_slices       = self.set_num_slices()
         slice_order      = self.set_slice_order()
         time_repetition  = self.set_time_repetition()
@@ -455,182 +406,78 @@ class STCParameters(object):
         return self.ref_slice
 
 
-def slice_timing_params():
-    """ Return a nipype interface to SiemensSTCParameters.
+class STCParametersInputSpec(BaseInterfaceInputSpec):
+    in_file          = traits.File   (desc="fMRI image file", exists=True, mandatory=True)
+    num_slices       = traits.Int    (desc="Number of slices (depends on acquisition direction).")
+    slice_order      = traits.ListInt(desc="List of integers with the order in which slices are acquired.")
+    time_repetition  = traits.Float  (desc="The time repetition (TR) of the input dataset in seconds. "
+                                           "If left to default will read the TR from the nifti image header.", default=0)
+    time_acquisition = traits.Float  (desc="Time of volume acquisition. usually calculated as TR-(TR/num_slices).")
+    ref_slice        = traits.Int    (desc="Index of the slice of reference.")
+    slice_mode       = traits.Enum   ('unknown', 'seq_inc', 'seq_dec', 'alt_inc', 'alt_dec', 'alt_inc2', 'alt_dec2',
+                                      desc="Slicing mode of the acquisition. \n"
+                                      "Choices: \n"
+                                      "    'unknown': auto detect if images are from Siemens and converted with dcm2nii"
+                                      "               from Nov 2013 or later #kNIFTI_SLICE_UNKNOWN\n"
+                                      "    'seq_inc': sequential ascending kNIFTI_SLICE_SEQ_INC = 1; %1,2,3,4\n"
+                                      "    'seq_dec': sequential descending kNIFTI_SLICE_SEQ_DEC = 2; %4,3,2,1\n"
+                                      "    'alt_inc': Siemens: interleaved ascending with odd number of slices,"
+                                      "                        interleaved for other vendors kNIFTI_SLICE_ALT_INC = 3; %1,3,2,4\n"
+                                      "    'alt_dec': descending interleaved kNIFTI_SLICE_ALT_DEC = 4; %4,2,3,1\n"
+                                      "    'alt_inc2': Siemens interleaved ascending with even number of slices kNIFTI_SLICE_ALT_INC2 = 5; %2,4,1,3\n"
+                                      "    'alt_dec2': Siemens interleaved descending with even number of slices kNIFTI_SLICE_ALT_DEC2 = 6; %3,1,4,2\n"
+                                      "If left to default will try to detect the TR from the nifti image header, if it doesn't work"
+                                      "an AttributeError exception will be raise.", default='unknown')
 
-    Nipype Inputs
-    -------------
-    ## Mandatory:
-    in_files: str or list of str
-        Path to the input file(s).
 
-    ## Optional:
-    num_slices: int
-        Number of slices of `in_files`.
+class STCParametersOutputSpec(TraitedSpec):
+    num_slices       = traits.Int    (desc="Number of slices (depends on acquisition direction).")
+    slice_order      = traits.ListInt(desc="List of integers with the order in which slices are acquired.")
+    time_repetition  = traits.Float  (desc="The time repetition (TR) of the input dataset in seconds. "
+                                           "If left to default will read the TR from the nifti image header.", default=0)
+    time_acquisition = traits.Float  (desc="Time of volume acquisition. usually calculated as TR-(TR/num_slices).")
+    ref_slice        = traits.Int    (desc="Index of the slice of reference.")
 
-    time_repetition: int or str
-        The time repetition (TR) of the input dataset in seconds
-        Default: 0
-        If left to default will read the TR from the nifti image header.
 
-    time_acquisition: int
-        Time of volume acquisition. usually calculated as TR-(TR/num_slices)
-
-    slice_order: list of int
-        List of integers with the order in which slices are acquired
-
-    ref_slice: int
-        Index of the reference slice
-
-    Nipype Outputs
-    --------------
-    num_slices: int
-        Number of slices of `in_files`.
-
-    ref_slice: int
-        Index of the reference slice
-
-    slice_order: list of int
-        List of integers with the order in which slices are acquired
-
-    time_acquisition: int
-        Time of volume acquisition. usually calculated as TR-(TR/num_slices)
-
-    time_repetition: int or str
-        The time repetition (TR) of the input dataset in seconds
-        Default: 0
-        If left to default will read the TR from the nifti image header.
-
-    Returns
-    -------
-    stc_iface: nipype Function
-
+class STCParametersInterface(BaseInterface):
     """
-    input_names  = [ 'in_files',
-                     'num_slices',
-                     'slice_order',
-                     'time_repetition',
-                     'time_acquisition',
-                     'ref_slice',
-                     'slice_mode',
-                    ]
+    Class to calculate the parameters needed for slice timing correction.
+    Some options are automated for Siemens acquisitions.
 
-    output_names  = ['num_slices',
-                     'ref_slice',
-                     'slice_order',
-                     'time_acquisition',
-                     'time_repetition',
-                    ]
+    Check the STCParameters class docstring for more info.
+    """
+    input_spec = STCParametersInputSpec
+    output_spec = STCParametersOutputSpec
 
-    imports = ['import os.path as op',
-               'import nibabel as nib',
-               'import numpy as np',
-               'from pypes._utils import check_equal',
-              ]
+    def _run_interface(self, runtime):
+        num_slices       = 0         if not isdefined(self.inputs.num_slices      ) else self.inputs.num_slices
+        ref_slice        = None      if not isdefined(self.inputs.ref_slice       ) else self.inputs.ref_slice
+        slice_order      = None      if not isdefined(self.inputs.slice_order     ) else self.inputs.slice_order
+        time_acquisition = None      if not isdefined(self.inputs.time_acquisition) else self.inputs.time_acquisition
+        time_repetition  = None      if not isdefined(self.inputs.time_repetition ) else self.inputs.time_repetition
+        slice_mode       = 'unknown' if not isdefined(self.inputs.slice_mode      ) else self.inputs.slice_mode
 
-    return Function(input_names=input_names,
-                    output_names=output_names,
-                    imports=imports,
-                    function=STCParameters)
+        self.stc_params = STCParameters()
 
+        (self._num_slices,
+         self._ref_slice,
+         self._slice_order,
+         self._time_acquisition,
+         self._time_repetition) = self.stc_params.fit(in_files         = self.inputs.in_file,
+                                                      num_slices       = num_slices      ,
+                                                      ref_slice        = ref_slice       ,
+                                                      slice_order      = slice_order     ,
+                                                      time_acquisition = time_acquisition,
+                                                      time_repetition  = time_repetition ,
+                                                      slice_mode       = slice_mode      ,
+                                                      )
+        return runtime
 
-# TODO: a formal nipype STCParameters interface?
-# from nipype.interfaces.base import (
-#     TraitedSpec,
-#     BaseInterfaceInputSpec,
-#     CommandLine,
-#     File,
-#     isdefined,
-#     traits,
-# )
-#
-#
-# class STCParametersInputSpec(BaseInterfaceInputSpec):
-#     input_names  = [ 'in_files',
-#                      'num_slices',
-#                      'slice_order',
-#                      'time_repetition',
-#                      'time_acquisition',
-#                      'ref_slice',
-#                      'slice_mode',
-#                     ]
-#
-#     in_files = traits.Str(argstr='%s', desc='Additional parameters to the command')
-#     environ = traits.DictStrStr(desc='Environment variables', usedefault=True,
-#                                 nohash=True)
-#     # This input does not have a "usedefault=True" so the set_default_terminal_output()
-#     # method would work
-#     terminal_output = traits.Enum('stream', 'allatonce', 'file', 'none',
-#                                   desc=('Control terminal output: `stream` - '
-#                                         'displays to terminal immediately (default), '
-#                                         '`allatonce` - waits till command is '
-#                                         'finished to display output, `file` - '
-#                                         'writes output to file, `none` - output'
-#                                         ' is ignored'),
-#                                   nohash=True)
-#
-#
-# class STCParametersOutputSpec(TraitedSpec):
-#     args = traits.Str(argstr='%s', desc='Additional parameters to the command')
-#     environ = traits.DictStrStr(desc='Environment variables', usedefault=True,
-#                                 nohash=True)
-#     # This input does not have a "usedefault=True" so the set_default_terminal_output()
-#     # method would work
-#     terminal_output = traits.Enum('stream', 'allatonce', 'file', 'none',
-#                                   desc=('Control terminal output: `stream` - '
-#                                         'displays to terminal immediately (default), '
-#                                         '`allatonce` - waits till command is '
-#                                         'finished to display output, `file` - '
-#                                         'writes output to file, `none` - output'
-#                                         ' is ignored'),
-#                                   nohash=True)
-#
-
-
-# class STCParametersInterface(IOBase):
-#
-#
-#    input_spec = STCParametersInputSpec
-#    output_spec = STCParametersOutputSpec
-#
-#     def __init__(self, fields=None, mandatory_inputs=True, **inputs):
-#         super(IdentityInterface, self).__init__(**inputs)
-#         if fields is None or not fields:
-#             raise ValueError('Identity Interface fields must be a non-empty list')
-#         # Each input must be in the fields.
-#         for in_field in inputs:
-#             if in_field not in fields:
-#                 raise ValueError('Identity Interface input is not in the fields: %s' % in_field)
-#         self._fields = fields
-#         self._mandatory_inputs = mandatory_inputs
-#         add_traits(self.inputs, fields)
-#         # Adding any traits wipes out all input values set in superclass initialization,
-#         # even it the trait is not in the add_traits argument. The work-around is to reset
-#         # the values after adding the traits.
-#         self.inputs.set(**inputs)
-#
-#     def _add_output_traits(self, base):
-#         undefined_traits = {}
-#         for key in self._fields:
-#             base.add_trait(key, traits.Any)
-#             undefined_traits[key] = Undefined
-#         base.trait_set(trait_change_notify=False, **undefined_traits)
-#         return base
-#
-#     def _list_outputs(self):
-#         # manual mandatory inputs check
-#         if self._fields and self._mandatory_inputs:
-#             for key in self._fields:
-#                 value = getattr(self.inputs, key)
-#                 if not isdefined(value):
-#                     msg = "%s requires a value for input '%s' because it was listed in 'fields'. \
-#                     You can turn off mandatory inputs checking by passing mandatory_inputs = False to the constructor." % \
-#                         (self.__class__.__name__, key)
-#                     raise ValueError(msg)
-#
-#         outputs = self._outputs().get()
-#         for key in self._fields:
-#             val = getattr(self.inputs, key)
-#             if isdefined(val):
-#                 outputs[key] = val
-#         return outputs
+    def _list_outputs(self):
+        outputs = self._outputs().get()
+        outputs['num_slices'      ] = self._num_slices
+        outputs['ref_slice'       ] = self._ref_slice
+        outputs['slice_order'     ] = self._slice_order
+        outputs['time_acquisition'] = self._time_acquisition
+        outputs['time_repetition' ] = self._time_repetition
+        return outputs

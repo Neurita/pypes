@@ -17,10 +17,13 @@ from .piping  import  (extend_trait_list,
                        get_input_file_name,
                        )
 
+
+from .config import PYPES_CFG as configuration
 from .config import (get_config_setting,
                      check_mandatory_inputs,
                      node_settings,
                      setup_node,
                      update_config)
+
 
 from .spatial import get_bounding_box

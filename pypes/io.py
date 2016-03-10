@@ -5,13 +5,14 @@ Workflows to grab input file structures.
 import os
 import json
 import os.path as op
+import logging as log
 
 import nipype.pipeline.engine as pe
 from   nipype.interfaces.io import DataSink
 
 from hansel.utils import joint_value_map
 from .crumb  import DataCrumb
-from .utils  import extend_trait_list, joinstrings
+from .utils  import extend_trait_list, joinstrings, configuration
 from .utils.piping import iterable_record_node
 
 
@@ -69,6 +70,10 @@ def build_crumb_workflow(wfname_attacher, data_crumb, in_out_kwargs, output_dir,
     # check some args
     if not cache_dir:
         cache_dir = op.join(op.dirname(output_dir), "wd")
+
+    # print the configuration parameters
+    log.info('Using the following configuration parameters:')
+    log.info(configuration)
 
     # generate the workflow
     main_wf = crumb_wf(work_dir=cache_dir,

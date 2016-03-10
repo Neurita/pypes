@@ -7,7 +7,7 @@ import os.path as op
 import nipype.pipeline.engine as pe
 from   nipype.interfaces.base import traits, isdefined
 
-from   .slicetime_params import slice_timing_params
+from   .slicetime_params import STCParametersInterface
 from   ..utils import remove_ext
 
 
@@ -357,7 +357,7 @@ def auto_nipy_slicetime(in_files=traits.Undefined,
         parameters detection.
     """
     # Declare the processing nodes
-    params = pe.Node(slice_timing_params(), name='params')
+    params = pe.Node(STCParametersInterface(), name='params')
     stc    = pe.Node(nipy_fmrirealign4d(in_files=in_files,
                                         time_repetition=time_repetition,
                                         slice_order=slice_order,
