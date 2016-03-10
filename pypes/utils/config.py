@@ -10,6 +10,8 @@ import os.path as op
 from   nipype import Node
 from   kaptan import Kaptan
 
+from nipype.interfaces.utility import isdefined
+
 
 def _load_config(file_path):
     cpt = Kaptan()
@@ -164,9 +166,13 @@ def update_config(value):
         raise NotImplementedError('Cannot update the configuration with {}.'.format(value))
 
 
-def _set_node_inputs(node, params):
+def _set_node_inputs(node, params, overwrite=False):
     for k, v in params.items():
-        setattr(node.inputs, k, v)
+        if not isdefined(getattr(node.inputs, k)):
+            setattr(node.inputs, k, v)
+        else:
+            if overwrite:
+                setattr(node.inputs, k, v)
 
 
 def _get_params_for(node_name):
@@ -219,6 +225,6 @@ def setup_node(node_element, name, settings=None, **kwargs):
     if settings is not None:
         params.update(settings)
 
-    _set_node_inputs(node, params)
+    _set_node_inputs(node, params, overwrite=False)
 
     return node

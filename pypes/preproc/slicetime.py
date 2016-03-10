@@ -8,7 +8,7 @@ import nipype.pipeline.engine as pe
 from   nipype.interfaces.base import traits, isdefined
 
 from   .slicetime_params import STCParametersInterface
-from   ..utils import remove_ext
+from   ..utils import remove_ext, setup_node
 
 
 def afni_slicetime(in_file=traits.Undefined,
@@ -190,10 +190,10 @@ def nipy_fmrirealign4d(in_files=traits.Undefined,
 
     stc = nipy.FmriRealign4d()
 
-    stc.inputs.in_files         = in_files
-    stc.inputs.time_repetition  = time_repetition
-    stc.inputs.slice_order      = slice_order
-    stc.inputs.loops            = loops
+    stc.inputs.in_file     = in_files
+    stc.inputs.tr          = time_repetition
+    stc.inputs.slice_order = slice_order
+    stc.inputs.loops       = loops
 
     #res = stc.run()
     return stc
@@ -201,12 +201,12 @@ def nipy_fmrirealign4d(in_files=traits.Undefined,
 
 def auto_spm_slicetime(in_files=traits.Undefined,
                        out_prefix=traits.Undefined,
-                       num_slices=0,
-                       time_repetition=-1,
-                       time_acquisition=-1,
-                       ignore_first=6,
+                       num_slices=traits.Undefined,
+                       time_repetition=traits.Undefined,
+                       time_acquisition=traits.Undefined,
+                       ignore_first=traits.Undefined,
                        ref_slice=traits.Undefined,
-                       slice_order=None,
+                       slice_order=traits.Undefined,
                        wf_name='auto_spm_slicetime'):
     """ A workflow that tries to automatically read the slice timing correction parameters
     from the input files and passes them to a spm.SliceTiming node.
@@ -276,15 +276,15 @@ def auto_spm_slicetime(in_files=traits.Undefined,
         return [i+1 for i in slice_order]
 
     # Declare the processing nodes
-    params = pe.Node(slice_timing_params(), name='params')
-    stc    = pe.Node(spm_slicetime(in_files=in_files,
-                                   out_prefix=out_prefix,
-                                   num_slices=num_slices,
-                                   time_repetition=time_repetition,
-                                   time_acquisition=time_acquisition,
-                                   ignore_first=ignore_first,
-                                   ref_slice=ref_slice,
-                                   slice_order=slice_order), name='slice_timer')
+    params = setup_node(STCParametersInterface(), name='stc_params')
+    stc    = setup_node(spm_slicetime(in_files=in_files,
+                                      out_prefix=out_prefix,
+                                      num_slices=num_slices,
+                                      time_repetition=time_repetition,
+                                      time_acquisition=time_acquisition,
+                                      ignore_first=ignore_first,
+                                      ref_slice=ref_slice,
+                                      slice_order=slice_order), name='slice_timer')
 
     # Create the workflow object
     wf = pe.Workflow(name=wf_name)
@@ -304,8 +304,8 @@ def auto_spm_slicetime(in_files=traits.Undefined,
 
 
 def auto_nipy_slicetime(in_files=traits.Undefined,
-                        time_repetition=-1,
-                        slice_order=None,
+                        time_repetition=traits.Undefined,
+                        slice_order=traits.Undefined,
                         loops=5,
                         wf_name='auto_spm_slicetime'):
     """ A workflow that tries to automatically read the slice timing correction parameters
@@ -313,7 +313,7 @@ def auto_nipy_slicetime(in_files=traits.Undefined,
 
     Parameters
     ----------
-    in_files: str or list of str
+    in_file: str or list of str
         Path to the input file(s).
 
     time_repetition: int or str
@@ -357,21 +357,21 @@ def auto_nipy_slicetime(in_files=traits.Undefined,
         parameters detection.
     """
     # Declare the processing nodes
-    params = pe.Node(STCParametersInterface(), name='params')
-    stc    = pe.Node(nipy_fmrirealign4d(in_files=in_files,
-                                        time_repetition=time_repetition,
-                                        slice_order=slice_order,
-                                        loops=loops),
-                     name='slice_timer')
+    params = setup_node(STCParametersInterface(in_file=in_files), name='stc_params')
+    stc    = setup_node(nipy_fmrirealign4d(in_files=in_files,
+                                           time_repetition=time_repetition,
+                                           slice_order=slice_order,
+                                           loops=loops),
+                        name='slice_timer')
 
     # Create the workflow object
     wf = pe.Workflow(name=wf_name)
 
     # Connect the nodes
     wf.connect([
-                (params, stc, [("in_files",         "in_files"),
+                (params, stc, [("in_file",          "in_file"),
                                ("slice_order",      "slice_order"),
-                               ("time_repetition",  "time_repetition"),
+                               ("time_repetition",  "tr"),
                               ]),
               ])
 

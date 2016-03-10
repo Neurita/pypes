@@ -10,7 +10,7 @@ from   nipype.algorithms.misc    import Gunzip
 from   nipype.interfaces.utility import Function, Select, Split, Merge, IdentityInterface
 from nipype.interfaces.nipy.preprocess import Trim
 
-from   ..preproc import spm_apply_deformations, STCParametersInterface
+from   ..preproc import spm_apply_deformations, auto_nipy_slicetime
 
 from   .._utils import format_pair_list
 from   ..utils import (setup_node,
@@ -49,8 +49,8 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
                             name="rest_input")
 
     # rs-fMRI preprocessing nodes
-    trim      = setup_node(Trim(), name="trim")
-    stc_params = setup_node(STCParametersInterface(), name='stc_params')
+    trim    = setup_node(Trim(), name="trim")
+    stc_wf  = auto_nipy_slicetime()
 
     # output identities
     rest_output = setup_node(IdentityInterface(fields=["out_file"], mandatory_inputs=True),
@@ -65,7 +65,7 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
                 (rest_input,   trim,    [("in_file",     "in_file")]),
 
                 #slice time correction
-                (trim,     stc_params,  [("out_file",  "in_file")]),
+                (trim,        stc_wf,   [("out_file",  "stc_params.in_file")]),
 
                 #output test
                 (trim, rest_output,     [("out_file",  "out_file")]),

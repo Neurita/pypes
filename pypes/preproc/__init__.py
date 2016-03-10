@@ -2,7 +2,8 @@
 
 from .slicetime import (afni_slicetime,
                         spm_slicetime,
-                        auto_spm_slicetime)
+                        auto_spm_slicetime,
+                        auto_nipy_slicetime)
 
 from .slicetime_params import STCParametersInterface
 

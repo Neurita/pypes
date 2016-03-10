@@ -11,6 +11,7 @@ import numpy as np
 
 from nipype.interfaces.base import (BaseInterface,
                                     TraitedSpec,
+                                    InputMultiPath,
                                     BaseInterfaceInputSpec,
                                     isdefined,
                                     traits,)
@@ -407,7 +408,8 @@ class STCParameters(object):
 
 
 class STCParametersInputSpec(BaseInterfaceInputSpec):
-    in_file          = traits.File   (desc="fMRI image file", exists=True, mandatory=True)
+    in_file          = InputMultiPath(traits.File(desc="fMRI image file from where to obtain the slice time correction "
+                                                       "parameters.", exists=True, mandatory=True))
     num_slices       = traits.Int    (desc="Number of slices (depends on acquisition direction).")
     slice_order      = traits.ListInt(desc="List of integers with the order in which slices are acquired.")
     time_repetition  = traits.Float  (desc="The time repetition (TR) of the input dataset in seconds. "
@@ -431,6 +433,8 @@ class STCParametersInputSpec(BaseInterfaceInputSpec):
 
 
 class STCParametersOutputSpec(TraitedSpec):
+    in_file          = InputMultiPath(traits.File(desc="fMRI image file from where to obtain the slice time correction "
+                                                       "parameters.", exists=True, mandatory=True))
     num_slices       = traits.Int    (desc="Number of slices (depends on acquisition direction).")
     slice_order      = traits.ListInt(desc="List of integers with the order in which slices are acquired.")
     time_repetition  = traits.Float  (desc="The time repetition (TR) of the input dataset in seconds. "
@@ -475,6 +479,7 @@ class STCParametersInterface(BaseInterface):
 
     def _list_outputs(self):
         outputs = self._outputs().get()
+        outputs['in_file'         ] = self.inputs.in_file
         outputs['num_slices'      ] = self._num_slices
         outputs['ref_slice'       ] = self._ref_slice
         outputs['slice_order'     ] = self._slice_order
