@@ -6,6 +6,8 @@ import os.path as op
 
 import nipype.pipeline.engine as pe
 from   nipype.interfaces.base import traits, isdefined
+from nipype.interfaces.utility import Select, Function
+from nipype.algorithms.misc import Gunzip
 
 from   .slicetime_params import STCParametersInterface
 from   ..utils import remove_ext, setup_node
@@ -96,11 +98,10 @@ def afni_slicetime(in_file=traits.Undefined,
 
 
 def spm_slicetime(in_files=traits.Undefined,
-                  out_prefix=traits.Undefined,
+                  out_prefix=traits.Undefined,,
                   num_slices=0,
                   time_repetition=-1,
                   time_acquisition=-1,
-                  ignore_first=traits.Undefined,
                   ref_slice=traits.Undefined,
                   slice_order=None,
                   ):
@@ -125,10 +126,6 @@ def spm_slicetime(in_files=traits.Undefined,
     time_acquisition: int
         Time of volume acquisition. usually calculated as TR-(TR/num_slices)
 
-    ignore_first: int
-        Number of acquisitions thrown away from the beginning of the
-        dataset.
-
     ref_slice: int
         Index of the reference slice
 
@@ -138,15 +135,14 @@ def spm_slicetime(in_files=traits.Undefined,
     -------
     stc: nipype interface
     """
-    import nipype.interfaces.spm  as spm
+    import nipype.interfaces.spm as spm
 
     stc = spm.SliceTiming()
 
     stc.inputs.in_files         = in_files
-    stc.inputs.out_prefix       = out_prefix
+    stc.inputs.out_prefix       = 'a' if not isdefined(out_prefix) else out_prefix
     stc.inputs.slice_order      = slice_order
     stc.inputs.ref_slice        = ref_slice
-    stc.inputs.ignore           = ignore_first
     stc.inputs.time_repetition  = time_repetition
     stc.inputs.time_acquisition = time_acquisition
     stc.inputs.num_slices       = num_slices
@@ -199,22 +195,21 @@ def nipy_fmrirealign4d(in_files=traits.Undefined,
     return stc
 
 
-def auto_spm_slicetime(in_files=traits.Undefined,
-                       out_prefix=traits.Undefined,
+def auto_spm_slicetime(in_file=traits.Undefined,
+                       out_prefix='stc',
                        num_slices=traits.Undefined,
                        time_repetition=traits.Undefined,
                        time_acquisition=traits.Undefined,
-                       ignore_first=traits.Undefined,
                        ref_slice=traits.Undefined,
                        slice_order=traits.Undefined,
                        wf_name='auto_spm_slicetime'):
     """ A workflow that tries to automatically read the slice timing correction parameters
-    from the input files and passes them to a spm.SliceTiming node.
+    from the input file and passes them to a spm.SliceTiming node.
 
     Parameters
     ----------
-    in_files: str or list of str
-        Path to the input file(s).
+    in_files: str
+        Path to the input file.
 
     out_prefix: str
         Prefix to the output file.
@@ -230,10 +225,6 @@ def auto_spm_slicetime(in_files=traits.Undefined,
 
     time_acquisition: int
         Time of volume acquisition. usually calculated as TR-(TR/num_slices)
-
-    ignore_first: int
-        Number of acquisitions thrown away from the beginning of the
-        dataset.
 
     ref_slice: int
         Index of the reference slice
@@ -272,32 +263,61 @@ def auto_spm_slicetime(in_files=traits.Undefined,
         SPM slice timing correction workflow with automatic
         parameters detection.
     """
-    def sum_one(slice_order): # SPM starts count from 1
+    # helper functions
+    def _sum_one_to_each(slice_order): # SPM starts count from 1
         return [i+1 for i in slice_order]
 
+    def _sum_one(num):
+        return num + 1
+
+    def get_first(sequence):
+        return sequence[0]
+
+    # # define interfaces
+    # get_first_iface = Function(input_names=["sequence"],
+    #                            output_names=["item"],
+    #                            function=get_first)
+    #
+    # sum_one_each_iface = Function(input_names=["slice_order"],
+    #                              output_names=["slice_order"],
+    #                              function=_sum_one_to_each)
+    #
+    # sum_one_iface = Function(input_names=["num"],
+    #                          output_names=["num"],
+    #                          function=_sum_one)
+
     # Declare the processing nodes
-    params = setup_node(STCParametersInterface(), name='stc_params')
-    stc    = setup_node(spm_slicetime(in_files=in_files,
-                                      out_prefix=out_prefix,
+    params = setup_node(STCParametersInterface(in_files=in_file), name='stc_params')
+    #select = setup_node(get_first_iface, name="get_first")
+    gunzip = setup_node(Gunzip(), name="gunzip")
+    stc    = setup_node(spm_slicetime(out_prefix=out_prefix,
                                       num_slices=num_slices,
                                       time_repetition=time_repetition,
                                       time_acquisition=time_acquisition,
-                                      ignore_first=ignore_first,
                                       ref_slice=ref_slice,
                                       slice_order=slice_order), name='slice_timer')
+    #sum_one_each = setup_node(sum_one_each_iface, name='sum_one_each')
+    #sum_one      = setup_node(sum_one_iface,      name='sum_one')
 
     # Create the workflow object
     wf = pe.Workflow(name=wf_name)
 
     # Connect the nodes
     wf.connect([
-                (params, stc, [("in_files",                 "in_files"),
-                               ("num_slices",               "num_slices"),
-                               ("ref_slice",                "ref_slice"),
-                               (("slice_order", sum_one),   "slice_order"),
-                               ("time_acquisition",         "time_acquisition"),
-                               ("time_repetition",          "time_repetition"),
-                              ]),
+                #(params, sum_one_each,  [("slice_order",      "slice_order")]),
+                #(params, sum_one,       [("ref_slice",        "num")]),
+                #(params, select,        [("in_files",         "sequence")]),
+                #(select, gunzip,        [("item",             "in_file")]),
+                (params, gunzip,        [(("in_files", get_first),           "in_file")]),
+                (params, stc,           [(("slice_order", _sum_one_to_each), "slice_order"),
+                                         (("ref_slice", _sum_one),           "ref_slice"),
+                                         ("num_slices",                      "num_slices"),
+                                         ("time_acquisition",                "time_acquisition"),
+                                         ("time_repetition",                 "time_repetition"),
+                                        ]),
+                (gunzip, stc,           [("out_file",               "in_files")]),
+                #(sum_one_each, stc,     [("slice_order",            "slice_order")]),
+                #(sum_one, stc,          [("num",                    "ref_slice")]),
               ])
 
     return wf
@@ -307,7 +327,7 @@ def auto_nipy_slicetime(in_files=traits.Undefined,
                         time_repetition=traits.Undefined,
                         slice_order=traits.Undefined,
                         loops=5,
-                        wf_name='auto_spm_slicetime'):
+                        wf_name='auto_nipy_slicetime'):
     """ A workflow that tries to automatically read the slice timing correction parameters
     from the input files and passes them to a nipy.fMRIRealign4D node.
 
@@ -357,9 +377,8 @@ def auto_nipy_slicetime(in_files=traits.Undefined,
         parameters detection.
     """
     # Declare the processing nodes
-    params = setup_node(STCParametersInterface(in_file=in_files), name='stc_params')
-    stc    = setup_node(nipy_fmrirealign4d(in_files=in_files,
-                                           time_repetition=time_repetition,
+    params = setup_node(STCParametersInterface(in_files=in_files), name='stc_params')
+    stc    = setup_node(nipy_fmrirealign4d(time_repetition=time_repetition,
                                            slice_order=slice_order,
                                            loops=loops),
                         name='slice_timer')
@@ -369,7 +388,7 @@ def auto_nipy_slicetime(in_files=traits.Undefined,
 
     # Connect the nodes
     wf.connect([
-                (params, stc, [("in_file",          "in_file"),
+                (params, stc, [("in_files",         "in_files"),
                                ("slice_order",      "slice_order"),
                                ("time_repetition",  "tr"),
                               ]),

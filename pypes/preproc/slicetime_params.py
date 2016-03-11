@@ -408,8 +408,8 @@ class STCParameters(object):
 
 
 class STCParametersInputSpec(BaseInterfaceInputSpec):
-    in_file          = InputMultiPath(traits.File(desc="fMRI image file from where to obtain the slice time correction "
-                                                       "parameters.", exists=True, mandatory=True))
+    in_files         = InputMultiPath(traits.File(desc="fMRI image file(s) from where to obtain the slice time "
+                                                       "correction parameters.", exists=True, mandatory=True))
     num_slices       = traits.Int    (desc="Number of slices (depends on acquisition direction).")
     slice_order      = traits.ListInt(desc="List of integers with the order in which slices are acquired.")
     time_repetition  = traits.Float  (desc="The time repetition (TR) of the input dataset in seconds. "
@@ -433,7 +433,7 @@ class STCParametersInputSpec(BaseInterfaceInputSpec):
 
 
 class STCParametersOutputSpec(TraitedSpec):
-    in_file          = InputMultiPath(traits.File(desc="fMRI image file from where to obtain the slice time correction "
+    in_files         = InputMultiPath(traits.File(desc="fMRI image file from where to obtain the slice time correction "
                                                        "parameters.", exists=True, mandatory=True))
     num_slices       = traits.Int    (desc="Number of slices (depends on acquisition direction).")
     slice_order      = traits.ListInt(desc="List of integers with the order in which slices are acquired.")
@@ -467,7 +467,7 @@ class STCParametersInterface(BaseInterface):
          self._ref_slice,
          self._slice_order,
          self._time_acquisition,
-         self._time_repetition) = self.stc_params.fit(in_files         = self.inputs.in_file,
+         self._time_repetition) = self.stc_params.fit(in_files         = self.inputs.in_files,
                                                       num_slices       = num_slices      ,
                                                       ref_slice        = ref_slice       ,
                                                       slice_order      = slice_order     ,
@@ -479,7 +479,7 @@ class STCParametersInterface(BaseInterface):
 
     def _list_outputs(self):
         outputs = self._outputs().get()
-        outputs['in_file'         ] = self.inputs.in_file
+        outputs['in_files'        ] = self.inputs.in_files
         outputs['num_slices'      ] = self._num_slices
         outputs['ref_slice'       ] = self._ref_slice
         outputs['slice_order'     ] = self._slice_order

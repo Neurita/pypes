@@ -10,7 +10,7 @@ from   nipype.algorithms.misc    import Gunzip
 from   nipype.interfaces.utility import Function, Select, Split, Merge, IdentityInterface
 from nipype.interfaces.nipy.preprocess import Trim
 
-from   ..preproc import spm_apply_deformations, auto_nipy_slicetime
+from   ..preproc import spm_apply_deformations, auto_nipy_slicetime, auto_spm_slicetime
 
 from   .._utils import format_pair_list
 from   ..utils import (setup_node,
@@ -31,8 +31,9 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
 
     Nipype Inputs
     -------------
-    rest_input.in_file: traits.File
+    rest_input.in_files: traits.File
         path to the resting-state image
+
 
 
     Nipype Outputs
@@ -45,12 +46,12 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
     wf: nipype Workflow
     """
     # input identities
-    rest_input = setup_node(IdentityInterface(fields=["in_file"], mandatory_inputs=True), #, "tissues", "anat", "mni_to_anat"],
+    rest_input = setup_node(IdentityInterface(fields=["in_files"], mandatory_inputs=True), #, "tissues", "anat", "mni_to_anat"],
                             name="rest_input")
 
     # rs-fMRI preprocessing nodes
     trim    = setup_node(Trim(), name="trim")
-    stc_wf  = auto_nipy_slicetime()
+    stc_wf  = auto_spm_slicetime()
 
     # output identities
     rest_output = setup_node(IdentityInterface(fields=["out_file"], mandatory_inputs=True),
@@ -62,10 +63,10 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
     # Connect the nodes
     wf.connect([
                 # trim
-                (rest_input,   trim,    [("in_file",     "in_file")]),
+                (rest_input,   trim,    [("in_files",     "in_file")]),
 
                 #slice time correction
-                (trim,        stc_wf,   [("out_file",  "stc_params.in_file")]),
+                (trim,        stc_wf,   [("out_file",  "stc_params.in_files")]),
 
                 #output test
                 (trim, rest_output,     [("out_file",  "out_file")]),
@@ -114,7 +115,7 @@ def attach_rest_preprocessing(main_wf, wf_name="rest_preproc"):
                                                              regexp_subst)
 
     # input and output anat workflow to main workflow connections
-    main_wf.connect([(in_files, rest_wf,  [("rest",                   "rest_input.in_file")]),
+    main_wf.connect([(in_files, rest_wf,  [("rest",                   "rest_input.in_files")]),
 
                      # test output
                      (rest_wf,  datasink, [("rest_output.out_file",   "rest.@trim")],),
