@@ -6,8 +6,7 @@ import os.path as op
 
 import nipype.pipeline.engine as pe
 from   nipype.interfaces.base import traits, isdefined
-from nipype.interfaces.utility import Select, Function
-from nipype.algorithms.misc import Gunzip
+from   nipype.algorithms.misc import Gunzip
 
 from   .slicetime_params import STCParametersInterface
 from   ..utils import remove_ext, setup_node
@@ -97,8 +96,32 @@ def afni_slicetime(in_file=traits.Undefined,
     return tshift
 
 
+def fsl_slicetime(in_file=traits.Undefined,
+                  interleaved=True,):
+    """
+    Wraps command slicetimer
+    use FSL slicetimer to perform slice timing correction.
+    http://www.mit.edu/~satra/nipype-nightly/interfaces/generated/nipype.interfaces.fsl.preprocess.html#slicetimer
+
+    Parameters
+    ----------
+    in_file
+    interleaved
+
+    Returns
+    -------
+    st: nipype Interface
+    """
+    from nipype.interfaces import fsl
+
+    st = fsl.SliceTimer()
+    st.inputs.in_file = in_file
+    st.inputs.interleaved = interleaved
+    return st
+
+
 def spm_slicetime(in_files=traits.Undefined,
-                  out_prefix=traits.Undefined,,
+                  out_prefix=traits.Undefined,
                   num_slices=0,
                   time_repetition=-1,
                   time_acquisition=-1,
@@ -157,7 +180,7 @@ def nipy_fmrirealign4d(in_files=traits.Undefined,
                        loops=5,
                        ):
     """ Return a nipype interface to the nipy.FmriRealign4d
-
+    Simultaneous motion and slice timing correction algorithm.
     Parameters
     ----------
     in_files: str or list of str
@@ -270,54 +293,32 @@ def auto_spm_slicetime(in_file=traits.Undefined,
     def _sum_one(num):
         return num + 1
 
-    def get_first(sequence):
+    def _pick_first(sequence):
         return sequence[0]
-
-    # # define interfaces
-    # get_first_iface = Function(input_names=["sequence"],
-    #                            output_names=["item"],
-    #                            function=get_first)
-    #
-    # sum_one_each_iface = Function(input_names=["slice_order"],
-    #                              output_names=["slice_order"],
-    #                              function=_sum_one_to_each)
-    #
-    # sum_one_iface = Function(input_names=["num"],
-    #                          output_names=["num"],
-    #                          function=_sum_one)
 
     # Declare the processing nodes
     params = setup_node(STCParametersInterface(in_files=in_file), name='stc_params')
-    #select = setup_node(get_first_iface, name="get_first")
     gunzip = setup_node(Gunzip(), name="gunzip")
-    stc    = setup_node(spm_slicetime(out_prefix=out_prefix,
-                                      num_slices=num_slices,
-                                      time_repetition=time_repetition,
-                                      time_acquisition=time_acquisition,
-                                      ref_slice=ref_slice,
-                                      slice_order=slice_order), name='slice_timer')
-    #sum_one_each = setup_node(sum_one_each_iface, name='sum_one_each')
-    #sum_one      = setup_node(sum_one_iface,      name='sum_one')
+    stc    = setup_node(spm_slicetime(out_prefix       = out_prefix,
+                                      num_slices       = num_slices,
+                                      time_repetition  = time_repetition,
+                                      time_acquisition = time_acquisition,
+                                      ref_slice        = ref_slice,
+                                      slice_order      = slice_order), name='slice_timer')
 
     # Create the workflow object
     wf = pe.Workflow(name=wf_name)
 
     # Connect the nodes
     wf.connect([
-                #(params, sum_one_each,  [("slice_order",      "slice_order")]),
-                #(params, sum_one,       [("ref_slice",        "num")]),
-                #(params, select,        [("in_files",         "sequence")]),
-                #(select, gunzip,        [("item",             "in_file")]),
-                (params, gunzip,        [(("in_files", get_first),           "in_file")]),
+                (params, gunzip,        [(("in_files",    _pick_first),      "in_file")]),
                 (params, stc,           [(("slice_order", _sum_one_to_each), "slice_order"),
-                                         (("ref_slice", _sum_one),           "ref_slice"),
+                                         (("ref_slice",   _sum_one),         "ref_slice"),
                                          ("num_slices",                      "num_slices"),
                                          ("time_acquisition",                "time_acquisition"),
                                          ("time_repetition",                 "time_repetition"),
                                         ]),
-                (gunzip, stc,           [("out_file",               "in_files")]),
-                #(sum_one_each, stc,     [("slice_order",            "slice_order")]),
-                #(sum_one, stc,          [("num",                    "ref_slice")]),
+                (gunzip, stc,           [("out_file",                        "in_files")]),
               ])
 
     return wf

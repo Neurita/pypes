@@ -16,3 +16,7 @@ from .registration import (spm_apply_deformations,
 from .petpvc import PETPVC
 
 from .pet_utils import petpvc_cmd, petpvc_mask, intensity_norm
+
+from .realign import nipy_motion_correction
+
+from .noise import extract_noise_components

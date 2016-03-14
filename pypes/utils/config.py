@@ -198,13 +198,13 @@ def get_config_setting(param_name):
     return PYPES_CFG[param_name]
 
 
-def setup_node(node_element, name, settings=None, **kwargs):
-    """ Create a pe.Node from `node_element` with a given name.
+def setup_node(interface, name, settings=None, **kwargs):
+    """ Create a pe.Node from `interface` with a given name.
     Check in the global configuration if there is any value for the node name and will set it.
 
     Parameters
     ----------
-    node_element: nipype.interface
+    interface: nipype.interface
 
     name: str
 
@@ -219,7 +219,7 @@ def setup_node(node_element, name, settings=None, **kwargs):
     -------
     node: nipype.Node
     """
-    node = Node(node_element, name=name, **kwargs)
+    node = Node(interface=interface, name=name, **kwargs)
 
     params = _get_params_for(name)
     if settings is not None:

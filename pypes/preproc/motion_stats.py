@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 """
 Motion statistics calculation helper functions
+This file is copied from C-PAC:
+https://github.com/FCP-INDI/C-PAC
+
+TODO: refactor this.
 """
 import nipype.pipeline.engine as pe
 import nipype.interfaces.utility as util

@@ -6,11 +6,17 @@ import os.path as op
 
 import nipype.interfaces.spm     as spm
 import nipype.pipeline.engine    as pe
-from   nipype.algorithms.misc    import Gunzip
+from   nipype.algorithms.misc    import Gunzip, TSNR
 from   nipype.interfaces.utility import Function, Select, Split, Merge, IdentityInterface
-from nipype.interfaces.nipy.preprocess import Trim
+from   nipype.interfaces.nipy.preprocess import Trim
+from   nipype.interfaces import fsl
 
-from   ..preproc import spm_apply_deformations, auto_nipy_slicetime, auto_spm_slicetime
+from   ..preproc import (spm_apply_deformations,
+                         auto_nipy_slicetime,
+                         auto_spm_slicetime,
+                         nipy_motion_correction,
+                         extract_noise_components,
+                         )
 
 from   .._utils import format_pair_list
 from   ..utils import (setup_node,
@@ -34,46 +40,136 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
     rest_input.in_files: traits.File
         path to the resting-state image
 
-
-
     Nipype Outputs
     --------------
     rest_output.out_file: traits.File
 
+    rest_output.motion_corrected: traits.File
+        The motion corrected file.
+
+    rest_output.motion_params: traits.File
+        The affine transformation file.
 
     Returns
     -------
     wf: nipype Workflow
     """
+    # Create the workflow object
+    wf = pe.Workflow(name=wf_name)
+
     # input identities
-    rest_input = setup_node(IdentityInterface(fields=["in_files"], mandatory_inputs=True), #, "tissues", "anat", "mni_to_anat"],
+    rest_input = setup_node(IdentityInterface(fields=["in_files",
+                                                      "num_noise_components",
+                                                      "highpass_sigma",
+                                                      "lowpass_sigma",
+                                                      ], mandatory_inputs=True),
                             name="rest_input")
 
     # rs-fMRI preprocessing nodes
-    trim    = setup_node(Trim(), name="trim")
+    trim    = setup_node(Trim(),
+                         name="trim")
     stc_wf  = auto_spm_slicetime()
+    realign = nipy_motion_correction()
+
+
 
     # output identities
-    rest_output = setup_node(IdentityInterface(fields=["out_file"], mandatory_inputs=True),
+    rest_output = setup_node(IdentityInterface(fields=["out_file",
+                                                       "motion_corrected",
+                                                       "motion_params",
+                                                       ],
+                                               mandatory_inputs=True),
                              name="rest_output")
 
-    # Create the workflow object
-    wf = pe.Workflow(name=wf_name)
 
     # Connect the nodes
     wf.connect([
                 # trim
-                (rest_input,   trim,    [("in_files",     "in_file")]),
+                (rest_input,   trim,    [("in_files",  "in_file")]),
 
                 #slice time correction
                 (trim,        stc_wf,   [("out_file",  "stc_params.in_files")]),
 
-                #output test
-                (trim, rest_output,     [("out_file",  "out_file")]),
+                # motion correction
+                (stc_wf,      realign,  [("timecorrected_files", "in_file")]),
 
+                # motion statistics
+
+                # nuisance correction
+
+                # median angle?
+
+                # temporal filtering
+
+                # registration
+
+                #output test
+                (trim,   rest_output,  [("out_file",  "out_file")]),
+                (stc_wf, rest_output,  [("out_file",  "motion_corrected")]),
+                (stc_wf, rest_output,  [("par_file",  "motions_params")]),
                 # output
               ])
     return wf
+
+
+def trash():
+    inputnode = pe.Node(interface=util.IdentityInterface(fields=['func',
+                                                                 'num_noise_components',
+                                                                 'highpass_sigma',
+                                                                 'lowpass_sigma'
+                                                                 ]),
+                        name='inputspec')
+
+    outputnode = pe.Node(interface=util.IdentityInterface(fields=[
+        'noise_mask_file',
+        'filtered_file',
+    ]),
+        name='outputspec')
+    slicetimer = pe.Node(fsl.SliceTimer(), name='slicetimer')
+    realigner = create_realign_flow()
+    tsnr = pe.Node(TSNR(regress_poly=2), name='tsnr')
+    getthresh = pe.Node(interface=fsl.ImageStats(op_string='-p 98'),
+                        name='getthreshold')
+    threshold_stddev = pe.Node(fsl.Threshold(), name='threshold')
+    compcor = pe.Node(util.Function(input_names=['realigned_file',
+                                                 'noise_mask_file',
+                                                 'num_components'],
+                                    output_names=['noise_components'],
+                                    function=extract_noise_components),
+                      name='compcorr')
+    remove_noise = pe.Node(fsl.FilterRegressor(filter_all=True),
+                           name='remove_noise')
+    bandpass_filter = pe.Node(fsl.TemporalFilter(),
+                              name='bandpass_filter')
+
+    # Define connections
+    restpreproc.connect(inputnode, 'func', slicetimer, 'in_file')
+    restpreproc.connect(slicetimer, 'slice_time_corrected_file',
+                        realigner, 'inputspec.func')
+    restpreproc.connect(realigner, 'outputspec.realigned_file', tsnr, 'in_file')
+    restpreproc.connect(tsnr, 'stddev_file', threshold_stddev, 'in_file')
+    restpreproc.connect(tsnr, 'stddev_file', getthresh, 'in_file')
+    restpreproc.connect(getthresh, 'out_stat', threshold_stddev, 'thresh')
+    restpreproc.connect(realigner, 'outputspec.realigned_file',
+                        compcor, 'realigned_file')
+    restpreproc.connect(threshold_stddev, 'out_file',
+                        compcor, 'noise_mask_file')
+    restpreproc.connect(inputnode, 'num_noise_components',
+                        compcor, 'num_components')
+    restpreproc.connect(tsnr, 'detrended_file',
+                        remove_noise, 'in_file')
+    restpreproc.connect(compcor, 'noise_components',
+                        remove_noise, 'design_file')
+    restpreproc.connect(inputnode, 'highpass_sigma',
+                        bandpass_filter, 'highpass_sigma')
+    restpreproc.connect(inputnode, 'lowpass_sigma',
+                        bandpass_filter, 'lowpass_sigma')
+    restpreproc.connect(remove_noise, 'out_file', bandpass_filter, 'in_file')
+    restpreproc.connect(threshold_stddev, 'out_file',
+                        outputnode, 'noise_mask_file')
+    restpreproc.connect(bandpass_filter, 'out_file',
+                        outputnode, 'filtered_file')
+    return restpreproc
 
 
 def attach_rest_preprocessing(main_wf, wf_name="rest_preproc"):
