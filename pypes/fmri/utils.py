@@ -7,7 +7,7 @@ from nipype.utils.filemanip import filename_to_list
 from nipype.interfaces.nipy.preprocess import Trim
 from nipype.interfaces.c3 import C3dAffineTool
 
-from dicom import read_file
+from pydicom import read_file
 
 
 def get_info(dicom_files):

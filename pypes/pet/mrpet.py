@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-PET image preprocessing nipype workflows.
+PET-MR image preprocessing nipype workflows.
 """
 import os.path as op
 
@@ -8,20 +8,20 @@ import nipype.pipeline.engine    as pe
 from   nipype.algorithms.misc    import Gunzip
 from   nipype.interfaces.utility import Select, Merge, IdentityInterface
 
-from   .preproc import (spm_apply_deformations,
-                        spm_coregister,
-                        petpvc_cmd,
-                        petpvc_mask,
-                        intensity_norm)
+from   ..preproc import (spm_apply_deformations,
+                         spm_coregister,
+                         petpvc_cmd,
+                         petpvc_mask,
+                         intensity_norm)
 
-from   .utils   import (setup_node,
-                        get_datasink,
-                        extend_trait_list,
-                        get_input_node,
-                        remove_ext,
-                        get_input_file_name)
+from   ..utils import (setup_node,
+                       get_datasink,
+                       extend_trait_list,
+                       get_input_node,
+                       remove_ext,
+                       get_input_file_name)
 
-from   ._utils  import (flatten_list,
+from   .._utils import (flatten_list,
                         format_pair_list)
 
 
@@ -31,6 +31,7 @@ def spm_mrpet_preprocessing(wf_name="spm_mrpet_preproc"):
     will run it too.
 
     It does:
+    - PVC the PET image
     - SPM12 Coregister PET to T1
     - SPM12 Warp PET to MNI
 
@@ -246,12 +247,12 @@ def attach_spm_mrpet_preprocessing(main_wf, wf_name="spm_mrpet_preproc"):
                                    ]),
 
                 (pet_wf, datasink, [
-                                    ("pet_output.out_file",     "pet.@pvc"),
-                                    ("pet_output.coreg_others", "pet.others"),
-                                    ("pet_output.coreg_pet",    "pet.@anat"),
-                                    ("pet_output.brain_mask",   "pet.@brain_mask"),
-                                    ("pet_output.gm_norm",      "pet.@norm"),
-                                    ("pet_output.mni_pet",      "pet.warped2mni"),
+                                    ("pet_output.out_file",     "mrpet.@pvc"),
+                                    ("pet_output.coreg_others", "mrpet.others"),
+                                    ("pet_output.coreg_pet",    "mrpet.@anat"),
+                                    ("pet_output.brain_mask",   "mrpet.@brain_mask"),
+                                    ("pet_output.gm_norm",      "mrpet.@norm"),
+                                    ("pet_output.mni_pet",      "mrpet.warped2mni"),
                                    ]),
               ])
 

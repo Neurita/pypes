@@ -9,12 +9,16 @@ import nipype.pipeline.engine    as pe
 from   nipype.algorithms.misc    import Gunzip
 from   nipype.interfaces.ants    import N4BiasFieldCorrection
 from   nipype.interfaces.base    import traits
-from   nipype.interfaces.utility import IdentityInterface
+from   nipype.interfaces.utility import IdentityInterface, Function
+from   nipype.interfaces.io      import add_traits
 
-from   .preproc     import spm_apply_deformations
+from   .preproc import (spm_apply_deformations,
+                        get_bounding_box,
+                        )
 from   ._utils      import format_pair_list
 from   .utils       import (setup_node,
                             remove_ext,
+                            check_atlas_file,
                             spm_tpm_priors_path,
                             extend_trait_list,
                             get_input_node,
@@ -94,6 +98,9 @@ def spm_anat_preprocessing(wf_name="spm_anat_preproc"):
     - SPM12 New Segment
     - SPM12 Warp of MPRAGE to MNI
 
+    [Optional: from config]
+
+
     Nipype Inputs
     -------------
     anat_input.in_file: traits.File
@@ -147,6 +154,13 @@ def spm_anat_preprocessing(wf_name="spm_anat_preproc"):
                                                       ]),
                                                name="anat_output")
 
+    # atlas registration
+    do_atlas, atlas_file = check_atlas_file()
+    if do_atlas:
+        add_traits(anat_input.inputs,  "atlas_file")
+        add_traits(anat_output.inputs, "atlas_warped")
+        anat_input.inputs.set(atlas_file=atlas_file)
+
     # Create the workflow object
     wf = pe.Workflow(name=wf_name)
 
@@ -159,8 +173,8 @@ def spm_anat_preprocessing(wf_name="spm_anat_preproc"):
                 (gunzip_anat,  segment,     [("out_file",     "channel_files")]),
 
                 # Normalize12
-                (segment, warp_anat, [("forward_deformation_field", "deformation_file")]),
-                (segment, warp_anat, [("bias_corrected_images",     "apply_to_files")]),
+                (segment,   warp_anat,  [("forward_deformation_field", "deformation_file")]),
+                (segment,   warp_anat,  [("bias_corrected_images",     "apply_to_files")]),
 
                 # output
                 (warp_anat, anat_output, [("normalized_files",           "anat_mni")]),
@@ -171,6 +185,24 @@ def spm_anat_preprocessing(wf_name="spm_anat_preproc"):
                                           ("inverse_deformation_field",  "warp_inverse"),
                                           ("bias_corrected_images",      "anat_biascorr")]),
               ])
+
+    # atlas warping nodes
+    if do_atlas:
+        gunzip_atlas = setup_node(Gunzip(),                 name="gunzip_atlas")
+        warp_atlas   = setup_node(spm_apply_deformations(), name="warp_atlas")
+        anat_bbox    = setup_node(Function(function=get_bounding_box,
+                                           input_names=["in_file"],
+                                           output_names=["bbox"]),
+                                  name="anat_bbox")
+
+        # connect the atlas registration nodes
+        wf.connect([
+                    (anat_input,    gunzip_atlas, [("atlas_file",                 "in_file")]),
+                    (gunzip_atlas,  warp_atlas,   [("out_file",                   "apply_to_files")]),
+                    (segment,       warp_atlas,   [("inverse_deformation_field",  "deformation_file")]),
+                    (anat_bbox,     warp_atlas,   [("bbox",                       "write_bounding_box")]),
+                    (warp_atlas,    anat_output,  [("normalized_files",           "atlas_warped")]),
+                  ])
     return wf
 
 
@@ -188,7 +220,7 @@ def attach_spm_anat_preprocessing(main_wf, wf_name="spm_anat_preproc"):
     ---------------------------
     Note: The `main_wf` workflow is expected to have an `input_files` and a `datasink` nodes.
 
-    input_files.select.anat: input node
+    input_files.anat: input node
 
     datasink: nipype Node
 
@@ -200,7 +232,7 @@ def attach_spm_anat_preprocessing(main_wf, wf_name="spm_anat_preproc"):
     datasink = get_datasink  (main_wf)
 
     # The workflow box
-    t1_wf = spm_anat_preprocessing(wf_name=wf_name)
+    anat_wf = spm_anat_preprocessing(wf_name=wf_name)
 
     # The base name of the 'anat' file for the substitutions
     anat_fbasename = remove_ext(op.basename(get_input_file_name(in_files, 'anat')))
@@ -227,9 +259,9 @@ def attach_spm_anat_preprocessing(main_wf, wf_name="spm_anat_preproc"):
                                                              regexp_subst)
 
     # input and output anat workflow to main workflow connections
-    main_wf.connect([(in_files, t1_wf,    [("anat",                         "anat_input.in_file")]),
-                     (t1_wf,    datasink, [("anat_output.anat_mni",         "anat.@mni")],),
-                     (t1_wf,    datasink, [("anat_output.tissues_warped",   "anat.tissues.@warped"),
+    main_wf.connect([(in_files, anat_wf,  [("anat",                         "anat_input.in_file")]),
+                     (anat_wf,  datasink, [("anat_output.anat_mni",         "anat.@mni")],),
+                     (anat_wf,  datasink, [("anat_output.tissues_warped",   "anat.tissues.@warped"),
                                            ("anat_output.tissues_native",   "anat.tissues.@native"),
                                            ("anat_output.affine_transform", "anat.transform.@linear"),
                                            ("anat_output.warp_forward",     "anat.transform.@forward"),
@@ -237,5 +269,9 @@ def attach_spm_anat_preprocessing(main_wf, wf_name="spm_anat_preproc"):
                                            ("anat_output.anat_biascorr",    "anat.@biascor"),
                                           ]),
                     ])
+
+    # check optional outputs
+    if hasattr(anat_wf.inputs, 'atlas_warped'):
+            main_wf.connect([(anat_wf, datasink, [("atlas_warped", "anat.@atlas_warped")]),])
 
     return main_wf

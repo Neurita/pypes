@@ -11,6 +11,8 @@ from .._utils import format_pair_list
 from ..utils  import (spm_tpm_priors_path,
                       extend_trait_list,
                       find_wf_node,
+                      get_datasink,
+                      get_input_node,
                       remove_ext,
                       get_input_file_name)
 
@@ -44,7 +46,7 @@ def dcm2nii_converter(source_names=traits.Undefined):
     return dcm2nii
 
 
-def attach_dcm2nii(main_wf, wf_name="dcm2nii_convert", params=None):
+def attach_dcm2nii(main_wf, wf_name="dcm2nii_convert"):
     """ Attach the SPM12 anatomical MRI pre-processing workflow to the `main_wf`.
 
     Parameters
@@ -66,8 +68,8 @@ def attach_dcm2nii(main_wf, wf_name="dcm2nii_convert", params=None):
     -------
     main_wf: nipype Workflow
     """
-    in_files = find_wf_node(main_wf, SelectFiles)
-    datasink = find_wf_node(main_wf, DataSink)
+    in_files = get_input_node(main_wf)
+    datasink = get_datasink  (main_wf)
 
     # The base name of the 'dicom' file sources for the substitutions
     anat_fbasename = remove_ext(op.basename(get_input_file_name(in_files, 'anat')))

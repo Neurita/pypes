@@ -2,11 +2,16 @@
 # TUM Clinical pypes configuration parameters
 # ----------------------------------------------------------------------
 
+# global configuration parameters
+register_atlas: True
+atlas_file: '' # this is being set from config.py
+
+
 # ANAT
 
 
 # DTI
-dti_input.atlas_file: '' # this is being set from config.py
+
 
 
 # REST

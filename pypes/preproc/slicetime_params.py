@@ -164,11 +164,11 @@ def _get_slice_order(in_file, n_slices, slice_mode):
         -------
         slice_order: list of int
         """
-        mode_int = { 0: 'unknown' ,
-                     1: 'seq_inc' ,
-                     2: 'seq_dec' ,
-                     3: 'alt_inc' ,
-                     4: 'alt_dec' ,
+        mode_int = { 0: 'unknown',
+                     1: 'seq_inc',
+                     2: 'seq_dec',
+                     3: 'alt_inc',
+                     4: 'alt_dec',
                      5: 'alt_inc2',
                      6: 'alt_dec2',}
 

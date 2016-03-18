@@ -13,7 +13,6 @@ from   ..preproc import (spm_apply_deformations,
                          auto_nipy_slicetime,
                          auto_spm_slicetime,
                          nipy_motion_correction,
-                         extract_noise_components,
                          )
 
 from   .._utils import format_pair_list
@@ -58,6 +57,27 @@ def extract_noise_components(realigned_file, noise_mask_file, num_components):
 
 
 def noise_removal():
+    """ Create a noise removal node.
+
+    Nipype Inputs
+    -------------
+
+
+    Nipype Outputs
+    --------------
+
+
+    Returns
+    -------
+    rmnoise_node: nipype.Node
+
+    """
+    rmnoise_input = setup_node(IdentityInterface(
+                               fields=["trimmed_rest",],
+                               mandatory_inputs=True),
+                               name="rmnoise_input")
+
+
     tsnr      = setup_node(TSNR(regress_poly=2),
                            name='tsnr')
     getthresh = setup_node(interface=fsl.ImageStats(op_string='-p 98'),
@@ -72,5 +92,3 @@ def noise_removal():
                       name='compcorr')
     rm_noise = pe.Node(fsl.FilterRegressor(filter_all=True),
                        name='remove_noise')
-    bandpass_filter = pe.Node(fsl.TemporalFilter(),
-                              name='bandpass_filter')

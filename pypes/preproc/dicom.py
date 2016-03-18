@@ -6,6 +6,7 @@
  reading DICOM files, specially from Siemens acquisitions
 """
 
+
 def dcm_ascii_hdr(dcm_file):
     """ Return the CSA ASCII header from a Siemens DICOM file.
 

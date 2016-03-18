@@ -10,7 +10,9 @@ from   nipype.interfaces.base import traits
 from pypes.utils import spm_tpm_priors_path
 
 
-def spm_apply_deformations(in_imgs=traits.Undefined, trans_field=traits.Undefined):
+def spm_apply_deformations(in_imgs=traits.Undefined,
+                           trans_field=traits.Undefined,
+                           bbox=traits.Undefined):
     """Return a Normalize12 interface object.
     SPM12's new Normalise routine for warping an image to a template.
     For more info:
@@ -20,9 +22,18 @@ def spm_apply_deformations(in_imgs=traits.Undefined, trans_field=traits.Undefine
     ----------
     in_imgs: iterable of str
 
-    trans_field:
+    trans_field: file
         file y_*.nii containing 3 deformation fields for the deformation in
         x, y and z dimension
+
+    bbox: (a list of from 2 to 2 items which are a list of
+           from 3 to 3 items which are a float)
+        write_bounding_box option.
+        3x2-element list of lists representing the bounding box (in mm) to
+        be written
+        See the preproc.get_bounding_box function.
+        This is important to set when applying deformation fields
+        to cropped images.
 
     Nipype Ouputs
     -------------
@@ -38,9 +49,11 @@ def spm_apply_deformations(in_imgs=traits.Undefined, trans_field=traits.Undefine
 
     """
     norm12 = spm.Normalize12(jobtype='write')
-    norm12.inputs.deformation_file  = trans_field
-    norm12.inputs.image_to_align    = in_imgs
-    norm12.inputs.write_voxel_sizes = [1, 1, 1]
+
+    norm12.inputs.deformation_file   = trans_field
+    norm12.inputs.image_to_align     = in_imgs
+    norm12.inputs.write_voxel_sizes  = [1, 1, 1]
+    norm12.inputs.write_bounding_box = bbox
 
     #norm12.run()
     return norm12
@@ -126,6 +139,7 @@ def spm_coregister(src_img=traits.Undefined, tgt_img=traits.Undefined, cost_func
 
     coreg.inputs.source = src_img
     coreg.inputs.target = tgt_img
+    coreg.inputs.write_interp = 0
 
     coreg.inputs.cost_function = cost_function
     coreg.inputs.jobtype = 'estwrite'
