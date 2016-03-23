@@ -5,6 +5,7 @@ from .config import (get_config_setting,
                      check_mandatory_inputs,
                      node_settings,
                      setup_node,
+                     _get_params_for,
                      check_atlas_file,
                      update_config)
 from .environ import  spm_tpm_priors_path
@@ -13,6 +14,7 @@ from .files   import  (remove_ext,
                        get_affine,
                        get_data_dims,
                        get_vox_dims,
+                       extension_duplicates,
                        )
 from .piping  import  (extend_trait_list,
                        fsl_merge,

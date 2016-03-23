@@ -123,3 +123,28 @@ def remove_ext(filepath):
         File path or name without extension
     """
     return filepath[:filepath.rindex(get_extension(filepath))]
+
+
+def extension_duplicates(regexp_pair_list):
+    """ Return a new list with the pair items of `regexp_pair_list`
+    have all the '.nii' replaced by '.nii.gz'.
+    This is useful for the Datasink regexp_substitutions when
+    you don't know/care what extension the output image will have,
+    then you put all of them like:
+    "(r"/rc1[\w]+_corrected\.nii$",  "/coreg_gm.nii")"
+
+    and then call this function to add the duplicates with modified
+    extension of these same pairs.
+
+    Parameters
+    ----------
+    regexp_pair_list: list of 2-tuple of str
+
+    Returns
+    -------
+    mod_regexp_pair_list: list of 2-tuple of str
+    """
+    replace_ext = lambda x: x.replace('.nii', '.nii.gz')
+    dups = [(replace_ext(pair[0]), replace_ext(pair[1]))
+            for pair in regexp_pair_list]
+    return dups

@@ -131,7 +131,7 @@ class Config(object):
         return self._cpt.configuration_data.items()
 
     def get(self, item, default=None):
-        return self._cpt.configuration_data.get(item, default=default)
+        return self._cpt.configuration_data.get(item, default)
 
     def __getitem__(self, item):
         if item not in self._cpt.configuration_data:
@@ -142,7 +142,7 @@ class Config(object):
         return self._cpt.upsert(key, value)
 
     def __repr__(self):
-        return '<config.Config> ({})'.format(list(self.items()))
+        return '<config.Config> ({})'.format('\n'.join([str(i) for i in self.items()]))
 
 
 # the global configuration registry

@@ -23,7 +23,8 @@ from   .utils       import (setup_node,
                             extend_trait_list,
                             get_input_node,
                             get_datasink,
-                            get_input_file_name)
+                            get_input_file_name,
+                            extension_duplicates)
 
 
 def biasfield_correct(anat_filepath=traits.Undefined):
@@ -254,9 +255,24 @@ def attach_spm_anat_preprocessing(main_wf, wf_name="spm_anat_preproc"):
                      (r"/c4{anat}.*nii$",               "/{anat}_nobrain.nii"),
                      (r"/c5{anat}.*nii$",               "/{anat}_nobrain_mask.nii"),
                    ]
-    regexp_subst = format_pair_list(regexp_subst, anat=anat_fbasename)
+    regexp_subst  = format_pair_list(regexp_subst, anat=anat_fbasename)
+    regexp_subst += extension_duplicates(regexp_subst)
     datasink.inputs.regexp_substitutions = extend_trait_list(datasink.inputs.regexp_substitutions,
                                                              regexp_subst)
+
+    # prepare substitution for atlas_file, if any
+    do_atlas, atlas_file = check_atlas_file()
+    if do_atlas:
+        atlas_basename = remove_ext(op.basename(atlas_file))
+
+        regexp_subst = [
+                         (r"/rw{atlas}\.nii$", "/{atlas}_anat_space.nii"),
+                       ]
+        regexp_subst = format_pair_list(regexp_subst, atlas=atlas_basename)
+        regexp_subst += extension_duplicates(regexp_subst)
+        datasink.inputs.regexp_substitutions = extend_trait_list(datasink.inputs.regexp_substitutions,
+                                                                 regexp_subst)
+
 
     # input and output anat workflow to main workflow connections
     main_wf.connect([(in_files, anat_wf,  [("anat",                         "anat_input.in_file")]),

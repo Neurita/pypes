@@ -6,6 +6,7 @@ import os.path as op
 
 import nipype.pipeline.engine as pe
 from   nipype.interfaces.base import traits, isdefined
+from   nipype.interfaces.utility import IdentityInterface
 from   nipype.algorithms.misc import Gunzip
 
 from   .slicetime_params import STCParametersInterface
@@ -261,24 +262,26 @@ def auto_spm_slicetime(in_file=traits.Undefined,
     Nipype Inputs
     -------------
     ## Mandatory:
-    params.in_files:
+    stc_input.in_files:
 
     ## Optional:
-    params.num_slices
+    stc_input.num_slices
 
-    params.slice_order
+    stc_input.slice_order
 
-    params.time_repetition
+    stc_input.time_repetition
 
-    params.time_acquisition
+    stc_input.time_acquisition
 
-    params.ref_slice
+    stc_input.ref_slice
 
-    params.slice_mode
+    stc_input.slice_mode
 
     Nipype Outputs
     --------------
-    slice_timer.timecorrected_files
+    stc_output.timecorrected_files
+
+    stc_output.time_repetition
 
     Returns
     -------
@@ -296,6 +299,22 @@ def auto_spm_slicetime(in_file=traits.Undefined,
     def _pick_first(sequence):
         return sequence[0]
 
+    # the input and output nodes
+    stc_input = setup_node(IdentityInterface(fields=["in_file",
+                                                     "num_slices",
+                                                     "slice_order",
+                                                     "time_repetition",
+                                                     "time_acquisition",
+                                                     "ref_slice",
+                                                     "slice_mode",
+                                                    ]),
+                                             name="stc_input")
+
+    stc_output = setup_node(IdentityInterface(fields=["timecorrected_files",
+                                                      "time_repetition",
+                                                     ]),
+                                               name="stc_output")
+
     # Declare the processing nodes
     params = setup_node(STCParametersInterface(in_files=in_file), name='stc_params')
     gunzip = setup_node(Gunzip(), name="gunzip")
@@ -311,14 +330,29 @@ def auto_spm_slicetime(in_file=traits.Undefined,
 
     # Connect the nodes
     wf.connect([
-                (params, gunzip,        [(("in_files",    _pick_first),      "in_file")]),
-                (params, stc,           [(("slice_order", _sum_one_to_each), "slice_order"),
-                                         (("ref_slice",   _sum_one),         "ref_slice"),
-                                         ("num_slices",                      "num_slices"),
-                                         ("time_acquisition",                "time_acquisition"),
-                                         ("time_repetition",                 "time_repetition"),
-                                        ]),
-                (gunzip, stc,           [("out_file",                        "in_files")]),
+                # input node
+                (stc_input, params, [("in_file",          "in_files"),
+                                     ("num_slices",       "num_slices"),
+                                     ("slice_order",      "slice_order"),
+                                     ("time_repetition",  "time_repetition"),
+                                     ("time_acquisition", "time_acquisition"),
+                                     ("ref_slice",        "ref_slice"),
+                                     ("slice_mode",       "slice_mode"),
+                                    ]),
+
+                # processing nodes
+                (params, gunzip,    [(("in_files",    _pick_first),      "in_file")]),
+                (params, stc,       [(("slice_order", _sum_one_to_each), "slice_order"),
+                                     (("ref_slice",   _sum_one),         "ref_slice"),
+                                     ("num_slices",                      "num_slices"),
+                                     ("time_acquisition",                "time_acquisition"),
+                                     ("time_repetition",                 "time_repetition"),
+                                    ]),
+                (gunzip, stc,       [("out_file",                        "in_files")]),
+
+                # output node
+                (params, stc_output,[("time_repetition",     "time_repetition")]),
+                (stc,    stc_output,[("timecorrected_files", "timecorrected_files")]),
               ])
 
     return wf
