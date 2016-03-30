@@ -10,6 +10,7 @@ from .config import (get_config_setting,
                      update_config)
 from .environ import  spm_tpm_priors_path
 from .files   import  (remove_ext,
+                       rename,
                        get_extension,
                        get_affine,
                        get_data_dims,
@@ -17,6 +18,7 @@ from .files   import  (remove_ext,
                        extension_duplicates,
                        )
 from .piping  import  (extend_trait_list,
+                       selectindex,
                        fsl_merge,
                        joinstrings,
                        find_wf_node,

@@ -10,7 +10,6 @@ from   nipype.algorithms.misc    import Gunzip
 from   nipype.interfaces.ants    import N4BiasFieldCorrection
 from   nipype.interfaces.base    import traits
 from   nipype.interfaces.utility import IdentityInterface, Function
-from   nipype.interfaces.io      import add_traits
 
 from   .preproc import (spm_apply_deformations,
                         get_bounding_box,
@@ -135,7 +134,7 @@ def spm_anat_preprocessing(wf_name="spm_anat_preproc"):
     wf: nipype Workflow
     """
     # input node
-    anat_input = setup_node(IdentityInterface(fields=["in_file"]),
+    anat_input = setup_node(IdentityInterface(fields=["in_file", "atlas_file"]),
                                               name="anat_input")
 
     # T1 preprocessing nodes
@@ -146,6 +145,7 @@ def spm_anat_preprocessing(wf_name="spm_anat_preproc"):
 
     # output node
     anat_output = setup_node(IdentityInterface(fields=["anat_mni",
+                                                       "atlas_warped",
                                                        "tissues_warped",
                                                        "tissues_native",
                                                        "affine_transform",
@@ -158,8 +158,6 @@ def spm_anat_preprocessing(wf_name="spm_anat_preproc"):
     # atlas registration
     do_atlas, atlas_file = check_atlas_file()
     if do_atlas:
-        add_traits(anat_input.inputs,  "atlas_file")
-        add_traits(anat_output.inputs, "atlas_warped")
         anat_input.inputs.set(atlas_file=atlas_file)
 
     # Create the workflow object
@@ -170,7 +168,7 @@ def spm_anat_preprocessing(wf_name="spm_anat_preproc"):
                 # input
                 (anat_input,   biascor    , [("in_file",      "input_image")]),
                 # new segment
-                (biascor,      gunzip_anat, [("output_image", "in_file"      )]),
+                (biascor,      gunzip_anat, [("output_image", "in_file")]),
                 (gunzip_anat,  segment,     [("out_file",     "channel_files")]),
 
                 # Normalize12
@@ -196,9 +194,13 @@ def spm_anat_preprocessing(wf_name="spm_anat_preproc"):
                                            output_names=["bbox"]),
                                   name="anat_bbox")
 
+        # set the warping interpolation to nearest neighbour.
+        warp_atlas.inputs.write_interp = 0
+
         # connect the atlas registration nodes
         wf.connect([
                     (anat_input,    gunzip_atlas, [("atlas_file",                 "in_file")]),
+                    (anat_input,    anat_bbox,    [("in_file",                    "in_file")]),
                     (gunzip_atlas,  warp_atlas,   [("out_file",                   "apply_to_files")]),
                     (segment,       warp_atlas,   [("inverse_deformation_field",  "deformation_file")]),
                     (anat_bbox,     warp_atlas,   [("bbox",                       "write_bounding_box")]),
@@ -240,41 +242,36 @@ def attach_spm_anat_preprocessing(main_wf, wf_name="spm_anat_preproc"):
 
     # dataSink output substitutions
     regexp_subst = [
-                     (r"/{anat}_.*corrected_seg8.mat$", "/{anat}_to_mni_affine.mat"),
-                     (r"/m{anat}.*_corrected.nii$",     "/{anat}_biascorrected.nii"),
-                     (r"/wm{anat}.*_corrected.nii$",    "/{anat}_mni.nii"),
-                     (r"/y_{anat}.*nii$",               "/{anat}_to_mni_field.nii"),
-                     (r"/iy_{anat}.*nii$",              "/{anat}_to_mni_inv_field.nii"),
-                     (r"/mwc1{anat}.*nii$",             "/{anat}_gm_mod_mni.nii"),
-                     (r"/mwc2{anat}.*nii$",             "/{anat}_wm_mod_mni.nii"),
-                     (r"/mwc3{anat}.*nii$",             "/{anat}_csf_mod_mni.nii"),
-                     (r"/mwc4{anat}.*nii$",             "/{anat}_nobrain_mod_mni.nii"),
-                     (r"/c1{anat}.*nii$",               "/{anat}_gm.nii"),
-                     (r"/c2{anat}.*nii$",               "/{anat}_wm.nii"),
-                     (r"/c3{anat}.*nii$",               "/{anat}_csf.nii"),
-                     (r"/c4{anat}.*nii$",               "/{anat}_nobrain.nii"),
-                     (r"/c5{anat}.*nii$",               "/{anat}_nobrain_mask.nii"),
+                    (r"/{anat}_.*corrected_seg8.mat$", "/{anat}_to_mni_affine.mat"),
+                    (r"/m{anat}.*_corrected.nii$",     "/{anat}_biascorrected.nii"),
+                    (r"/wm{anat}.*_corrected.nii$",    "/{anat}_mni.nii"),
+                    (r"/y_{anat}.*nii$",               "/{anat}_to_mni_field.nii"),
+                    (r"/iy_{anat}.*nii$",              "/{anat}_to_mni_inv_field.nii"),
+                    (r"/mwc1{anat}.*nii$",             "/{anat}_gm_mod_mni.nii"),
+                    (r"/mwc2{anat}.*nii$",             "/{anat}_wm_mod_mni.nii"),
+                    (r"/mwc3{anat}.*nii$",             "/{anat}_csf_mod_mni.nii"),
+                    (r"/mwc4{anat}.*nii$",             "/{anat}_nobrain_mod_mni.nii"),
+                    (r"/c1{anat}.*nii$",               "/{anat}_gm.nii"),
+                    (r"/c2{anat}.*nii$",               "/{anat}_wm.nii"),
+                    (r"/c3{anat}.*nii$",               "/{anat}_csf.nii"),
+                    (r"/c4{anat}.*nii$",               "/{anat}_nobrain.nii"),
+                    (r"/c5{anat}.*nii$",               "/{anat}_nobrain_mask.nii"),
                    ]
-    regexp_subst  = format_pair_list(regexp_subst, anat=anat_fbasename)
-    regexp_subst += extension_duplicates(regexp_subst)
-    datasink.inputs.regexp_substitutions = extend_trait_list(datasink.inputs.regexp_substitutions,
-                                                             regexp_subst)
+    regexp_subst = format_pair_list(regexp_subst, anat=anat_fbasename)
 
     # prepare substitution for atlas_file, if any
     do_atlas, atlas_file = check_atlas_file()
     if do_atlas:
         atlas_basename = remove_ext(op.basename(atlas_file))
-
-        regexp_subst = [
-                         (r"/rw{atlas}\.nii$", "/{atlas}_anat_space.nii"),
-                       ]
+        regexp_subst.extend([
+                             (r"/w{atlas}\.nii$", "/{atlas}_anat_space.nii"),
+                            ])
         regexp_subst = format_pair_list(regexp_subst, atlas=atlas_basename)
-        regexp_subst += extension_duplicates(regexp_subst)
-        datasink.inputs.regexp_substitutions = extend_trait_list(datasink.inputs.regexp_substitutions,
-                                                                 regexp_subst)
 
+    regexp_subst += extension_duplicates(regexp_subst)
+    datasink.inputs.regexp_substitutions = extend_trait_list(datasink.inputs.regexp_substitutions,
+                                                             regexp_subst)  # input and output anat workflow to main workflow connections
 
-    # input and output anat workflow to main workflow connections
     main_wf.connect([(in_files, anat_wf,  [("anat",                         "anat_input.in_file")]),
                      (anat_wf,  datasink, [("anat_output.anat_mni",         "anat.@mni")],),
                      (anat_wf,  datasink, [("anat_output.tissues_warped",   "anat.tissues.@warped"),
@@ -287,7 +284,7 @@ def attach_spm_anat_preprocessing(main_wf, wf_name="spm_anat_preproc"):
                     ])
 
     # check optional outputs
-    if hasattr(anat_wf.inputs, 'atlas_warped'):
-            main_wf.connect([(anat_wf, datasink, [("atlas_warped", "anat.@atlas_warped")]),])
+    if do_atlas:
+            main_wf.connect([(anat_wf, datasink, [("anat_output.atlas_warped", "anat.@atlas_warped")]),])
 
     return main_wf

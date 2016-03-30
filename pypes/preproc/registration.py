@@ -111,6 +111,7 @@ def spm_normalize(in_imgs=traits.Undefined, voxel_size=(1, 1, 1), template=None)
 
 def spm_coregister(src_img=traits.Undefined, tgt_img=traits.Undefined, cost_function='mi'):
     """Use spm_coreg for estimating cross-modality rigid body alignment.
+    The write_interp option is set to 0 by default.
 
     More info: http://www.fil.ion.ucl.ac.uk/spm/doc/manual.pdf#page=39
     Parameters
@@ -139,7 +140,6 @@ def spm_coregister(src_img=traits.Undefined, tgt_img=traits.Undefined, cost_func
 
     coreg.inputs.source = src_img
     coreg.inputs.target = tgt_img
-    coreg.inputs.write_interp = 0
 
     coreg.inputs.cost_function = cost_function
     coreg.inputs.jobtype = 'estwrite'

@@ -127,9 +127,9 @@ def spm_mrpet_preprocessing(wf_name="spm_mrpet_preproc"):
 
     wf.connect([
                 # inputs
-                (pet_input,   gunzip_pet,  [("in_file"             "in_file")]),
+                (pet_input,   gunzip_pet,  [("in_file",            "in_file")]),
                 (pet_input,   coreg_pet,   [("coreg_target",       "target")]),
-                (pet_input,   warp_pet,    [("warp_field",         "deformation_field")]),
+                (pet_input,   warp_pet,    [("warp_field",         "deformation_file")]),
                 (pet_input,   tissues_sel, [("tissues",            "inlist")]),
 
                 # unzip to coregister to anatomical image. 'coreg_pet.target' is an input for this wf.
@@ -164,7 +164,7 @@ def spm_mrpet_preprocessing(wf_name="spm_mrpet_preproc"):
 
                 # output
                 (rbvpvc,      pet_output, [("out_file",             "out_file")]),
-                (petpvc_mask, pet_output, [("brain_mask.out_file",  "brain_mask")]),
+                (mask_wf,     pet_output, [("brain_mask.out_file",  "brain_mask")]),
                 (coreg_pet,   pet_output, [("coregistered_source",  "coreg_pet")]),
                 (coreg_pet,   pet_output, [("coregistered_files",   "coreg_others")]),
                 (norm_wf,     pet_output, [("gm_norm.out_file",     "gm_norm")]),

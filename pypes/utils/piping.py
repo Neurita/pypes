@@ -10,6 +10,14 @@ import nipype.interfaces.fsl as fsl
 from ..crumb  import DataCrumb
 
 
+def selectindex(files, idx):
+    """ Select the items in the list `files` in the indexes given by the list of
+    integers `idx`."""
+    import numpy as np
+    from nipype.utils.filemanip import filename_to_list, list_to_filename
+    return list_to_filename(np.array(filename_to_list(files))[idx].tolist())
+
+
 def iterable_record_node(records, node_name):
     """ A node to iterate over each set of parameters given in records, e.g.
             [[('subjid', '001'), ('diagnosis', 'ad')],

@@ -4,22 +4,19 @@ Nipype workflows to process anatomical MRI.
 """
 import os.path as op
 
-import nipype.interfaces.spm     as spm
 import nipype.pipeline.engine    as pe
-from   nipype.algorithms.misc    import Gunzip, TSNR
-from   nipype.interfaces.utility import Function, Select, Split, Merge, IdentityInterface
+from   nipype.algorithms.misc    import Gunzip
+from   nipype.interfaces.utility import Function, Select, Merge, IdentityInterface
 from   nipype.interfaces         import fsl
 from   nipype.interfaces.io      import add_traits
 from   nipype.interfaces.nipy.preprocess import Trim, ComputeMask
 
-from   ..preproc import (spm_apply_deformations,
-                         auto_nipy_slicetime,
-                         auto_spm_slicetime,
+from   .filter   import bandpass_filter
+from   .nuisance import rest_noise_filter_wf
+
+from   ..preproc import (auto_spm_slicetime,
                          nipy_motion_correction,
-                         extract_noise_components,
                          spm_coregister,
-                         rest_noise_filter_wf,
-                         bandpass_filter,
                          )
 
 
@@ -95,6 +92,10 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
         Atlas image warped to fMRI space.
         If the `atlas_file` option is an existing file and `normalize_atlas` is True.
 
+    rest_output.motion_regressors: traits.File
+
+    rest_output.compcor_regressors: traits.File
+
     Returns
     -------
     wf: nipype Workflow
@@ -105,12 +106,13 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
     # input identities
     rest_input = setup_node(IdentityInterface(fields=["in_files",
                                                       "anat",
+                                                      "atlas_anat",
                                                       "coreg_target",
                                                       "tissues",
                                                       "atlas_anat",
                                                       "lowpass_freq",
                                                       "highpass_freq",
-                                                      ], mandatory_inputs=True),
+                                                      ]),
                             name="rest_input")
 
     # rs-fMRI preprocessing nodes
@@ -124,7 +126,7 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
     mean_gunzip = setup_node(Gunzip(),        name="mean_gunzip")
 
     # co-registration nodes
-    coreg     = setup_node(spm_coregister(cost_function="mi"), name="coreg")
+    coreg     = setup_node(spm_coregister(cost_function="mi"), name="coreg_rest")
     brain_sel = setup_node(Select(index=[0, 1, 2]),            name="brain_sel")
 
     # brain masks
@@ -135,14 +137,16 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
     wmcsf_select = setup_node(Select(index=[1, 2]),  name="wmcsf_sel")
 
     # noise filter
-    noise_wf = rest_noise_filter_wf()
+    noise_wf   = rest_noise_filter_wf()
+    wm_select  = setup_node(Select(index=[1]),     name="wm_sel")
+    csf_select = setup_node(Select(index=[2]),     name="csf_sel")
 
     # bandpass filtering
     bandpass = setup_node(Function(input_names=['files', 'lowpass_freq',
                                                 'highpass_freq', 'fs'],
                                    output_names=['out_files'],
                                    function=bandpass_filter),
-                    name='bandpass_filter')
+                          name='bandpass_filter')
 
     # smoothing
     smooth = setup_node(interface=fsl.IsotropicSmooth(fwhm=8), name="fmri_smooth")
@@ -153,20 +157,17 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
                                                        "motion_params",
                                                        "tissues",
                                                        "anat",
+                                                       "atlas_rest",
                                                        "time_filtered",
                                                        "smooth",
                                                        "epi_brain_mask",
                                                        "tissues_brain_mask",
-                                                       ],
-                                               mandatory_inputs=True),
+                                                       "motion_regressors",
+                                                       "compcor_regressors",
+                                                       "compcor_corrected",
+                                                       "motion_filtered",
+                                                       ],),
                              name="rest_output")
-
-    # atlas registration?
-    do_atlas, atlas_file = check_atlas_file()
-    if do_atlas:
-        add_traits(rest_input.inputs,  "atlas_anat")
-        add_traits(rest_output.inputs, "atlas_rest")
-        rest_input.inputs.set(atlas_file=atlas_file)
 
     # Connect the nodes
     wf.connect([
@@ -188,8 +189,9 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
                 (mean_gunzip, epi_mask,      [("out_file", "mean_volume")]),
 
                 # coregistration
-                (rest_input,  coreg,         [("anat",      "source")]),
-                (rest_input,  brain_sel,     [("tissues",   "inlist")]),
+                (rest_input,  coreg,         [("anat",                "source")]),
+                (rest_input,  brain_sel,     [("tissues",             "inlist")]),
+                (brain_sel,   coreg,         [(("out", flatten_list), "apply_to_files")]),
 
                 # tissue brain mask
                 (coreg,        gm_select,    [("coregistered_files",  "inlist")]),
@@ -197,23 +199,27 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
                 (gm_select,    tissue_mask,  [(("out", flatten_list), "in_file")]),
                 (wmcsf_select, tissue_mask,  [(("out", flatten_list), "operand_files")]),
 
-                # motion statistics
-
-
                 # nuisance correction
+                (coreg,         wm_select,  [("coregistered_files",   "inlist",)]),
+                (coreg,         csf_select, [("coregistered_files",   "inlist",)]),
+                (realign,       noise_wf,   [("out_file",             "rest_noise_input.in_file",)]),
+                (tissue_mask,   noise_wf,   [("out_file",             "rest_noise_input.brain_mask")]),
+                (wm_select,     noise_wf,   [(("out", flatten_list),  "rest_noise_input.wm_mask")]),
+                (csf_select,    noise_wf,   [(("out", flatten_list),  "rest_noise_input.csf_mask")]),
+                (realign,       noise_wf,   [("par_file",             "rest_noise_input.motion_params",)]),
 
-
-                # median angle?
+                # motion statistics
+                # TODO
 
                 # temporal filtering
-                (stc_wf,     bandpass,     [("stc_output.time_repetition", "tr")]),
-                (rest_input, bandpass,     [("lowpass_freq",               "lowpass_freq"),
-                                            ("highpass_freq",              "highpass_freq"),
+                (stc_wf,     bandpass,     [("stc_output.time_repetition",          "tr")]),
+                (rest_input, bandpass,     [("lowpass_freq",                        "lowpass_freq"),
+                                            ("highpass_freq",                       "highpass_freq"),
                                            ]),
-                (realign,    bandpass,     [("out_file",                   "files")]),
+                (noise_wf,   bandpass,     [("rest_noise_output.nuis_corrected",    "files")]),
 
                 # smoothing
-                (bandpass,    smooth,      [("out_files",                   "in_file")]),
+                (bandpass,    smooth,      [("out_files",           "in_file")]),
 
                 #output
                 (epi_mask,    rest_output, [("brain_mask",          "epi_brain_mask")]),
@@ -224,23 +230,28 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
                 (coreg,       rest_output, [("coregistered_files",  "tissues"),
                                             ("coregistered_source", "anat"),
                                            ]),
-                (bandpass,    rest_output, [("out_files",           "time_filtered")]),
-                (smooth,      rest_output, [("out_file",            "smooth")]),
+                (bandpass,    rest_output, [("out_files",                            "time_filtered")]),
+                (noise_wf,    rest_output, [("rest_noise_output.motion_regressors",  "motion_regressors"),
+                                            ("rest_noise_output.compcor_regressors", "compcor_regressors"),
+                                            ("rest_noise_output.compcor_corrected",  "compcor_corrected"),
+                                            ("rest_noise_output.motion_filtered",    "motion_filtered"),
+                                           ]),
               ])
 
-    # add more connections if to perform atlas registration
-    if do_atlas:
-        coreg_merge  = setup_node(Merge(2), name="coreg_merge")
-        wf.connect([
-                    (brain_sel,     coreg_merge, [(("out", flatten_list), "in1")]),
-                    (rest_input,    coreg_merge, [("atlas_anat",          "in2")]),
-                    (coreg_merge,   coreg,       [("out",                 "apply_to_files")]),
-                  ])
 
-    else:
+    # add more nodes if to perform atlas registration
+    do_atlas, _ = check_atlas_file()
+    if do_atlas:
+        coreg_atlas = setup_node(spm_coregister(cost_function="mi"), name="coreg_atlas")
+
+        # set the registration interpolation to nearest neighbour.
+        coreg_atlas.inputs.write_interp = 0
         wf.connect([
-                    (brain_sel, coreg, [(("out", flatten_list), "apply_to_files")]),
-                  ])
+            (rest_input,  coreg_atlas, [("anat",                 "source")]),
+            (mean_gunzip, coreg_atlas, [("out_file",            "target")]),
+            (rest_input,  coreg_atlas, [("atlas_anat",          "apply_to_files")]),
+            (coreg_atlas, rest_output, [("coregistered_files",  "atlas_rest")]),
+        ])
 
     return wf
 
@@ -278,36 +289,32 @@ def attach_rest_preprocessing(main_wf, wf_name="rest_preproc"):
     # The base name of the 'rest' file for the substitutions
     rest_fbasename = remove_ext(op.basename(get_input_file_name(in_files, 'rest')))
 
-    # prepare substitution for atlas_file, if any
-    do_atlas, atlas_file = check_atlas_file()
-    if do_atlas:
-        atlas_basename = remove_ext(op.basename(atlas_file))
-
-        regexp_subst = [
-                         (r"/rw{atlas}\.nii$", "/{atlas}_diff_space.nii"),
-                       ]
-        regexp_subst = format_pair_list(regexp_subst, atlas=atlas_basename)
-        regexp_subst += extension_duplicates(regexp_subst)
-        datasink.inputs.regexp_substitutions = extend_trait_list(datasink.inputs.regexp_substitutions,
-                                                                 regexp_subst)
-
     # dataSink output substitutions
     regexp_subst = [
                     (r"/corr_stc{rest}_trim_mean_mask\.\.nii$", "/epi_brain_mask.nii"),
                     (r"/corr_stc{rest}_trim_filt\.nii$",        "/{rest}_time_filt.nii"),
                     (r"/corr_stc{rest}_trim\.nii$",             "/{rest}_motion_corrected.nii"),
                     (r"/stc{rest}_trim\.nii\.par$",             "/motion_parameters.txt"),
-                    (r"/rc1[\w]+_corrected\.nii$",              "/coreg_gm.nii"),
                     (r"/rc1[\w]+_corrected_maths\.nii$",        "/tissue_brain_mask.nii"),
-                    (r"/rc2[\w]+_corrected\.nii$",              "/coreg_wm.nii"),
-                    (r"/rc3[\w]+_corrected\.nii$",              "/coreg_csf.nii"),
-                    (r"/rm[\w]+_corrected\.nii$",               "/coreg_anat.nii"),
+                    (r"/rc1[\w]+_corrected\.nii$",              "/gm_{rest}.nii"),
+                    (r"/rc2[\w]+_corrected\.nii$",              "/wm_{rest}.nii"),
+                    (r"/rc3[\w]+_corrected\.nii$",              "/csf_{rest}.nii"),
+                    (r"/rm[\w]+_corrected\.nii$",               "/anat_{rest}.nii"),
                    ]
-    if regexp_subst:
-        regexp_subst  = format_pair_list(regexp_subst, rest=rest_fbasename)
-        regexp_subst += extension_duplicates(regexp_subst)
-        datasink.inputs.regexp_substitutions = extend_trait_list(datasink.inputs.regexp_substitutions,
-                                                                 regexp_subst)
+    regexp_subst = format_pair_list(regexp_subst, rest=rest_fbasename)
+
+    # prepare substitution for atlas_file, if any
+    do_atlas, atlas_file = check_atlas_file()
+    if do_atlas:
+        atlas_basename = remove_ext(op.basename(atlas_file))
+        regexp_subst.extend([
+                             (r"/[\w]*{atlas}_[\w]*\.nii$", "/{atlas}_fmri_space.nii"),
+                            ])
+        regexp_subst = format_pair_list(regexp_subst, atlas=atlas_basename)
+
+    regexp_subst += extension_duplicates(regexp_subst)
+    datasink.inputs.regexp_substitutions = extend_trait_list(datasink.inputs.regexp_substitutions,
+                                                             regexp_subst)
 
     # input and output anat workflow to main workflow connections
     main_wf.connect([(in_files, rest_wf,  [("rest",                              "rest_input.in_files")]),
@@ -318,8 +325,8 @@ def attach_rest_preprocessing(main_wf, wf_name="rest_preproc"):
                                            ("new_segment.bias_corrected_images", "rest_input.anat"),
                                           ]),
 
-                     # test output
-                     (rest_wf,  datasink, [
+                    # test output
+                    (rest_wf,  datasink,  [
                                            ("rest_output.epi_brain_mask",        "rest.@epi_brain_mask"),
                                            ("rest_output.tissues_brain_mask",    "rest.@tissues_brain_mask"),
                                            ("rest_output.motion_corrected",      "rest.@motion_corr"),
@@ -327,12 +334,16 @@ def attach_rest_preprocessing(main_wf, wf_name="rest_preproc"):
                                            ("rest_output.tissues",               "rest.@tissues"),
                                            ("rest_output.anat",                  "rest.@anat"),
                                            ("rest_output.time_filtered",         "rest.@time_filtered"),
+                                           ("rest_output.motion_regressors",     "rest.@motion_regressors"),
+                                           ("rest_output.compcor_regressors",    "rest.@compcor_regressors"),
+                                           ("rest_output.compcor_corrected",     "rest.@compcor_corrected"),
+                                           ("rest_output.motion_filtered",       "rest.@motion_filtered"),
                                           ]),
                     ])
 
-    if hasattr(anat_wf.inputs, 'atlas_warped'):
-            main_wf.connect([(anat_wf,  rest_wf,  [("atlas_warped",           "atlas_anat")]),
-                             (rest_wf,  datasink, [("rest_output.atlas",      "rest.@atlas")]),
+    if do_atlas:
+            main_wf.connect([(anat_wf,  rest_wf,  [("anat_output.atlas_warped", "rest_input.atlas_anat")]),
+                             (rest_wf,  datasink, [("rest_output.atlas_rest",   "rest.@atlas")]),
                             ])
 
     return main_wf

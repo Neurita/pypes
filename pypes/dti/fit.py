@@ -9,7 +9,6 @@ from   nipype.interfaces.fsl     import ExtractROI, Eddy, MultiImageMaths
 from   nipype.interfaces.utility import Function, Select, Split, Merge, IdentityInterface
 from   nipype.algorithms.misc    import Gunzip
 from   nipype.workflows.dmri.fsl.utils import eddy_rotate_bvecs
-from   nipype.interfaces.io      import add_traits
 
 from   .utils import dti_acquisition_parameters
 
@@ -21,6 +20,8 @@ from   ..utils   import (setup_node,
                          get_input_node,
                          remove_ext,
                          extend_trait_list,
+                         get_input_file_name,
+                         extension_duplicates,
                          )
 
 
@@ -75,7 +76,7 @@ def fsl_dti_preprocessing(wf_name="fsl_dti_preproc"):
     """
 
     dti_input    = setup_node(IdentityInterface(
-        fields=["diff", "bval", "bvec", "tissues", "anat"],
+        fields=["diff", "bval", "bvec", "tissues", "anat", "atlas_anat"],
         mandatory_inputs=True),
         name="dti_input")
 
@@ -87,68 +88,64 @@ def fsl_dti_preprocessing(wf_name="fsl_dti_preproc"):
     gunzip_b0    = setup_node(Gunzip(),                              name="gunzip_b0")
     coreg_b0     = setup_node(spm_coregister(cost_function="mi"),    name="coreg_b0")
     brain_sel    = setup_node(Select(index=[0, 1, 2]),               name="brain_sel")
-    coreg_split  = setup_node(Split(splits=[1, 2, 1], squeeze=True), name="coreg_split")
+    coreg_split  = setup_node(Split(splits=[1, 2], squeeze=True),    name="coreg_split")
     brain_merge  = setup_node(MultiImageMaths(),                     name="brain_merge")
     eddy         = setup_node(Eddy(),                                name="eddy")
     rot_bvec     = setup_node(Function(function=eddy_rotate_bvecs,
                                        input_names=["in_bvec", "eddy_params"],
                                        output_names=["out_file"],),
                               name="rot_bvec")
-    dti_output   = setup_node(IdentityInterface(
-        fields=["diff_corrected", "bvec_rotated", "brain_mask_diff"]),
-                                                                name="dti_output")
+    dti_output   = setup_node(IdentityInterface(fields=["diff_corrected",
+                                                        "atlas_diff",
+                                                        "bvec_rotated",
+                                                        "bval",
+                                                        "brain_mask_diff"]),
+                              name="dti_output")
 
     brain_merge.inputs.op_string = "-add '%s' -add '%s' -abs -bin"
     brain_merge.inputs.out_file = "brain_mask_diff_space.nii.gz"
-
-    # atlas registration?
-    do_atlas, atlas_file = check_atlas_file()
-    if do_atlas:
-        add_traits(dti_input.inputs,  "atlas_anat")
-        add_traits(dti_output.inputs, "atlas_diff")
-        dti_input.inputs.set(atlas_file=atlas_file)
-
 
     # Create the workflow object
     wf = pe.Workflow(name=wf_name)
 
     # Connect the nodes
     wf.connect([
-                (dti_input,     extract_b0,     [("diff",               "in_file")]),
-                (dti_input,     write_acqp,     [("diff",               "in_file")]),
-                (dti_input,     eddy,           [("diff",               "in_file")]),
-                (dti_input,     eddy,           [("bval",               "in_bval")]),
-                (dti_input,     eddy,           [("bvec",               "in_bvec")]),
-                (dti_input,     rot_bvec,       [("bvec",               "in_bvec")]),
-                (dti_input,     brain_sel,      [("tissues",            "inlist")]),
-                (dti_input,     coreg_b0,       [("anat",               "source")]),
-                (write_acqp,    eddy,           [("out_acqp",           "in_acqp"),
-                                                 ("out_index",          "in_index")]),
-                (extract_b0,    gunzip_b0,      [("roi_file",           "in_file")]),
-                (gunzip_b0,     coreg_b0,       [("out_file",           "target")]),
-                (coreg_b0,      coreg_split,    [("coregistered_files", "inlist")]),
-                (coreg_split,   brain_merge,    [("out1",               "in_file")]),
-                (coreg_split,   brain_merge,    [("out2",               "operand_files")]),
-                (coreg_split,   dti_output,     [("out3",               "atlas_diff")]),
-                (brain_merge,   eddy,           [("out_file",           "in_mask")]),
-                (brain_merge,   dti_output,     [("out_file",           "brain_mask_diff")]),
-                (eddy,          dti_output,     [("out_corrected",      "diff_corrected")]),
-                (eddy,          rot_bvec,       [("out_parameter",      "eddy_params")]),
-                (rot_bvec,      dti_output,     [("out_file",           "bvec_rotated")]),
+                (dti_input,     extract_b0,     [("diff",                "in_file")]),
+                (dti_input,     write_acqp,     [("diff",                "in_file")]),
+                (dti_input,     eddy,           [("diff",                "in_file")]),
+                (dti_input,     eddy,           [("bval",                "in_bval")]),
+                (dti_input,     eddy,           [("bvec",                "in_bvec")]),
+                (dti_input,     rot_bvec,       [("bvec",                "in_bvec")]),
+                (dti_input,     brain_sel,      [("tissues",             "inlist")]),
+                (dti_input,     coreg_b0,       [("anat",                "source")]),
+                (write_acqp,    eddy,           [("out_acqp",            "in_acqp"),
+                                                 ("out_index",           "in_index")]),
+                (extract_b0,    gunzip_b0,      [("roi_file",            "in_file")]),
+                (gunzip_b0,     coreg_b0,       [("out_file",            "target")]),
+                (coreg_b0,      coreg_split,    [("coregistered_files",  "inlist")]),
+                (brain_sel,     coreg_b0,       [(("out", flatten_list), "apply_to_files")]),
+                (coreg_split,   brain_merge,    [("out1",                "in_file")]),
+                (coreg_split,   brain_merge,    [("out2",                "operand_files")]),
+                (brain_merge,   eddy,           [("out_file",            "in_mask")]),
+                (brain_merge,   dti_output,     [("out_file",            "brain_mask_diff")]),
+                (eddy,          dti_output,     [("out_corrected",       "diff_corrected")]),
+                (eddy,          rot_bvec,       [("out_parameter",       "eddy_params")]),
+                (rot_bvec,      dti_output,     [("out_file",            "bvec_rotated")]),
+                (dti_input,     dti_output,     [("bval",                "bval")]),
               ])
 
-    # add more connections if to perform atlas registration
+    # add more nodes if to perform atlas registration
+    do_atlas, _ = check_atlas_file()
     if do_atlas:
-        coreg_merge  = setup_node(Merge(2), name="coreg_merge")
-        wf.connect([
-                    (brain_sel,     coreg_merge,    [(("out", flatten_list),    "in1")]),
-                    (dti_input,     coreg_merge,    [("atlas_anat",             "in2")]),
-                    (coreg_merge,   coreg_b0,       [("out",                    "apply_to_files")]),
-                  ])
+        coreg_atlas = setup_node(spm_coregister(cost_function="mi"), name="coreg_atlas")
 
-    else:
+        # set the registration interpolation to nearest neighbour.
+        coreg_atlas.inputs.write_interp = 0
         wf.connect([
-                    (brain_sel, coreg_b0, [(("out", flatten_list), "apply_to_files")]),
+                    (dti_input,   coreg_atlas, [("anat",                 "source")]),
+                    (gunzip_b0,   coreg_atlas, [("out_file",             "target")]),
+                    (dti_input,   coreg_atlas, [("atlas_anat",           "apply_to_files")]),
+                    (coreg_atlas, dti_output,  [("coregistered_files",   "atlas_diff")]),
                   ])
 
     return wf
@@ -188,32 +185,45 @@ def attach_fsl_dti_preprocessing(main_wf, wf_name="fsl_dti_preproc"):
     # The workflow box
     dti_wf = fsl_dti_preprocessing(wf_name=wf_name)
 
+    # dataSink output substitutions
+    ## The base name of the 'diff' file for the substitutions
+    #diff_fbasename = remove_ext(op.basename(get_input_file_name(in_files, 'diff')))
+
+    regexp_subst = []
+    #regexp_subst = format_pair_list(regexp_subst, diff=diff_fbasename)
+
     # prepare substitution for atlas_file, if any
     do_atlas, atlas_file = check_atlas_file()
     if do_atlas:
         atlas_basename = remove_ext(op.basename(atlas_file))
 
-        regexp_subst = [
-                         (r"/rw{atlas}\.nii$", "/{atlas}_diff_space.nii"),
-                       ]
+        regexp_subst.extend([
+                             (r"/[\w]*{atlas}_[\w]*\.nii$", "/{atlas}_diff_space.nii"),
+                            ])
         regexp_subst = format_pair_list(regexp_subst, atlas=atlas_basename)
-        datasink.inputs.regexp_substitutions = extend_trait_list(datasink.inputs.regexp_substitutions,
-                                                                 regexp_subst)
+
+    regexp_subst += extension_duplicates(regexp_subst)
+    datasink.inputs.regexp_substitutions = extend_trait_list(datasink.inputs.regexp_substitutions,
+                                                             regexp_subst)
 
     # input and output diffusion MRI workflow to main workflow connections
     main_wf.connect([(in_files, dti_wf,   [("diff",                                  "dti_input.diff"),
                                            ("bval",                                  "dti_input.bval"),
-                                           ("bvec",                                  "dti_input.bvec")]),
+                                           ("bvec",                                  "dti_input.bvec")
+                                          ]),
                      (anat_wf,  dti_wf,   [("new_segment.native_class_images",       "dti_input.tissues"),
-                                           ("new_segment.bias_corrected_images",     "dti_input.anat")]),
+                                           ("new_segment.bias_corrected_images",     "dti_input.anat")
+                                          ]),
                      (dti_wf,   datasink, [("dti_output.diff_corrected",             "diff.@eddy_corrected"),
                                            ("dti_output.brain_mask_diff",            "diff.@mask"),
-                                           ("dti_output.bvec_rotated",               "diff.@bvec_rotated")]),
+                                           ("dti_output.bvec_rotated",               "diff.@bvec_rotated"),
+                                           ("dti_output.bval",                       "diff.@bval")
+                                          ]),
                     ])
 
-    if hasattr(anat_wf.inputs, 'atlas_warped'):
-            main_wf.connect([(anat_wf, dti_wf,   [("atlas_warped",          "atlas_anat")]),
-                             (dti_wf,  datasink, [("dti_output.atlas_diff", "diff.@atlas")]),
+    if do_atlas:
+            main_wf.connect([(anat_wf, dti_wf,   [("anat_output.atlas_warped",  "dti_input.atlas_anat")]),
+                             (dti_wf,  datasink, [("dti_output.atlas_diff",     "diff.@atlas")]),
                             ])
 
     return main_wf
