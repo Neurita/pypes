@@ -80,7 +80,7 @@ def create_regressors(motion_params, comp_norm, outliers, detrend_poly=None):
                 X = np.hstack((X, legendre(
                     i + 1)(np.linspace(-1, 1, timepoints))[:, None]))
             out_params = np.hstack((out_params, X))
-        filename = os.path.join(os.getcwd(), "filter_regressor%02d.txt" % idx)
+        filename = os.path.join(os.getcwd(), "filter_regressor_%02d.txt" % idx)
         np.savetxt(filename, out_params, fmt="%.10f")
         out_files.append(filename)
     return out_files

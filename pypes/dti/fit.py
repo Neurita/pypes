@@ -6,7 +6,7 @@ import os.path as op
 
 import nipype.pipeline.engine    as pe
 from   nipype.interfaces.fsl     import ExtractROI, Eddy, MultiImageMaths
-from   nipype.interfaces.utility import Function, Select, Split, Merge, IdentityInterface
+from   nipype.interfaces.utility import Function, Select, Split, IdentityInterface
 from   nipype.algorithms.misc    import Gunzip
 from   nipype.workflows.dmri.fsl.utils import eddy_rotate_bvecs
 
@@ -102,7 +102,7 @@ def fsl_dti_preprocessing(wf_name="fsl_dti_preproc"):
                                                         "brain_mask_diff"]),
                               name="dti_output")
 
-    brain_merge.inputs.op_string = "-add '%s' -add '%s' -abs -bin"
+    brain_merge.inputs.op_string = "-add '%s' -add '%s' -abs -kernel gauss 2 -dilM -ero -bin"
     brain_merge.inputs.out_file = "brain_mask_diff_space.nii.gz"
 
     # Create the workflow object
@@ -187,10 +187,13 @@ def attach_fsl_dti_preprocessing(main_wf, wf_name="fsl_dti_preproc"):
 
     # dataSink output substitutions
     ## The base name of the 'diff' file for the substitutions
-    #diff_fbasename = remove_ext(op.basename(get_input_file_name(in_files, 'diff')))
+    diff_fbasename = remove_ext(op.basename(get_input_file_name(in_files, 'diff')))
 
-    regexp_subst = []
-    #regexp_subst = format_pair_list(regexp_subst, diff=diff_fbasename)
+    regexp_subst = [
+                    (r"/brain_mask_{diff}_space\.nii$", "/brain_mask.nii"),
+                    (r"/eddy_corrected\.nii$",          "/{diff}_eddycor.nii"),
+                   ]
+    regexp_subst = format_pair_list(regexp_subst, diff=diff_fbasename)
 
     # prepare substitution for atlas_file, if any
     do_atlas, atlas_file = check_atlas_file()
@@ -198,9 +201,10 @@ def attach_fsl_dti_preprocessing(main_wf, wf_name="fsl_dti_preproc"):
         atlas_basename = remove_ext(op.basename(atlas_file))
 
         regexp_subst.extend([
-                             (r"/[\w]*{atlas}_[\w]*\.nii$", "/{atlas}_diff_space.nii"),
+                             (r"/[\w]*{atlas}_[\w]*\.nii$", "/{atlas}_{diff}_space.nii"),
                             ])
-        regexp_subst = format_pair_list(regexp_subst, atlas=atlas_basename)
+        regexp_subst = format_pair_list(regexp_subst, atlas=atlas_basename,
+                                                      diff=diff_fbasename)
 
     regexp_subst += extension_duplicates(regexp_subst)
     datasink.inputs.regexp_substitutions = extend_trait_list(datasink.inputs.regexp_substitutions,

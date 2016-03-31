@@ -2,8 +2,8 @@
 # TUM Clinical pypes configuration parameters
 # ----------------------------------------------------------------------
 
-# global configuration parameters
-register_atlas: True
+## global configuration parameters
+normalize_atlas: True
 atlas_file: '' # this is being set from config.py
 
 
@@ -11,12 +11,64 @@ atlas_file: '' # this is being set from config.py
 
 
 # DTI
-
+coreg_b0.write_interp: 3
 
 
 # REST
-trim.begin_index: 6
+coreg_rest.write_interp: 3
 
+## the last volume index to discard from the timeseries. default: 0
+trim.begin_index: 5
+
+# bandpass filter frequencies in sec.
+rest_input.lowpass_freq: 0.08
+rest_input.highpass_freq: 0.01
+
+# fwhm of smoothing kernel [mm]
+smooth_fmri.fwhm: 8
+
+## Rest filters
+### the integer value given is the order of the filtering node
+### if you put a 0 value, it won't be performed.
+### perform tsnr detrending: http://www.mit.edu/~satra/nipype-nightly/interfaces/generated/nipype.algorithms.misc.html#tsnr
+rest_filter.motion: 6
+rest_filter.comp_cor: 2
+rest_filter.wm: 3
+rest_filter.csf: 4
+
+# filters parameters
+## the corresponding filter must be enabled for these.
+
+# motion regressors upto given order and derivative
+# motion + d(motion)/dt + d2(motion)/dt2 (linear + quadratic)
+motion_regressors.order: 0
+motion_regressors.derivatives: 1
+
+
+# number of polynomials to add to detrend
+motart_parameters.detrend_poly: 2
+
+# Threshold to use to detect motion-related outliers when composite motion is being used
+detect_artifact.norm_threshold: 1
+detect_artifact.parameter_source: NiPy
+detect_artifact.mask_type: spm_global
+
+# Number of principle components to calculate when running CompCor. 5 or 6 is recommended.
+compcor_pars.num_components: 5
+
+tsnr.regress_poly: 2
+
+
+# REST (COBRE DB)
+# http://fcon_1000.projects.nitrc.org/indi/retro/cobre.html
+# Rest scan:
+# - collected in the Axial plane,
+# - series ascending,
+# - multi slice mode and
+# - interleaved.
+stc_input.slice_mode: alt_inc
+stc_input.time_repetition: 2
+stc_input.num_slices: 33
 
 # PET PVC
 rbvpvc.pvc: RBV

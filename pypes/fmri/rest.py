@@ -6,9 +6,8 @@ import os.path as op
 
 import nipype.pipeline.engine    as pe
 from   nipype.algorithms.misc    import Gunzip
-from   nipype.interfaces.utility import Function, Select, Merge, IdentityInterface
+from   nipype.interfaces.utility import Function, Select, IdentityInterface
 from   nipype.interfaces         import fsl
-from   nipype.interfaces.io      import add_traits
 from   nipype.interfaces.nipy.preprocess import Trim, ComputeMask
 
 from   .filter   import bandpass_filter
@@ -130,20 +129,21 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
     brain_sel = setup_node(Select(index=[0, 1, 2]),            name="brain_sel")
 
     # brain masks
-    epi_mask     = setup_node(ComputeMask(), name='epi_mask')
+    epi_mask     = setup_node(ComputeMask(),         name='epi_mask')
     tissue_mask  = setup_node(fsl.MultiImageMaths(), name='tissue_mask')
     tissue_mask.inputs.op_string = "-add %s -add %s -kernel gauss 2 -dilM -ero -bin"
+
     gm_select    = setup_node(Select(index=[0]),     name="gm_sel")
     wmcsf_select = setup_node(Select(index=[1, 2]),  name="wmcsf_sel")
 
     # noise filter
     noise_wf   = rest_noise_filter_wf()
-    wm_select  = setup_node(Select(index=[1]),     name="wm_sel")
-    csf_select = setup_node(Select(index=[2]),     name="csf_sel")
+    wm_select  = setup_node(Select(index=[1]), name="wm_sel")
+    csf_select = setup_node(Select(index=[2]), name="csf_sel")
 
     # bandpass filtering
     bandpass = setup_node(Function(input_names=['files', 'lowpass_freq',
-                                                'highpass_freq', 'fs'],
+                                                'highpass_freq', 'tr'],
                                    output_names=['out_files'],
                                    function=bandpass_filter),
                           name='bandpass_filter')
@@ -308,7 +308,7 @@ def attach_rest_preprocessing(main_wf, wf_name="rest_preproc"):
     if do_atlas:
         atlas_basename = remove_ext(op.basename(atlas_file))
         regexp_subst.extend([
-                             (r"/[\w]*{atlas}_[\w]*\.nii$", "/{atlas}_fmri_space.nii"),
+                             (r"/[\w]*{atlas}\.nii$", "/{atlas}_fmri_space.nii"),
                             ])
         regexp_subst = format_pair_list(regexp_subst, atlas=atlas_basename)
 
