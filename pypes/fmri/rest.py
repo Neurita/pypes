@@ -61,17 +61,17 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
 
     Nipype Outputs
     --------------
-    rest_output.motion_corrected: traits.File
-        The motion corrected file.
+    rest_output.smooth: traits.File
+        The isotropically smoothed time filtered nuisance corrected image.
+
+    rest_output.nuis_corrected: traits.File
+        The nuisance corrected fMRI file.
 
     rest_output.motion_params: traits.File
         The affine transformation file.
 
     rest_output.time_filtered: traits.File
         The bandpass time filtered fMRI file.
-
-    rest_output.smooth: traits.File
-        The isotropic smoothed time filtered image.
 
     rest_output.epi_brain_mask: traits.File
         An estimated brain mask from mean EPI volume.
@@ -142,8 +142,10 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
     csf_select = setup_node(Select(index=[2]), name="csf_sel")
 
     # bandpass filtering
-    bandpass = setup_node(Function(input_names=['files', 'lowpass_freq',
-                                                'highpass_freq', 'tr'],
+    bandpass = setup_node(Function(input_names=['files',
+                                                'lowpass_freq',
+                                                'highpass_freq',
+                                                'tr'],
                                    output_names=['out_files'],
                                    function=bandpass_filter),
                           name='bandpass_filter')
@@ -165,7 +167,7 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
                                                        "motion_regressors",
                                                        "compcor_regressors",
                                                        "compcor_corrected",
-                                                       "motion_filtered",
+                                                       "nuis_corrected",
                                                        ],),
                              name="rest_output")
 
@@ -230,12 +232,13 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
                 (coreg,       rest_output, [("coregistered_files",  "tissues"),
                                             ("coregistered_source", "anat"),
                                            ]),
-                (bandpass,    rest_output, [("out_files",                            "time_filtered")]),
                 (noise_wf,    rest_output, [("rest_noise_output.motion_regressors",  "motion_regressors"),
                                             ("rest_noise_output.compcor_regressors", "compcor_regressors"),
                                             ("rest_noise_output.compcor_corrected",  "compcor_corrected"),
-                                            ("rest_noise_output.motion_filtered",    "motion_filtered"),
+                                            ("rest_noise_output.nuis_corrected",     "nuis_corrected"),
                                            ]),
+                (bandpass,    rest_output, [("out_files",                            "time_filtered")]),
+                (smooth,      rest_output, [("out_file",                             "smooth")]),
               ])
 
 
@@ -247,7 +250,7 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
         # set the registration interpolation to nearest neighbour.
         coreg_atlas.inputs.write_interp = 0
         wf.connect([
-            (rest_input,  coreg_atlas, [("anat",                 "source")]),
+            (rest_input,  coreg_atlas, [("anat",                "source")]),
             (mean_gunzip, coreg_atlas, [("out_file",            "target")]),
             (rest_input,  coreg_atlas, [("atlas_anat",          "apply_to_files")]),
             (coreg_atlas, rest_output, [("coregistered_files",  "atlas_rest")]),
@@ -291,15 +294,21 @@ def attach_rest_preprocessing(main_wf, wf_name="rest_preproc"):
 
     # dataSink output substitutions
     regexp_subst = [
-                    (r"/corr_stc{rest}_trim_mean_mask\.\.nii$", "/epi_brain_mask.nii"),
-                    (r"/corr_stc{rest}_trim_filt\.nii$",        "/{rest}_time_filt.nii"),
-                    (r"/corr_stc{rest}_trim\.nii$",             "/{rest}_motion_corrected.nii"),
-                    (r"/stc{rest}_trim\.nii\.par$",             "/motion_parameters.txt"),
-                    (r"/rc1[\w]+_corrected_maths\.nii$",        "/tissue_brain_mask.nii"),
-                    (r"/rc1[\w]+_corrected\.nii$",              "/gm_{rest}.nii"),
-                    (r"/rc2[\w]+_corrected\.nii$",              "/wm_{rest}.nii"),
-                    (r"/rc3[\w]+_corrected\.nii$",              "/csf_{rest}.nii"),
-                    (r"/rm[\w]+_corrected\.nii$",               "/anat_{rest}.nii"),
+                    (r"/rc1[\w]+_corrected_maths\.nii$",                                    "/tissue_brain_mask.nii"),
+                    (r"/rc1[\w]+_corrected\.nii$",                                          "/gm.nii"),
+                    (r"/rc2[\w]+_corrected\.nii$",                                          "/wm.nii"),
+                    (r"/rc3[\w]+_corrected\.nii$",                                          "/csf.nii"),
+                    (r"/rm[\w]+_corrected\.nii$",                                           "/anat.nii"),
+                    (r"/corr_stc{rest}_trim\.nii$",                                         "/slice_time_corrected.nii"),
+                    (r"/stc{rest}_trim\.nii\.par$",                                         "/motion_parameters.txt"),
+                    (r"/corr_stc{rest}_trim_filt\.nii$",                                    "/time_filt.nii"),
+                    (r"/corr_stc{rest}_trim_mean_mask\.\.nii$",                             "/epi_brain_mask.nii"),
+                    (r"/corr_stc{rest}_trim_filtermotart\.nii$",                            "/motion_corrected.nii"),
+                    (r"/corr_stc{rest}_trim_filtermotart_bandpassed\.nii$",                 "/motion_nuis_corrected.nii"),
+                    (r"/corr_stc{rest}_trim_filtermotart_bandpassed_smooth\.nii$",          "/smooth.nii"),
+                    (r"/corr_stc{rest}_trim_filtermotart_cleaned\.nii$",                    "/motion_nuis_corrected.nii"),
+                    (r"/corr_stc{rest}_trim_filtermotart_cleaned_bandpassed\.nii$",         "/time_filtered.nii"),
+                    (r"/corr_stc{rest}_trim_filtermotart_cleaned_bandpassed_smooth\.nii$",  "/smooth.nii"),
                    ]
     regexp_subst = format_pair_list(regexp_subst, rest=rest_fbasename)
 
@@ -329,15 +338,15 @@ def attach_rest_preprocessing(main_wf, wf_name="rest_preproc"):
                     (rest_wf,  datasink,  [
                                            ("rest_output.epi_brain_mask",        "rest.@epi_brain_mask"),
                                            ("rest_output.tissues_brain_mask",    "rest.@tissues_brain_mask"),
-                                           ("rest_output.motion_corrected",      "rest.@motion_corr"),
-                                           ("rest_output.motion_params",         "rest.@motion_params"),
                                            ("rest_output.tissues",               "rest.@tissues"),
                                            ("rest_output.anat",                  "rest.@anat"),
-                                           ("rest_output.time_filtered",         "rest.@time_filtered"),
                                            ("rest_output.motion_regressors",     "rest.@motion_regressors"),
                                            ("rest_output.compcor_regressors",    "rest.@compcor_regressors"),
+                                           ("rest_output.motion_params",         "rest.@motion_params"),
+                                           ("rest_output.motion_corrected",      "rest.@motion_corrected"),
                                            ("rest_output.compcor_corrected",     "rest.@compcor_corrected"),
-                                           ("rest_output.motion_filtered",       "rest.@motion_filtered"),
+                                           ("rest_output.time_filtered",         "rest.@time_filtered"),
+                                           ("rest_output.smooth",                "rest.@smooth"),
                                           ]),
                     ])
 

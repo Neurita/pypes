@@ -20,21 +20,16 @@ coreg_rest.write_interp: 3
 ## the last volume index to discard from the timeseries. default: 0
 trim.begin_index: 5
 
-# bandpass filter frequencies in sec.
-rest_input.lowpass_freq: 0.08
-rest_input.highpass_freq: 0.01
+# bandpass filter frequencies in Hz.
+rest_input.lowpass_freq: 0.08 # the numerical upper bound
+rest_input.highpass_freq: 0.01 # the numerical lower bound
 
 # fwhm of smoothing kernel [mm]
 smooth_fmri.fwhm: 8
 
-## Rest filters
-### the integer value given is the order of the filtering node
-### if you put a 0 value, it won't be performed.
-### perform tsnr detrending: http://www.mit.edu/~satra/nipype-nightly/interfaces/generated/nipype.algorithms.misc.html#tsnr
-rest_filter.motion: 6
-rest_filter.comp_cor: 2
-rest_filter.wm: 3
-rest_filter.csf: 4
+## CompCor rsfMRI filters (at least compcor_csf should be True).
+rest_filter.compcor_csf: True
+rest_filter.compcor_wm: True
 
 # filters parameters
 ## the corresponding filter must be enabled for these.
@@ -43,7 +38,6 @@ rest_filter.csf: 4
 # motion + d(motion)/dt + d2(motion)/dt2 (linear + quadratic)
 motion_regressors.order: 0
 motion_regressors.derivatives: 1
-
 
 # number of polynomials to add to detrend
 motart_parameters.detrend_poly: 2
@@ -56,7 +50,6 @@ detect_artifact.mask_type: spm_global
 # Number of principle components to calculate when running CompCor. 5 or 6 is recommended.
 compcor_pars.num_components: 5
 
-tsnr.regress_poly: 2
 
 
 # REST (COBRE DB)
