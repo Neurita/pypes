@@ -30,6 +30,7 @@ smooth_fmri.fwhm: 8
 ## CompCor rsfMRI filters (at least compcor_csf should be True).
 rest_filter.compcor_csf: True
 rest_filter.compcor_wm: True
+rest_filter.gsr: False
 
 # filters parameters
 ## the corresponding filter must be enabled for these.
@@ -47,9 +48,11 @@ detect_artifact.norm_threshold: 1
 detect_artifact.parameter_source: NiPy
 detect_artifact.mask_type: spm_global
 
-# Number of principle components to calculate when running CompCor. 5 or 6 is recommended.
+# Number of principal components to calculate when running CompCor. 5 or 6 is recommended.
 compcor_pars.num_components: 5
 
+# Number of principal components to calculate when running Global Signal Regression. 1 is recommended.
+gsr_pars.num_components: 1
 
 
 # REST (COBRE DB)

@@ -6,6 +6,7 @@ Resting-state fMRI specific nuisance correction filtering workflow.
 import nipype.pipeline.engine       as pe
 from   nipype.algorithms.rapidart   import ArtifactDetect
 from   nipype.interfaces.utility    import Function, IdentityInterface, Merge
+from   nipype.algorithms.misc       import TSNR
 from   nipype.interfaces            import fsl
 
 from   ..utils import (setup_node,
@@ -163,6 +164,9 @@ def rest_noise_filter_wf(wf_name='rest_noise_removal'):
 
     Nipype Outputs
     --------------
+    rest_noise_output.tsnr_file
+        A SNR estimation volume file for QA purposes.
+
     rest_noise_output.motion_corrected
         The fMRI motion corrected image.
 
@@ -196,6 +200,10 @@ def rest_noise_filter_wf(wf_name='rest_noise_removal'):
     # get the settings for filters
     filters = _get_params_for('rest_filter')
 
+
+    # Comute TSNR on realigned data regressing polynomial upto order 2
+    tsnr = setup_node(TSNR(regress_poly=2), name='tsnr')
+
     # Use :class:`nipype.algorithms.rapidart` to determine which of the
     # images in the functional series are outliers based on deviations in
     # intensity or movement.
@@ -224,7 +232,7 @@ def rest_noise_filter_wf(wf_name='rest_noise_removal'):
                                        demean=True),
                                name='motion_filter')
 
-    # Noise confounds regressors
+    # Noise confound regressors
     compcor_pars = setup_node(Function(input_names=['realigned_file',
                                                     'mask_file',
                                                     'num_components',
@@ -238,19 +246,37 @@ def rest_noise_filter_wf(wf_name='rest_noise_removal'):
                                         demean=True),
                                 name='compcor_filter')
 
+    # Global signal regression
+    gsr_pars = setup_node(Function(input_names=['realigned_file',
+                                                'mask_file',
+                                                'num_components',
+                                                'extra_regressors'],
+                                    output_names=['out_files'],
+                                    function=extract_noise_components, ),
+                            name='gsr_pars')
+
+    gsr_filter = setup_node(fsl.GLM(out_f_name='F_gsr.nii.gz',
+                                    out_pf_name='pF_gsr.nii.gz',
+                                    demean=True),
+                            name='gsr_filter')
+
     # output identities
     rest_noise_output = setup_node(IdentityInterface(fields=[
-                                                             "compcor_corrected",
+                                                             "tsnr_file",
                                                              "motion_corrected",
                                                              "nuis_corrected",
                                                              "motion_regressors",
                                                              "compcor_regressors",
+                                                             "gsr_regressors",
                                                             ],
                                                      mandatory_inputs=True),
                                     name="rest_noise_output")
 
     # Connect the nodes
     wf.connect([
+                # tsnr
+                (rest_noise_input, tsnr, [("in_file", "in_file")]),
+
                 # artifact detection
                 (rest_noise_input, art, [("in_file",        "realigned_files"),
                                          ("motion_params",  "realignment_parameters"),
@@ -272,10 +298,14 @@ def rest_noise_filter_wf(wf_name='rest_noise_removal'):
                 (motart_pars,      motion_filter,   [(("out_files", selectindex, [0]),      "design")]),
 
                 # output
+                (tsnr,             rest_noise_output, [("tsnr_file",   "tsnr_file")]),
                 (motart_pars,      rest_noise_output, [("out_files",   "motion_regressors")]),
                 (motion_filter,    rest_noise_output, [("out_res",     "motion_corrected")]),
-              ])
+                ])
 
+    last_filter = motion_filter
+
+    # compcor filter
     if filters['compcor_csf'] or filters['compcor_wm']:
         wf.connect([
                     # calculate compcor regressor and parameters file
@@ -291,14 +321,32 @@ def rest_noise_filter_wf(wf_name='rest_noise_removal'):
 
                     # output
                     (compcor_pars,     rest_noise_output, [("out_files",   "compcor_regressors")]),
-                    (compcor_filter,   rest_noise_output, [("out_res",     "compcor_corrected")]),
-                    (compcor_filter,   rest_noise_output, [("out_res",     "nuis_corrected")]),
-                  ])
-    else:
+                    ])
+        last_filter = compcor_filter
+
+    # global signal regression
+    if filters['gsr']:
         wf.connect([
-                    ## the motion corrected is the nuis_corrected result
-                    (motion_filter, rest_noise_output, [("out_res", "nuis_corrected")]),
-                  ])
+            # calculate gsr regressors parameters file
+            (last_filter,       gsr_pars, [("out_res",      "realigned_file")]),
+            (rest_noise_input,  gsr_pars, [("brain_mask",   "mask_file")]),
+
+            # the output file name
+            (rest_noise_input, gsr_filter,  [("brain_mask", "mask")]),
+            (last_filter,       gsr_filter, [("out_res",                        "in_file"),
+                                             (("out_res", rename, "_gsr"),      "out_res_name"),
+                                            ]),
+            (gsr_pars,          gsr_filter, [(("out_files", selectindex, [0]),  "design")]),
+
+            # output
+            (gsr_pars,   rest_noise_output, [("out_files",   "gsr_regressors")]),
+        ])
+        last_filter = gsr_filter
+
+    # connect the final nuisance correction output node
+    wf.connect([
+                (last_filter, rest_noise_output, [("out_res",     "nuis_corrected")]),
+                ])
 
     if filters['compcor_csf'] and filters['compcor_wm']:
         mask_merge = setup_node(Merge(2), name="mask_merge")
