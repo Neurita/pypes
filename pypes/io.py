@@ -8,7 +8,7 @@ import os.path as op
 import logging as log
 
 import nipype.pipeline.engine as pe
-from   nipype.interfaces.io import DataSink
+from   nipype.interfaces.io   import DataSink
 
 from hansel.utils import joint_value_map
 from .crumb  import DataCrumb

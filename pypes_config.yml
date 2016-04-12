@@ -54,6 +54,17 @@ compcor_pars.num_components: 5
 # Number of principal components to calculate when running Global Signal Regression. 1 is recommended.
 gsr_pars.num_components: 1
 
+# REST CONNECTIVITY
+## if atlas_file is defined, perform connectivity analysis
+rest_preproc.connectivity: True
+
+## if further smoothing (remember the output of the rest workflow is already smoothed)
+rest_connectivity.standardize: False
+rest_connectivity.kind: correlation # choices: "correlation", "partial correlation", "tangent", "covariance", "precision".
+#rest_connectivity.smoothing_fwhm: 8
+#rest_connectivity.resampling_target: # choices: "mask", "maps" or undefined.
+rest_connectivity.atlas_type: labels # choices: "labels", "probabilistic".
+
 
 # REST (COBRE DB)
 # http://fcon_1000.projects.nitrc.org/indi/retro/cobre.html

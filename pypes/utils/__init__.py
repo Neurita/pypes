@@ -19,6 +19,7 @@ from .files   import  (remove_ext,
                        )
 from .piping  import  (extend_trait_list,
                        selectindex,
+                       get_trait_value,
                        fsl_merge,
                        joinstrings,
                        find_wf_node,

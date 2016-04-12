@@ -18,16 +18,17 @@ from   ..preproc import (auto_spm_slicetime,
                          spm_coregister,
                          )
 
-
 from   .._utils import format_pair_list, flatten_list
-from   ..utils import (setup_node,
-                       remove_ext,
-                       check_atlas_file,
-                       extend_trait_list,
-                       get_input_node,
-                       get_datasink,
-                       get_input_file_name,
-                       extension_duplicates)
+from   ..utils  import (setup_node,
+                        selectindex,
+                        remove_ext,
+                        get_config_setting,
+                        check_atlas_file,
+                        extend_trait_list,
+                        get_input_node,
+                        get_datasink,
+                        get_input_file_name,
+                        extension_duplicates)
 
 
 def rest_preprocessing_wf(wf_name="rest_preproc"):
@@ -94,6 +95,15 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
     rest_output.motion_regressors: traits.File
 
     rest_output.compcor_regressors: traits.File
+
+    rest_output.connectivity: traits.File
+        If the connectivity node is enabled.
+        This is the Numpy matrix text file with the connectivity matrix.
+
+    rest_output.atlas_timeseries: traits.File
+        If the connectivity node is enabled.
+        This is the Numpy matrix text file with the timeseries extracted using the atlas
+        from the resting-state data.
 
     Returns
     -------
@@ -169,6 +179,8 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
                                                        "compcor_regressors",
                                                        "gsr_regressors",
                                                        "nuis_corrected",
+                                                       "connectivity",
+                                                       "atlas_timeseries",
                                                        ],),
                              name="rest_output")
 
@@ -258,6 +270,19 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
             (coreg_atlas, rest_output, [("coregistered_files",  "atlas_rest")]),
         ])
 
+    do_connectivity = get_config_setting('rest_preproc.connectivity')
+    if do_atlas and do_connectivity:
+        from ..postproc.connectivity import ConnectivityCorrelationInterface
+
+        conn = setup_node(ConnectivityCorrelationInterface(), name="rest_connectivity")
+        wf.connect([
+            (coreg_atlas, conn,        [("coregistered_files",  "atlas_file")]),
+            (smooth,      conn,        [("out_file",            "in_files")]),
+            (conn,        rest_output, [("connectivity",        "connectivity"),
+                                        ("timeseries",          "atlas_timeseries"),
+                                       ]),
+        ])
+
     return wf
 
 
@@ -306,10 +331,10 @@ def attach_rest_preprocessing(main_wf, wf_name="rest_preproc"):
                     (r"/corr_stc{rest}_trim_filt\.nii$",                                    "/time_filt.nii"),
                     (r"/corr_stc{rest}_trim_mean_mask\.\.nii$",                             "/epi_brain_mask.nii"),
                     (r"/corr_stc{rest}_trim_filtermotart\.nii$",                            "/motion_corrected.nii"),
-                    (r"/corr_stc{rest}_trim_filtermotart_[\w_]*_cleaned\.nii$",             "/nuis_corrected.nii"),
-                    (r"/corr_stc{rest}_trim_filtermotart_[\w_]*_gsr\.nii$",                 "/nuis_corrected.nii"),
-                    (r"/corr_stc{rest}_trim_filtermotart_[\w_]*_bandpassed\.nii$",          "/time_filtered.nii"),
-                    (r"/corr_stc{rest}_trim_filtermotart_[\w_]*_smooth\.nii$",              "/smooth.nii"),
+                    (r"/corr_stc{rest}_trim_filtermotart[\w_]*_cleaned\.nii$",              "/nuisance_corrected.nii"),
+                    (r"/corr_stc{rest}_trim_filtermotart[\w_]*_gsr\.nii$",                  "/nuisance_corrected.nii"),
+                    (r"/corr_stc{rest}_trim_filtermotart[\w_]*_bandpassed\.nii$",           "/time_filtered.nii"),
+                    (r"/corr_stc{rest}_trim_filtermotart[\w_]*_smooth\.nii$",               "/smooth.nii"),
                    ]
     regexp_subst = format_pair_list(regexp_subst, rest=rest_fbasename)
 
@@ -356,6 +381,13 @@ def attach_rest_preprocessing(main_wf, wf_name="rest_preproc"):
     if do_atlas:
             main_wf.connect([(anat_wf,  rest_wf,  [("anat_output.atlas_warped", "rest_input.atlas_anat")]),
                              (rest_wf,  datasink, [("rest_output.atlas_rest",   "rest.@atlas")]),
+                            ])
+
+    do_connectivity = get_config_setting('rest_preproc.connectivity')
+    if do_atlas and do_connectivity:
+            main_wf.connect([(rest_wf,  datasink, [("rest_output.connectivity",     "rest.connectivity.@matrix"),
+                                                   ("rest_output.atlas_timeseries", "rest.connectivity.@timeseries"),
+                                                  ]),
                             ])
 
     return main_wf

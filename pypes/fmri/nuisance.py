@@ -90,7 +90,7 @@ def create_regressors(motion_params, comp_norm, outliers, detrend_poly=None):
 
 def extract_noise_components(realigned_file, mask_file, num_components=5,
                              extra_regressors=None):
-    """Derive components most reflective of physiological noise
+    """Derive components most reflective of physiological noise.
     Parameters
     ----------
     realigned_file: a 4D Nifti file containing realigned volumes

@@ -17,6 +17,7 @@ from nipype.interfaces.base import (BaseInterface,
                                     traits,)
 
 from .._utils        import check_equal, grep
+from ..utils         import get_trait_value
 from ..preproc.dicom import split_dcm_ahdr, dcm_ascii_hdr
 
 
@@ -454,12 +455,13 @@ class STCParametersInterface(BaseInterface):
     output_spec = STCParametersOutputSpec
 
     def _run_interface(self, runtime):
-        num_slices       = 0         if not isdefined(self.inputs.num_slices      ) else self.inputs.num_slices
-        ref_slice        = None      if not isdefined(self.inputs.ref_slice       ) else self.inputs.ref_slice
-        slice_order      = None      if not isdefined(self.inputs.slice_order     ) else self.inputs.slice_order
-        time_acquisition = None      if not isdefined(self.inputs.time_acquisition) else self.inputs.time_acquisition
-        time_repetition  = None      if not isdefined(self.inputs.time_repetition ) else self.inputs.time_repetition
-        slice_mode       = 'unknown' if not isdefined(self.inputs.slice_mode      ) else self.inputs.slice_mode
+
+        num_slices       = get_trait_value(self.inputs, 'num_slices',       default=0)
+        ref_slice        = get_trait_value(self.inputs, 'ref_slice',        default=None)
+        slice_order      = get_trait_value(self.inputs, 'slice_order',      default=None)
+        time_acquisition = get_trait_value(self.inputs, 'time_acquisition', default=None)
+        time_repetition  = get_trait_value(self.inputs, 'time_repetition',  default=None)
+        slice_mode       = get_trait_value(self.inputs, 'slice_mode',       default='unknown')
 
         self.stc_params = STCParameters()
 
@@ -468,12 +470,12 @@ class STCParametersInterface(BaseInterface):
          self._slice_order,
          self._time_acquisition,
          self._time_repetition) = self.stc_params.fit(in_files         = self.inputs.in_files,
-                                                      num_slices       = num_slices      ,
-                                                      ref_slice        = ref_slice       ,
-                                                      slice_order      = slice_order     ,
+                                                      num_slices       = num_slices,
+                                                      ref_slice        = ref_slice,
+                                                      slice_order      = slice_order,
                                                       time_acquisition = time_acquisition,
-                                                      time_repetition  = time_repetition ,
-                                                      slice_mode       = slice_mode      ,
+                                                      time_repetition  = time_repetition,
+                                                      slice_mode       = slice_mode,
                                                       )
         return runtime
 

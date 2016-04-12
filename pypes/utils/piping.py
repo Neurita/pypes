@@ -10,6 +10,27 @@ import nipype.interfaces.fsl as fsl
 from ..crumb  import DataCrumb
 
 
+def get_trait_value(traitspec, value_name, default=None):
+    """ Return the attribute `value_name` from traitspec if it is defined.
+    If not will return the value of `default`.
+    Parameters
+    ----------
+    traitspec: TraitedSpec
+
+    value_name: str
+        Name of the `traitspect` attribute.
+
+    default: any
+        A default value in case the attribute does not exist or is not defined.
+
+    Returns
+    -------
+    trait_value: any
+    """
+    val = getattr(traitspec, value_name, default)
+    return default if not isdefined(val) else val
+
+
 def selectindex(files, idx):
     """ Select the items in the list `files` in the indexes given by the list of
     integers `idx`."""

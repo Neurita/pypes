@@ -15,7 +15,6 @@ from nipype.interfaces.base import (
     TraitedSpec,
     CommandLineInputSpec,
     CommandLine,
-    File,
     isdefined,
     traits,
 )
@@ -47,9 +46,9 @@ pvc_methods = ['GTM',
 
 
 class PETPVCInputSpec(CommandLineInputSpec):
-    in_file   = File(desc="PET image file", exists=True, mandatory=True, argstr="-i %s")
-    out_file  = File(desc="Output file", genfile=True, hash_files=False, argstr="-o %s")
-    mask_file = File(desc="Mask image file", exists=True, mandatory=True, argstr="-m %s")
+    in_file   = traits.File(desc="PET image file", exists=True, mandatory=True, argstr="-i %s")
+    out_file  = traits.File(desc="Output file", genfile=True, hash_files=False, argstr="-o %s")
+    mask_file = traits.File(desc="Mask image file", exists=True, mandatory=True, argstr="-m %s")
     pvc       = traits.Enum(pvc_methods, desc="Desired PVC method", mandatory=True, argstr="-p %s")
     fwhm_x    = traits.Float(desc="The full-width at half maximum in mm along x-axis", mandatory=True, argstr="-x %.4f")
     fwhm_y    = traits.Float(desc="The full-width at half maximum in mm along y-axis", mandatory=True, argstr="-y %.4f")
@@ -62,7 +61,7 @@ class PETPVCInputSpec(CommandLineInputSpec):
 
 
 class PETPVCOutputSpec(TraitedSpec):
-    out_file = File(desc = "Output file")
+    out_file = traits.File(desc="Output file")
 
 
 class PETPVC(CommandLine):
