@@ -3,7 +3,7 @@
 Helper functions for joining, merging, managing the workflow nodes.
 """
 
-from nipype import Function, Node, SelectFiles, DataSink, DataGrabber
+from nipype import Function, SelectFiles, DataSink, DataGrabber
 from nipype.interfaces.base import (traits, isdefined)
 import nipype.interfaces.fsl as fsl
 
@@ -37,60 +37,6 @@ def selectindex(files, idx):
     import numpy as np
     from nipype.utils.filemanip import filename_to_list, list_to_filename
     return list_to_filename(np.array(filename_to_list(files))[idx].tolist())
-
-
-def iterable_record_node(records, node_name):
-    """ A node to iterate over each set of parameters given in records, e.g.
-            [[('subjid', '001'), ('diagnosis', 'ad')],
-              ('subjid', '002'), ('diagnosis', 'hc')],
-              ...
-            ]
-    Parameters
-    ----------
-    records: list of list of 2-tuple of str
-        The set of
-
-    node_name: str
-        A name for the node
-
-    Returns
-    -------
-    node: nipype.Node
-
-    Raises
-    ------
-    IndexError
-        If the keys in the records are not the same.
-    """
-    # check if all of them have the same set of keys
-    one_fields = set(dict(records[0]).keys())
-    for idx, rec in enumerate(records):
-        if one_fields != set(dict(rec).keys()):
-            raise ValueError('Expected that all `records` were the same, '
-                             'got sets of keys {} in index {}, given '
-                             'the first set {}.'.format(set(dict(rec).keys()),
-                                                        idx, one_fields))
-
-    # defined the getter function
-    def get_record(index, items, fields):
-        idict = dict(items[index])
-        if len(fields) == 1:
-            return idict[fields[0]]
-        else:
-            return tuple([idict[fname] for fname in fields])
-
-    # define the get_record Function interface
-    fiface = Function(input_names=['index', 'items', 'fields'],
-                      output_names=one_fields,
-                      function=get_record)
-
-    # define the node
-    node = Node(fiface, name=node_name)
-    node.inputs.items = records
-    node.inputs.fields = list(one_fields)
-    node.iterables = [('index', list(range(len(records)))),]
-
-    return node
 
 
 def get_node(wf, node_types):

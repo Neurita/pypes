@@ -2,8 +2,6 @@
 """
 Workflows to grab input file structures.
 """
-import os
-import json
 import os.path as op
 import logging as log
 
@@ -15,7 +13,6 @@ from   nipype.interfaces.utility import IdentityInterface
 
 from .crumb  import DataCrumb
 from .utils  import extend_trait_list, joinstrings, configuration
-from .utils.piping import iterable_record_node
 
 
 def build_crumb_workflow(wfname_attacher, data_crumb, in_out_kwargs, output_dir,
