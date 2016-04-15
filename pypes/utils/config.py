@@ -7,7 +7,7 @@ The global configuration registry is declared in the bottom of this file.
 """
 import os.path as op
 
-from   nipype import Node
+from   nipype import Node, MapNode
 from   kaptan import Kaptan
 
 from nipype.interfaces.utility import isdefined
@@ -215,13 +215,24 @@ def setup_node(interface, name, settings=None, **kwargs):
         These will have higher priority than the ones in the global Configuration.
 
     kwargs: keyword arguments
+        type: str or None.
+            choices: 'map' or None.
+            If 'map' will return a MapNode.
+            If None will return a Node.
+
         Extra arguments to pass to nipype.Node __init__ function.
+
 
     Returns
     -------
     node: nipype.Node
     """
-    node = Node(interface=interface, name=name, **kwargs)
+    typ = kwargs.pop('type', None)
+    if typ == 'map':
+        node_class = MapNode
+    else:
+        node_class = Node
+    node = node_class(interface=interface, name=name, **kwargs)
 
     params = _get_params_for(name)
     if settings is not None:

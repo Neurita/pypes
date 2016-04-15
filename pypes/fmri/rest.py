@@ -18,9 +18,11 @@ from   ..preproc import (auto_spm_slicetime,
                          spm_coregister,
                          )
 
+from   ..postproc.connectivity import ConnectivityCorrelationInterface
+from   ..postproc.decompose    import CanICAInterface
+
 from   .._utils import format_pair_list, flatten_list
 from   ..utils  import (setup_node,
-                        selectindex,
                         remove_ext,
                         get_config_setting,
                         check_atlas_file,
@@ -181,6 +183,9 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
                                                        "nuis_corrected",
                                                        "connectivity",
                                                        "atlas_timeseries",
+                                                       "ica_components",
+                                                       "ica_loadings",
+                                                       "ica_score",
                                                        ],),
                              name="rest_output")
 
@@ -270,16 +275,28 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
             (coreg_atlas, rest_output, [("coregistered_files",  "atlas_rest")]),
         ])
 
+    # functional connectivity
     do_connectivity = get_config_setting('rest_preproc.connectivity')
     if do_atlas and do_connectivity:
-        from ..postproc.connectivity import ConnectivityCorrelationInterface
-
         conn = setup_node(ConnectivityCorrelationInterface(), name="rest_connectivity")
         wf.connect([
             (coreg_atlas, conn,        [("coregistered_files",  "atlas_file")]),
-            (smooth,      conn,        [("out_file",            "in_files")]),
+            (bandpass,    conn,        [("out_files",           "in_files")]),
             (conn,        rest_output, [("connectivity",        "connectivity"),
                                         ("timeseries",          "atlas_timeseries"),
+                                       ]),
+        ])
+
+    # CanICA
+    do_canica = get_config_setting('rest_preproc.canica')
+    if do_canica:
+        ica = setup_node(CanICAInterface(), name="rest_groupica")
+        wf.connect([
+            (bandpass,    ica,         [("out_files",           "in_files")]),
+            (tissue_mask, ica,         [("out_file",            "mask")]),
+            (ica,         rest_output, [("components",          "ica_components"),
+                                        ("score",               "ica_score"),
+                                        ("loadings",            "ica_loadings"),
                                        ]),
         ])
 
@@ -389,5 +406,14 @@ def attach_rest_preprocessing(main_wf, wf_name="rest_preproc"):
                                                    ("rest_output.atlas_timeseries", "rest.connectivity.@timeseries"),
                                                   ]),
                             ])
+
+    do_canica = get_config_setting('rest_preproc.canica')
+    if do_canica:
+            main_wf.connect([(rest_wf,  datasink, [("rest_output.ica_components",  "rest.canica.@components"),
+                                                   ("rest_output.ica_score",       "rest.canica.@score"),
+                                                   ("rest_output.ica_loadings",    "rest.canica.@loadings"),
+                                                  ]),
+                            ])
+
 
     return main_wf

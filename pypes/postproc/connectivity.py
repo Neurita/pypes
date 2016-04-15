@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Nipype workflows to calculate connectivity measures.
+Nipype interfaces to calculate connectivity measures.
 """
 import os.path as op
 

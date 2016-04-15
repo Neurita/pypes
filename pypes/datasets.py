@@ -7,10 +7,12 @@ from collections import OrderedDict
 
 from   .utils  import update_config
 from   .anat   import attach_spm_anat_preprocessing
-from   .dti    import attach_fsl_dti_preprocessing, attach_camino_tractography
+from   .dti    import (attach_fsl_dti_preprocessing,
+                       attach_camino_tractography)
 from   .fmri   import attach_rest_preprocessing
 from   .io     import build_crumb_workflow
-from   .pet    import attach_spm_mrpet_preprocessing
+from   .pet    import (attach_spm_mrpet_preprocessing,
+                       attach_spm_pet_preprocessing)
 
 
 def _cobre_wf_setup(wf_name):
@@ -63,6 +65,8 @@ def _clinical_wf_setup(wf_name):
     """
     attach_functions = {"spm_anat_preproc":         [("spm_anat_preproc",  attach_spm_anat_preprocessing)],
 
+                        "spm_pet_preproc":          [("spm_pet_preproc",   attach_spm_pet_preprocessing)],
+
                         "spm_anat_pet_preproc":     [("spm_anat_preproc",  attach_spm_anat_preprocessing),
                                                      ("spm_mrpet_preproc", attach_spm_mrpet_preprocessing)],
 
@@ -82,7 +86,10 @@ def _clinical_wf_setup(wf_name):
                                                     ],
                        }
 
-    files_crumb_args = {'anat':  [('image', 'anat_hc.nii.gz')]}
+    files_crumb_args = {}
+
+    if 'anat' in wf_name:
+        files_crumb_args.update({'anat':  [('image', 'anat_hc.nii.gz')]})
 
     if 'pet' in wf_name:
         files_crumb_args.update({'pet':  [('image', 'pet_fdg.nii.gz')],})
@@ -137,12 +144,13 @@ def cobre_crumb_workflow(wf_name, data_crumb, output_dir, cache_dir='', config_f
     if params:
         update_config(params)
 
-    return build_crumb_workflow(attach_funcs,
-                                data_crumb=data_crumb,
-                                in_out_kwargs=in_out_wf_kwargs,
-                                output_dir=output_dir,
-                                cache_dir=cache_dir,
-                                )
+    wf = build_crumb_workflow(attach_funcs,
+                              data_crumb=data_crumb,
+                              in_out_kwargs=in_out_wf_kwargs,
+                              output_dir=output_dir,
+                              cache_dir=cache_dir,)
+
+    return wf
 
 
 def clinical_crumb_workflow(wf_name, data_crumb, output_dir, cache_dir='', config_file='', params=None):
@@ -153,7 +161,8 @@ def clinical_crumb_workflow(wf_name, data_crumb, output_dir, cache_dir='', confi
     wf_name: str
         A name for the workflow to be created.
         Choices: 'spm_anat_preproc':     MPRAGE preprocessing with SPM12
-                 'spm_anat_pet_preproc': MPRAGE+FDGPET preprocessing with SPM12
+                 'spm_anat_pet_preproc': MPRAGE+FDG-PET preprocessing with SPM12
+                 'spm_pet_preproc':      FDG-PET only preprocessing with SPM12
 
     data_crumb: hansel.Crumb
         The crumb until the subject files.
@@ -191,8 +200,12 @@ def clinical_crumb_workflow(wf_name, data_crumb, output_dir, cache_dir='', confi
     if params:
         update_config(params)
 
-    return build_crumb_workflow(attach_funcs,
-                                data_crumb=data_crumb,
-                                in_out_kwargs=in_out_wf_kwargs,
-                                output_dir=output_dir,
-                                cache_dir=cache_dir,)
+    wf = build_crumb_workflow(attach_funcs,
+                              data_crumb=data_crumb,
+                              in_out_kwargs=in_out_wf_kwargs,
+                              output_dir=output_dir,
+                              cache_dir=cache_dir,)
+
+    return wf
+
+

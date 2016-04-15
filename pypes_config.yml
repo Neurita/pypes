@@ -54,14 +54,27 @@ compcor_pars.num_components: 5
 # Number of principal components to calculate when running Global Signal Regression. 1 is recommended.
 gsr_pars.num_components: 1
 
+
+# INDEPENDENT COMPONENTS ANALYSIS
+## True to perform CanICA
+rest_preproc.canica: True
+
+# CanICA settings
+rest_groupica.do_cca: True
+rest_groupica.standardize: True
+rest_groupica.n_components: 20
+rest_groupica.threshold: 3.0
+rest_groupica.smoothing_fwhm: 8
+#rest_groupica.random_state: 0
+
+
 # REST CONNECTIVITY
 ## if atlas_file is defined, perform connectivity analysis
 rest_preproc.connectivity: True
-
 ## if further smoothing (remember the output of the rest workflow is already smoothed)
 rest_connectivity.standardize: False
 rest_connectivity.kind: correlation # choices: "correlation", "partial correlation", "tangent", "covariance", "precision".
-#rest_connectivity.smoothing_fwhm: 8
+rest_connectivity.smoothing_fwhm: 8
 #rest_connectivity.resampling_target: # choices: "mask", "maps" or undefined.
 rest_connectivity.atlas_type: labels # choices: "labels", "probabilistic".
 

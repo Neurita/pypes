@@ -103,7 +103,7 @@ def spm_normalize(in_imgs=traits.Undefined, voxel_size=(1, 1, 1), template=None)
 
     norm12 = spm.Normalize12(jobtype='estwrite',
                              tpm=template,
-                             write_voxel_sizes=voxel_size)
+                             write_voxel_sizes=list(voxel_size))
 
     #norm12.run()
     return norm12

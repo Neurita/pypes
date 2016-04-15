@@ -10,7 +10,9 @@ import logging as log
 import nipype.pipeline.engine as pe
 from   nipype.interfaces.io   import DataSink
 
-from hansel.utils import joint_value_map
+from hansel.utils import joint_value_map, valuesmap_to_dict
+from   nipype.interfaces.utility import IdentityInterface
+
 from .crumb  import DataCrumb
 from .utils  import extend_trait_list, joinstrings, configuration
 from .utils.piping import iterable_record_node
@@ -88,6 +90,8 @@ def build_crumb_workflow(wfname_attacher, data_crumb, in_out_kwargs, output_dir,
     main_wf.config["execution"]["crashdump_dir"] = op.join(main_wf.base_dir,
                                                            main_wf.name, "log")
 
+    log.info('Workflow created.')
+
     return main_wf
 
 
@@ -144,20 +148,10 @@ def crumb_wf(work_dir, data_crumb, output_dir, file_templates,
     datasink.inputs.substitutions = extend_trait_list(datasink.inputs.substitutions,
                                                       substitutions)
 
-    # Infosource - node to iterate over the list of subject names
-    # create the lists of argument names
-    valuesmap = {}
-    if undef_args:  # check the missing argument values for the info source.
-        valuesmap = joint_value_map(data_crumb, undef_args)
-
-        # write the indexes in the working dir
-        os.makedirs(work_dir, exist_ok=True)
-        out_json = op.join(work_dir, 'index_paramlist.json')
-        indexes = {i: v for i, v in enumerate(valuesmap)}
-        with open(out_json, 'w') as f:
-            json.dump(indexes, f, sort_keys=True, indent=2)
-
-    infosource = iterable_record_node(valuesmap, node_name='infosrc')
+    # Infosource - the information source that iterates over crumb values map from the filesystem
+    infosource = pe.Node(interface=IdentityInterface(fields=undef_args), name="infosrc")
+    infosource.iterables = list(valuesmap_to_dict(joint_value_map(data_crumb, undef_args)).items())
+    infosource.synchronize = True
 
     # connect the input_wf to the datasink
     joinpath = pe.Node(joinstrings(len(undef_args)), name='joinpath')
