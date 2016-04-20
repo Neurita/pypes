@@ -146,7 +146,8 @@ def extension_duplicates(regexp_pair_list):
     """
     replace_ext = lambda x: x.replace('.nii', '.nii.gz')
     dups = [(replace_ext(pair[0]), replace_ext(pair[1]))
-            for pair in regexp_pair_list]
+            for pair in regexp_pair_list
+            if '.nii$' in pair[0]]
     return dups
 
 

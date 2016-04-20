@@ -2,7 +2,11 @@
 # emacs: -*- mode: python; py-indent-offset: 4; indent-tabs-mode: nil -*-
 # vi: set ft=python sts=4 ts=4 sw=4 et:
 """
-Definition of a PETPVC Nipype interface.
+   Change directory to provide relative paths for doctests
+   >>> import os
+   >>> filepath = os.path.dirname( os.path.realpath( __file__ ) )
+   >>> datadir = os.path.realpath(os.path.join(filepath, '../testing/data'))
+   >>> os.chdir(datadir)
 """
 
 from __future__ import print_function
@@ -15,6 +19,7 @@ from nipype.interfaces.base import (
     TraitedSpec,
     CommandLineInputSpec,
     CommandLine,
+    File,
     isdefined,
     traits,
 )
@@ -46,9 +51,9 @@ pvc_methods = ['GTM',
 
 
 class PETPVCInputSpec(CommandLineInputSpec):
-    in_file   = traits.File(desc="PET image file", exists=True, mandatory=True, argstr="-i %s")
-    out_file  = traits.File(desc="Output file", genfile=True, hash_files=False, argstr="-o %s")
-    mask_file = traits.File(desc="Mask image file", exists=True, mandatory=True, argstr="-m %s")
+    in_file   = File(desc="PET image file", exists=True, mandatory=True, argstr="-i %s")
+    out_file  = File(desc="Output file", genfile=True, hash_files=False, argstr="-o %s")
+    mask_file = File(desc="Mask image file", exists=True, mandatory=True, argstr="-m %s")
     pvc       = traits.Enum(pvc_methods, desc="Desired PVC method", mandatory=True, argstr="-p %s")
     fwhm_x    = traits.Float(desc="The full-width at half maximum in mm along x-axis", mandatory=True, argstr="-x %.4f")
     fwhm_y    = traits.Float(desc="The full-width at half maximum in mm along y-axis", mandatory=True, argstr="-y %.4f")
@@ -61,13 +66,11 @@ class PETPVCInputSpec(CommandLineInputSpec):
 
 
 class PETPVCOutputSpec(TraitedSpec):
-    out_file = traits.File(desc="Output file")
+    out_file = File(desc = "Output file")
 
 
 class PETPVC(CommandLine):
     """ Use PETPVC for partial volume correction of PET images.
-
-    Nipype interface for PETPVC.
 
     PETPVC is a software from the Nuclear Medicine Department
     of the UCL University Hospital, London, UK.
@@ -76,12 +79,11 @@ class PETPVC(CommandLine):
 
     The methods that it implement are explained here:
     K. Erlandsson, I. Buvat, P. H. Pretorius, B. A. Thomas, and B. F. Hutton,
-    “A review of partial volume correction techniques for emission tomography
-    and their applications in neurology, cardiology and oncology,” Phys. Med.
+    "A review of partial volume correction techniques for emission tomography
+    and their applications in neurology, cardiology and oncology," Phys. Med.
     Biol., vol. 57, no. 21, p. R119, 2012.
 
     There is a publication waiting to be accepted for this software tool.
-
 
     Its command line help shows this:
 
@@ -114,39 +116,38 @@ class PETPVC(CommandLine):
           = Stopping criterion
             With: stopval (Default = 0.01)
 
-    ----------------------------------------------
     Technique - keyword
-
-    Geometric transfer matrix - "GTM"
-    Labbe approach - "LABBE"
-    Richardson-Lucy - "RL"
-    Van-Cittert - "VC"
-    Region-based voxel-wise correction - "RBV"
-    RBV with Labbe - "LABBE+RBV"
-    RBV with Van-Cittert - "RBV+VC"
-    RBV with Richardson-Lucy - "RBV+RL"
-    RBV with Labbe and Van-Cittert - "LABBE+RBV+VC"
-    RBV with Labbe and Richardson-Lucy- "LABBE+RBV+RL"
-    Multi-target correction - "MTC"
-    MTC with Labbe - "LABBE+MTC"
-    MTC with Van-Cittert - "MTC+VC"
-    MTC with Richardson-Lucy - "MTC+RL"
-    MTC with Labbe and Van-Cittert - "LABBE+MTC+VC"
-    MTC with Labbe and Richardson-Lucy- "LABBE+MTC+RL"
-    Iterative Yang - "IY"
-    Iterative Yang with Van-Cittert - "IY+VC"
-    Iterative Yang with Richardson-Lucy - "IY+RL"
-    Muller Gartner - "MG"
-    Muller Gartner with Van-Cittert - "MG+VC"
-    Muller Gartner with Richardson-Lucy - "MG+RL"
+    -------------------
+    - Geometric transfer matrix - "GTM"
+    - Labbe approach - "LABBE"
+    - Richardson-Lucy - "RL"
+    - Van-Cittert - "VC"
+    - Region-based voxel-wise correction - "RBV"
+    - RBV with Labbe - "LABBE+RBV"
+    - RBV with Van-Cittert - "RBV+VC"
+    - RBV with Richardson-Lucy - "RBV+RL"
+    - RBV with Labbe and Van-Cittert - "LABBE+RBV+VC"
+    - RBV with Labbe and Richardson-Lucy- "LABBE+RBV+RL"
+    - Multi-target correction - "MTC"
+    - MTC with Labbe - "LABBE+MTC"
+    - MTC with Van-Cittert - "MTC+VC"
+    - MTC with Richardson-Lucy - "MTC+RL"
+    - MTC with Labbe and Van-Cittert - "LABBE+MTC+VC"
+    - MTC with Labbe and Richardson-Lucy- "LABBE+MTC+RL"
+    - Iterative Yang - "IY"
+    - Iterative Yang with Van-Cittert - "IY+VC"
+    - Iterative Yang with Richardson-Lucy - "IY+RL"
+    - Muller Gartner - "MG"
+    - Muller Gartner with Van-Cittert - "MG+VC"
+    - Muller Gartner with Richardson-Lucy - "MG+RL"
 
     Examples
     --------
     >>> from ..testing import example_data
     >>> #TODO get data for PETPVC
     >>> pvc = PETPVC()
-    >>> pvc.inputs.in_file   = example_data('pet.nii.gz')
-    >>> pvc.inputs.mask_file = example_data('tissues.nii.gz')
+    >>> pvc.inputs.in_file   = 'pet.nii.gz'
+    >>> pvc.inputs.mask_file = 'tissues.nii.gz'
     >>> pvc.inputs.out_file  = 'pet_pvc_rbv.nii.gz'
     >>> pvc.inputs.pvc = 'RBV'
     >>> pvc.inputs.fwhm_x = 2.0
@@ -218,19 +219,3 @@ class PETPVC(CommandLine):
         if name == 'out_file':
             return self._list_outputs()['out_file']
         return None
-
-
-if __name__ == '__main__':
-
-    #from .testing import example_data
-    #TODO get data for PETPVC
-
-    pvc = PETPVC()
-    pvc.inputs.in_file   = example_data('pet.nii.gz')
-    pvc.inputs.mask_file = example_data('tissues.nii.gz')
-    pvc.inputs.out_file  = 'pet_pvc_rbv.nii.gz'
-    pvc.inputs.pvc = 'RBV'
-    pvc.inputs.fwhm_x = 2.0
-    pvc.inputs.fwhm_y = 2.0
-    pvc.inputs.fwhm_z = 2.0
-    pvc.run()

@@ -39,7 +39,7 @@ def selectindex(files, idx):
     return list_to_filename(np.array(filename_to_list(files))[idx].tolist())
 
 
-def get_node(wf, node_types):
+def get_node(wf, node_types, name=''):
     """ Return the first node found in `wf` of any of the types in `node_types`.
 
     Parameters
@@ -55,7 +55,7 @@ def get_node(wf, node_types):
     """
     node = None
     for ionode in node_types:
-        node = find_wf_node(wf, ionode)
+        node = find_wf_node(wf, ionode, name=name)
         if node is not None:
             return node
 
@@ -63,7 +63,7 @@ def get_node(wf, node_types):
         raise KeyError('Could not find a node of type {} in the worflow.'.format(node_types))
 
 
-def get_datasink(wf):
+def get_datasink(wf, name=''):
     """ Return the DataSink node in `wf`
 
     Parameters
@@ -75,12 +75,12 @@ def get_datasink(wf):
     nodes: nipype Node
         The DataSink in `wf`.
     """
-    return get_node(wf, (DataSink, ))
+    return get_node(wf, (DataSink, ), name=name)
 
 
-def get_input_node(wf):
+def get_input_node(wf, name=''):
     """ Return the first node of type: (DataCrumb, SelectFiles, DataGrabber) in wf."""
-    return get_node(wf, (DataCrumb, SelectFiles, DataGrabber))
+    return get_node(wf, (DataCrumb, SelectFiles, DataGrabber), name=name)
 
 
 def wf_nodes(wf, iface_type):
@@ -104,7 +104,7 @@ def wf_nodes(wf, iface_type):
     return nodes
 
 
-def find_wf_node(wf, iface_type):
+def find_wf_node(wf, iface_type, name=''):
     """ Return the first node found in the list of node names in `wf` that
     has an interface of type `iface_type`.
 
@@ -118,9 +118,12 @@ def find_wf_node(wf, iface_type):
     -------
     node: nipype Node
     """
-    for name in wf.list_node_names():
-        if isinstance(getattr(wf.get_node(name), 'interface', None), iface_type):
-            return wf.get_node(name)
+    for node_nom in wf.list_node_names():
+        if isinstance(getattr(wf.get_node(node_nom), 'interface', None), iface_type):
+            if not name:
+                return wf.get_node(node_nom)
+            elif name == node_nom:
+                return wf.get_node(node_nom)
     return None
 
 

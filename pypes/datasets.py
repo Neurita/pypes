@@ -12,7 +12,8 @@ from   .dti    import (attach_fsl_dti_preprocessing,
 from   .fmri   import attach_rest_preprocessing
 from   .io     import build_crumb_workflow
 from   .pet    import (attach_spm_mrpet_preprocessing,
-                       attach_spm_pet_preprocessing)
+                       attach_spm_pet_preprocessing,
+                       attach_spm_pet_grouptemplate)
 
 
 def _cobre_wf_setup(wf_name):
@@ -63,27 +64,32 @@ def _clinical_wf_setup(wf_name):
 
     in_out_wf_kwargs: dict with kwargs
     """
-    attach_functions = {"spm_anat_preproc":         [("spm_anat_preproc",  attach_spm_anat_preprocessing)],
+    attach_functions = {"spm_anat_preproc":     [("spm_anat_preproc",  attach_spm_anat_preprocessing)],
 
-                        "spm_pet_preproc":          [("spm_pet_preproc",   attach_spm_pet_preprocessing)],
+                        "spm_pet_preproc":      [("spm_pet_preproc",   attach_spm_pet_preprocessing)],
 
-                        "spm_anat_pet_preproc":     [("spm_anat_preproc",  attach_spm_anat_preprocessing),
-                                                     ("spm_mrpet_preproc", attach_spm_mrpet_preprocessing)],
+                        "spm_pet_template":     [("spm_pet_preproc",       attach_spm_pet_preprocessing),
+                                                 ("spm_pet_grouptemplate", attach_spm_pet_grouptemplate),
+                                                ],
 
-                        "fsl_dti_preproc":          [("spm_anat_preproc",  attach_spm_anat_preprocessing),
-                                                     ("fsl_dti_preproc",   attach_fsl_dti_preprocessing),
-                                                     ],
+                        "spm_anat_pet_preproc": [("spm_anat_preproc",  attach_spm_anat_preprocessing),
+                                                 ("spm_mrpet_preproc", attach_spm_mrpet_preprocessing),
+                                                ],
 
-                        "camino_dti_tract":         [("spm_anat_preproc",  attach_spm_anat_preprocessing),
-                                                     ("fsl_dti_preproc",   attach_fsl_dti_preprocessing),
-                                                     ("camino_tract" ,     attach_camino_tractography),
-                                                    ],
+                        "fsl_dti_preproc":      [("spm_anat_preproc",  attach_spm_anat_preprocessing),
+                                                 ("fsl_dti_preproc",   attach_fsl_dti_preprocessing),
+                                                ],
 
-                        "camino_dti_tract_and_pet": [("spm_anat_preproc",  attach_spm_anat_preprocessing),
-                                                     ("spm_mrpet_preproc", attach_spm_mrpet_preprocessing),
-                                                     ("fsl_dti_preproc",   attach_fsl_dti_preprocessing),
-                                                     ("camino_tract",      attach_camino_tractography),
-                                                    ],
+                        "anat_dti_camino":      [("spm_anat_preproc",  attach_spm_anat_preprocessing),
+                                                 ("fsl_dti_preproc",   attach_fsl_dti_preprocessing),
+                                                 ("camino_tract" ,     attach_camino_tractography),
+                                                ],
+
+                        "anat_pet_dti_camino":  [("spm_anat_preproc",  attach_spm_anat_preprocessing),
+                                                 ("spm_mrpet_preproc", attach_spm_mrpet_preprocessing),
+                                                 ("fsl_dti_preproc",   attach_fsl_dti_preprocessing),
+                                                 ("camino_tract",      attach_camino_tractography),
+                                                ],
                        }
 
     files_crumb_args = {}

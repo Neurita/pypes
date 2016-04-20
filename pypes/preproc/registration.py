@@ -72,7 +72,8 @@ def spm_normalize(in_imgs=traits.Undefined, voxel_size=(1, 1, 1), template=None)
         Default: `(1, 1, 1)`
 
     template: str
-        Path to the target registration template.
+        Template in form of tissue probablitiy maps to normalize to
+        mutually_exclusive: deformation_file.
         Default: the SPM TPM file.
 
     Nipype Ouputs
