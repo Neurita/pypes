@@ -10,7 +10,7 @@ from   nipype.interfaces.utility import Function, Select, Split, IdentityInterfa
 from   nipype.algorithms.misc    import Gunzip
 from   nipype.workflows.dmri.fsl.utils import eddy_rotate_bvecs
 
-from   .utils import dti_acquisition_parameters
+from   .utils import dti_acquisition_parameters, nlmeans_denoise
 
 from   .._utils  import flatten_list, format_pair_list
 from   ..preproc import spm_coregister
@@ -54,6 +54,9 @@ def fsl_dti_preprocessing(wf_name="fsl_dti_preproc"):
     dti_output.diff_corrected: traits.File
         Eddy currents corrected DTI image.
 
+    dti_output.diff_denoised: traits.File
+        Eddy corrected and nlmeans denoised diffusion file.
+
     dti_output.bvec_rotated: traits.File
         Rotated bvecs file
 
@@ -83,18 +86,24 @@ def fsl_dti_preprocessing(wf_name="fsl_dti_preproc"):
                                        input_names=["in_file"],
                                        output_names=["out_acqp", "out_index"],
         ),                    name="write_acqp")
+    eddy         = setup_node(Eddy(),                                name="eddy")
+    denoise      = setup_node(Function(function=nlmeans_denoise,
+                                       input_names=['in_file', 'mask_file', 'out_file', 'N'],
+                                       output_names=['out_file']),
+                              name='denoise')
+
     extract_b0   = setup_node(ExtractROI(t_min=0, t_size=1),         name="extract_b0")
     gunzip_b0    = setup_node(Gunzip(),                              name="gunzip_b0")
     coreg_b0     = setup_node(spm_coregister(cost_function="mi"),    name="coreg_b0")
     brain_sel    = setup_node(Select(index=[0, 1, 2]),               name="brain_sel")
     coreg_split  = setup_node(Split(splits=[1, 2], squeeze=True),    name="coreg_split")
     brain_merge  = setup_node(MultiImageMaths(),                     name="brain_merge")
-    eddy         = setup_node(Eddy(),                                name="eddy")
     rot_bvec     = setup_node(Function(function=eddy_rotate_bvecs,
                                        input_names=["in_bvec", "eddy_params"],
                                        output_names=["out_file"],),
                               name="rot_bvec")
     dti_output   = setup_node(IdentityInterface(fields=["diff_corrected",
+                                                        "diff_denoised",
                                                         "atlas_diff",
                                                         "bvec_rotated",
                                                         "bval",
@@ -126,9 +135,18 @@ def fsl_dti_preprocessing(wf_name="fsl_dti_preproc"):
                 (coreg_split,   brain_merge,    [("out1",                "in_file")]),
                 (coreg_split,   brain_merge,    [("out2",                "operand_files")]),
                 (brain_merge,   eddy,           [("out_file",            "in_mask")]),
+
+                # rotate bvecs
+                (eddy,          rot_bvec,       [("out_parameter",       "eddy_params")]),
+
+                # nlmeans denoise
+                (eddy,          denoise,        [("out_corrected",       "in_file")]),
+                (brain_merge,   denoise,        [("out_file",            "mask_file")]),
+
+                # output
                 (brain_merge,   dti_output,     [("out_file",            "brain_mask_diff")]),
                 (eddy,          dti_output,     [("out_corrected",       "diff_corrected")]),
-                (eddy,          rot_bvec,       [("out_parameter",       "eddy_params")]),
+                (denoise,       dti_output,     [("out_file",            "diff_denoised")]),
                 (rot_bvec,      dti_output,     [("out_file",            "bvec_rotated")]),
                 (dti_input,     dti_output,     [("bval",                "bval")]),
               ])
@@ -218,6 +236,7 @@ def attach_fsl_dti_preprocessing(main_wf, wf_name="fsl_dti_preproc"):
                                            ("new_segment.bias_corrected_images",     "dti_input.anat")
                                           ]),
                      (dti_wf,   datasink, [("dti_output.diff_corrected",             "diff.@eddy_corrected"),
+                                           ("dti_output.diff_denoised",              "diff.@denoised"),
                                            ("dti_output.brain_mask_diff",            "diff.@mask"),
                                            ("dti_output.bvec_rotated",               "diff.@bvec_rotated"),
                                            ("dti_output.bval",                       "diff.@bval")

@@ -4,6 +4,24 @@ Utilities to help in the DTI pre-processing
 """
 
 
+def nlmeans_denoise(in_file, mask_file, out_file='', N=4):
+    """ Filepath interface to the nlmeans_denoise_img in pypes.preproc."""
+    import os.path as op
+    import nibabel as nib
+    from boyle.files.names import remove_ext, get_extension
+    from pypes.preproc import nlmeans_denoise_img
+
+    den = nlmeans_denoise_img(img=nib.load(in_file), mask=nib.load(mask_file), N=N)
+
+    if not out_file:
+        base_name = op.basename(in_file)
+        ext = get_extension(base_name)
+        base_name = remove_ext(base_name)
+        out_file = op.join(op.dirname(op.abspath(in_file)), '{}_denoised{}'.format(base_name, ext))
+
+    den.to_filename(out_file)
+
+
 def dti_acquisition_parameters(in_file, epi_factor=128):
     """ Return the path to the acqp_file and index file necessary for the new Eddy tool.
     This works when `in_file` is a nifti file obtained from a recent version from dcm2nii.
@@ -27,7 +45,8 @@ def dti_acquisition_parameters(in_file, epi_factor=128):
     A detailed description of the --acpq input file is here:
     http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/eddy/Faq#How_do_I_know_what_to_put_into_my_--acqp_file
 
-    In the following subsections I describe each of the fields needed to check and build the acquisitions parameters file.
+    In the following subsections I describe each of the fields needed to check and build the acquisitions parameters
+    file.
 
     ## Phase Encoding Direction
     Dicom header field: (0018,1312) InPlanePhaseEncodingDirection
