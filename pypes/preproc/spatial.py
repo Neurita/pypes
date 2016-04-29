@@ -9,7 +9,6 @@ def get_bounding_box(in_file):
 
     # the imports must be inside if you want them to work in a nipype.Function node.
     from itertools import product
-
     import nibabel as nib
     import numpy   as np
 

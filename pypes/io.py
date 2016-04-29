@@ -9,10 +9,11 @@ import nipype.pipeline.engine as pe
 from   nipype.interfaces.io   import DataSink
 
 from hansel.utils import joint_value_map, valuesmap_to_dict
-from   nipype.interfaces.utility import IdentityInterface
+from nipype.interfaces.utility import IdentityInterface
 
 from .crumb  import DataCrumb
-from .utils  import extend_trait_list, joinstrings, configuration
+from .utils  import extend_trait_list, joinstrings
+from .       import configuration
 
 
 def build_crumb_workflow(wfname_attacher, data_crumb, in_out_kwargs, output_dir,

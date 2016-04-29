@@ -64,7 +64,7 @@ class ConnectivityCorrelationInterface(BaseInterface):
     def _run_interface(self, runtime):
         atlas_type        = get_trait_value(self.inputs, 'atlas_type')
         conn_kind         = get_trait_value(self.inputs, 'kind',)
-        rois_list         = get_trait_value(self.inputs, 'rois_list',         default=None)
+        #rois_list         = get_trait_value(self.inputs, 'rois_list',         default=None)
         smoothing_fwhm    = get_trait_value(self.inputs, 'smoothing_fwhm',    default=None)
         standardize       = get_trait_value(self.inputs, 'standardize',       default=None)
         resampling_target = get_trait_value(self.inputs, 'resampling_target', default=None)
@@ -72,13 +72,14 @@ class ConnectivityCorrelationInterface(BaseInterface):
         self._time_series_file = op.abspath('conn_timeseries.txt')
         self._conn_mat_file    = op.abspath('connectivity.txt')
 
-        if rois_list is None:
-            rois_vals = get_roilist_from_atlas(self.inputs.atlas_file)
-        else:
-            try:
-                rois_vals = np.loadtxt(rois_list, dtype=int)
-            except:
-                raise IOError('Error reading ROIs list file {}.'.format(rois_list))
+        ## TODO: add parameter to choose the ROI labels to be used.
+        # if rois_list is None:
+        #     rois_vals = get_roilist_from_atlas(self.inputs.atlas_file)
+        # else:
+        #     try:
+        #         rois_vals = np.loadtxt(rois_list, dtype=int)
+        #     except:
+        #         raise IOError('Error reading ROIs list file {}.'.format(rois_list))
 
         in_files = self.inputs.in_files
         if len(in_files) == 1:

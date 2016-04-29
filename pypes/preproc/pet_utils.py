@@ -7,8 +7,9 @@ from   nipype.interfaces.base    import traits
 from   nipype.interfaces.utility import Merge, Split
 from   nipype.pipeline import Workflow
 
-from   .petpvc import PETPVC
-from   ..utils import fsl_merge, setup_node
+from   .petpvc  import PETPVC
+from   ..utils  import fsl_merge
+from   ..config import setup_node
 
 
 def petpvc_cmd(in_file=traits.Undefined, mask_file=traits.Undefined, out_file=traits.Undefined,

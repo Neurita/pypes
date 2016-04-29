@@ -5,7 +5,6 @@ Nipype workflows to process anatomical MRI.
 
 from nipype.utils.filemanip import filename_to_list
 from nipype.interfaces.nipy.preprocess import Trim
-from nipype.interfaces.c3 import C3dAffineTool
 
 from pydicom import read_file
 

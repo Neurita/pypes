@@ -37,7 +37,7 @@ def get_affine(volume):
 
 
 def niftiimg_out(f):
-    """ Picks a function whose first argument is an `img`, processes its
+    """ Picks a function whose first argument is an `img` or a sequence of imgs, processes its
     data and returns a numpy array. This decorator wraps this numpy array
     into a nibabel.Nifti1Image."""
     @wraps(f)

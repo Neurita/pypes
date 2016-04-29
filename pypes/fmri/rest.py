@@ -21,11 +21,9 @@ from   ..preproc import (auto_spm_slicetime,
 from   ..postproc.connectivity import ConnectivityCorrelationInterface
 from   ..postproc.decompose    import CanICAInterface
 
+from   ..config import setup_node, get_config_setting, check_atlas_file
 from   .._utils import format_pair_list, flatten_list
-from   ..utils  import (setup_node,
-                        remove_ext,
-                        get_config_setting,
-                        check_atlas_file,
+from   ..utils  import (remove_ext,
                         extend_trait_list,
                         get_input_node,
                         get_datasink,
@@ -338,20 +336,20 @@ def attach_rest_preprocessing(main_wf, wf_name="rest_preproc"):
 
     # dataSink output substitutions
     regexp_subst = [
-                    (r"/rc1[\w]+_corrected_maths\.nii$",                                    "/tissue_brain_mask.nii"),
-                    (r"/rc1[\w]+_corrected\.nii$",                                          "/gm.nii"),
-                    (r"/rc2[\w]+_corrected\.nii$",                                          "/wm.nii"),
-                    (r"/rc3[\w]+_corrected\.nii$",                                          "/csf.nii"),
-                    (r"/rm[\w]+_corrected\.nii$",                                           "/anat.nii"),
-                    (r"/corr_stc{rest}_trim\.nii$",                                         "/slice_time_corrected.nii"),
-                    (r"/stc{rest}_trim\.nii\.par$",                                         "/motion_parameters.txt"),
-                    (r"/corr_stc{rest}_trim_filt\.nii$",                                    "/time_filt.nii"),
-                    (r"/corr_stc{rest}_trim_mean_mask\.\.nii$",                             "/epi_brain_mask.nii"),
-                    (r"/corr_stc{rest}_trim_filtermotart\.nii$",                            "/motion_corrected.nii"),
-                    (r"/corr_stc{rest}_trim_filtermotart[\w_]*_cleaned\.nii$",              "/nuisance_corrected.nii"),
-                    (r"/corr_stc{rest}_trim_filtermotart[\w_]*_gsr\.nii$",                  "/nuisance_corrected.nii"),
-                    (r"/corr_stc{rest}_trim_filtermotart[\w_]*_bandpassed\.nii$",           "/time_filtered.nii"),
-                    (r"/corr_stc{rest}_trim_filtermotart[\w_]*_smooth\.nii$",               "/smooth.nii"),
+                    (r"/rc1[\w]+_corrected_maths\.nii$",                          "/tissue_brain_mask.nii"),
+                    (r"/rc1[\w]+_corrected\.nii$",                                "/gm.nii"),
+                    (r"/rc2[\w]+_corrected\.nii$",                                "/wm.nii"),
+                    (r"/rc3[\w]+_corrected\.nii$",                                "/csf.nii"),
+                    (r"/rm[\w]+_corrected\.nii$",                                 "/anat.nii"),
+                    (r"/corr_stc{rest}_trim\.nii$",                               "/slice_time_corrected.nii"),
+                    (r"/stc{rest}_trim\.nii\.par$",                               "/motion_parameters.txt"),
+                    (r"/corr_stc{rest}_trim_filt\.nii$",                          "/time_filt.nii"),
+                    (r"/corr_stc{rest}_trim_mean_mask\.\.nii$",                   "/epi_brain_mask.nii"),
+                    (r"/corr_stc{rest}_trim_filtermotart\.nii$",                  "/motion_corrected.nii"),
+                    (r"/corr_stc{rest}_trim_filtermotart[\w_]*_cleaned\.nii$",    "/nuisance_corrected.nii"),
+                    (r"/corr_stc{rest}_trim_filtermotart[\w_]*_gsr\.nii$",        "/nuisance_corrected.nii"),
+                    (r"/corr_stc{rest}_trim_filtermotart[\w_]*_bandpassed\.nii$", "/time_filtered.nii"),
+                    (r"/corr_stc{rest}_trim_filtermotart[\w_]*_smooth\.nii$",     "/smooth.nii"),
                    ]
     regexp_subst = format_pair_list(regexp_subst, rest=rest_fbasename)
 
@@ -360,9 +358,9 @@ def attach_rest_preprocessing(main_wf, wf_name="rest_preproc"):
     if do_atlas:
         atlas_basename = remove_ext(op.basename(atlas_file))
         regexp_subst.extend([
-                             (r"/[\w]*{atlas}\.nii$", "/{atlas}_fmri_space.nii"),
+                             (r"/[\w]*{atlas}\.nii$", "/{atlas}_{rest}_space.nii"),
                             ])
-        regexp_subst = format_pair_list(regexp_subst, atlas=atlas_basename)
+        regexp_subst = format_pair_list(regexp_subst, atlas=atlas_basename, rest=rest_fbasename)
 
     regexp_subst += extension_duplicates(regexp_subst)
     datasink.inputs.regexp_substitutions = extend_trait_list(datasink.inputs.regexp_substitutions,
@@ -409,9 +407,9 @@ def attach_rest_preprocessing(main_wf, wf_name="rest_preproc"):
 
     do_canica = get_config_setting('rest_preproc.canica')
     if do_canica:
-            main_wf.connect([(rest_wf,  datasink, [("rest_output.ica_components",  "rest.canica.@components"),
-                                                   ("rest_output.ica_score",       "rest.canica.@score"),
-                                                   ("rest_output.ica_loadings",    "rest.canica.@loadings"),
+            main_wf.connect([(rest_wf,  datasink, [("rest_output.ica_components", "rest.canica.@components"),
+                                                   ("rest_output.ica_score",      "rest.canica.@score"),
+                                                   ("rest_output.ica_loadings",   "rest.canica.@loadings"),
                                                   ]),
                             ])
 

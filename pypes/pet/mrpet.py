@@ -8,18 +8,19 @@ import nipype.pipeline.engine    as pe
 from   nipype.algorithms.misc    import Gunzip
 from   nipype.interfaces.utility import Select, Merge, IdentityInterface
 
+from   ..config  import setup_node, check_atlas_file
 from   ..preproc import (spm_apply_deformations,
                          spm_coregister,
                          petpvc_cmd,
                          petpvc_mask,
                          intensity_norm)
 
-from   ..utils import (setup_node,
-                       get_datasink,
+from   ..utils import (get_datasink,
                        extend_trait_list,
                        get_input_node,
                        remove_ext,
-                       get_input_file_name)
+                       get_input_file_name,
+                       extension_duplicates)
 
 from   .._utils import (flatten_list,
                         format_pair_list)
@@ -49,11 +50,14 @@ def spm_mrpet_preprocessing(wf_name="spm_mrpet_preproc"):
         Target of the co-registration process, i.e., the anatomical image in native space.
 
     pet_input.warp_field: traits.File
-        The DARTEL deformation file for warping the PET to MNI
+        The deformation file for warping the PET to MNI
 
     pet_input.tissues: list of traits.File
         List of tissues files from the New Segment process. At least the first
         3 tissues must be present.
+
+    pet_input.atlas_anat: traits.File
+        Atlas in anatomical native space.
 
     Nipype outputs
     --------------
@@ -79,6 +83,10 @@ def spm_mrpet_preprocessing(wf_name="spm_mrpet_preproc"):
     pet_output.gm_norm: existing file
         The output of the Global Mean intensity normalization process.
 
+    pet_output.atlas_pet: existing file
+        Atlas image warped to PET space.
+        If the `atlas_file` option is an existing file and `normalize_atlas` is True.
+
     Returns
     -------
     wf: nipype Workflow
@@ -89,7 +97,6 @@ def spm_mrpet_preprocessing(wf_name="spm_mrpet_preproc"):
     # input
     pet_input = setup_node(IdentityInterface(fields=["in_file", "coreg_target", "warp_field", "tissues"]),
                                              name="pet_input")
-
 
     # coreg pet
     gunzip_pet  = setup_node(Gunzip(),                           name="gunzip_pet")
@@ -113,7 +120,8 @@ def spm_mrpet_preprocessing(wf_name="spm_mrpet_preproc"):
                                                       "warp_field",
                                                       "pvc_out",
                                                       "pvc_mask",
-                                                      "gm_norm"]),
+                                                      "gm_norm",
+                                                      "atlas_pet",]),
                                                name="pet_output")
 
     # workflow to create the mask
@@ -163,14 +171,28 @@ def spm_mrpet_preprocessing(wf_name="spm_mrpet_preproc"):
                 (merge_lists, warp_pet,   [("out",                 "apply_to_files")]),
 
                 # output
-                (rbvpvc,      pet_output, [("out_file",             "out_file")]),
-                (mask_wf,     pet_output, [("brain_mask.out_file",  "brain_mask")]),
-                (coreg_pet,   pet_output, [("coregistered_source",  "coreg_pet")]),
-                (coreg_pet,   pet_output, [("coregistered_files",   "coreg_others")]),
-                (norm_wf,     pet_output, [("gm_norm.out_file",     "gm_norm")]),
-                (warp_pet,    pet_output, [("normalized_files",     "mni_pet")]),
-                (warp_pet,    pet_output, [("deformation_field",    "warp_field")]),
+                (rbvpvc,      pet_output, [("out_file",            "out_file")]),
+                (mask_wf,     pet_output, [("brain_mask.out_file", "brain_mask")]),
+                (coreg_pet,   pet_output, [("coregistered_source", "coreg_pet")]),
+                (coreg_pet,   pet_output, [("coregistered_files",  "coreg_others")]),
+                (norm_wf,     pet_output, [("gm_norm.out_file",    "gm_norm")]),
+                (warp_pet,    pet_output, [("normalized_files",    "mni_pet")]),
+                (warp_pet,    pet_output, [("deformation_field",   "warp_field")]),
                ])
+
+    # add more nodes if to perform atlas registration
+    do_atlas, _ = check_atlas_file()
+    if do_atlas:
+        coreg_atlas = setup_node(spm_coregister(cost_function="mi"), name="coreg_atlas")
+
+        # set the registration interpolation to nearest neighbour.
+        coreg_atlas.inputs.write_interp = 0
+        wf.connect([
+            (pet_input,   coreg_atlas, [("coreg_target",       "source")]),
+            (gunzip_pet,  coreg_atlas, [("out_file",           "target")]),
+            (pet_input,   coreg_atlas, [("atlas_anat",         "apply_to_files")]),
+            (coreg_atlas, pet_output,  [("coregistered_files", "atlas_pet")]),
+        ])
 
     return wf
 
@@ -232,6 +254,17 @@ def attach_spm_mrpet_preprocessing(main_wf, wf_name="spm_mrpet_preproc"):
                      (r"/wbrain_mask.nii",              "/brain_mask_mni.nii"),
                    ]
     regexp_subst = format_pair_list(regexp_subst, pet=pet_fbasename)
+
+    # prepare substitution for atlas_file, if any
+    do_atlas, atlas_file = check_atlas_file()
+    if do_atlas:
+        atlas_basename = remove_ext(op.basename(atlas_file))
+        regexp_subst.extend([
+                             (r"/[\w]*{atlas}\.nii$", "/{atlas}_fmri_space.nii"),
+                            ])
+        regexp_subst = format_pair_list(regexp_subst, atlas=atlas_basename, pet=pet_fbasename)
+
+    regexp_subst += extension_duplicates(regexp_subst)
     datasink.inputs.regexp_substitutions = extend_trait_list(datasink.inputs.regexp_substitutions,
                                                              regexp_subst)
 
@@ -255,5 +288,10 @@ def attach_spm_mrpet_preprocessing(main_wf, wf_name="spm_mrpet_preproc"):
                                     ("pet_output.mni_pet",      "mrpet.warped2mni"),
                                    ]),
               ])
+
+    if do_atlas:
+            main_wf.connect([(anat_wf,  pet_wf,   [("anat_output.atlas_warped", "pet_input.atlas_anat")]),
+                             (pet_wf,   datasink, [("rest_output.atlas_pet",    "mrpet.@atlas")]),
+                            ])
 
     return main_wf

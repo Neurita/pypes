@@ -8,7 +8,7 @@ from nipype.interfaces.base import traits
 from nipype.interfaces.nipy import SpaceTimeRealigner
 from nipype.interfaces.fsl  import MCFLIRT, Split, Merge, ApplyWarp
 
-from ..utils import setup_node
+from ..config import setup_node
 
 
 def nipy_motion_correction(in_file=traits.Undefined):

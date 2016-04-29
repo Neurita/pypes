@@ -14,9 +14,8 @@ from   .utils import dti_acquisition_parameters
 
 from   .._utils  import flatten_list, format_pair_list
 from   ..preproc import spm_coregister
-from   ..utils   import (setup_node,
-                         check_atlas_file,
-                         get_datasink,
+from   ..config  import setup_node, check_atlas_file
+from   ..utils   import (get_datasink,
                          get_input_node,
                          remove_ext,
                          extend_trait_list,
@@ -199,12 +198,12 @@ def attach_fsl_dti_preprocessing(main_wf, wf_name="fsl_dti_preproc"):
     do_atlas, atlas_file = check_atlas_file()
     if do_atlas:
         atlas_basename = remove_ext(op.basename(atlas_file))
-
         regexp_subst.extend([
-                             (r"/[\w]*{atlas}_[\w]*\.nii$", "/{atlas}_{diff}_space.nii"),
+                             (r"/[\w]*{atlas}\.nii$", "/{atlas}_{diff}_space.nii"),
                             ])
         regexp_subst = format_pair_list(regexp_subst, atlas=atlas_basename,
                                                       diff=diff_fbasename)
+
 
     regexp_subst += extension_duplicates(regexp_subst)
     datasink.inputs.regexp_substitutions = extend_trait_list(datasink.inputs.regexp_substitutions,

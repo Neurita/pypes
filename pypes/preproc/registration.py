@@ -1,13 +1,17 @@
 # -*- coding: utf-8 -*-
+"""
+Nipype registration nodes and workflows
+"""
+import nipype.pipeline.engine    as pe
+from   nipype.interfaces         import fsl
+from   nipype.interfaces.utility import IdentityInterface
 
-"""
-Nipype registration nodes
-"""
 import nipype.interfaces.spm  as spm
 import nipype.interfaces.afni as afni
 from   nipype.interfaces.base import traits
 
-from pypes.utils import spm_tpm_priors_path
+from ..config  import setup_node
+from ..utils   import spm_tpm_priors_path
 
 
 def spm_apply_deformations(in_imgs=traits.Undefined,
@@ -176,3 +180,71 @@ def afni_deoblique(in_file=traits.Undefined, out_file=traits.Undefined, out_type
     deob.inputs.outputtype = out_type
 
     return deob
+
+
+def spm_group_template(wf_name="spm_group_template"):
+    """ Pick all subject files in `grptemplate_input.in_files`, calculate an average
+    image and smooth it with `"{}_smooth".format(wf_name)` node (you can configure the smooth `fwhm` from
+    a config file.).
+
+    It does:
+    - calculate a mean image (across subjects) and
+    - smooth it with 8x8x8 gaussian kernel -> this is the template.
+    - Finally, warp all PET images again to this template.
+    - If tissue data is available from MR, do PVC.
+
+    Parameters
+    ----------
+    wf_name: str
+        Name of the workflow.
+
+    Nipype Inputs
+    -------------
+    grptemplate_input.in_files: list of traits.File
+        The raw NIFTI_GZ PET image files
+
+    Nipype outputs
+    --------------
+    grptemplate_output.template: existing file
+        The common custom PET template file.
+
+    Returns
+    -------
+    wf: nipype Workflow
+    """
+    # input
+    input = setup_node(IdentityInterface(fields=["in_files"]),
+                       name="grptemplate_input",)
+
+    # merge
+    merge  = setup_node(fsl.Merge(dimension='t'),
+                        name='merge_time')
+
+    # average
+    average = setup_node(fsl.MeanImage(dimension='T'),
+                         name='average')
+
+    # smooth
+    smooth = setup_node(fsl.IsotropicSmooth(fwhm=8),
+                        name="{}_smooth".format(wf_name))
+
+    #output
+    output = setup_node(IdentityInterface(fields=["template"]),
+                       name="grptemplate_output",)
+
+    # Create the workflow object
+    wf = pe.Workflow(name=wf_name)
+
+    wf.connect([
+                # input
+                (input,       merge,   [("in_files",    "in_files")]),
+
+                # merge, average and smooth
+                (merge,       average, [("merged_file", "in_file")]),
+                (average,     smooth,  [("out_file",    "in_file")]),
+
+                # output
+                (smooth,     output,   [("out_file",    "template")]),
+               ])
+
+    return wf

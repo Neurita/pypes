@@ -9,10 +9,8 @@ from   nipype.interfaces.utility    import Function, IdentityInterface, Merge
 from   nipype.algorithms.misc       import TSNR
 from   nipype.interfaces            import fsl
 
-from   ..utils import (setup_node,
-                       selectindex,
-                       _get_params_for,
-                       rename, )
+from   ..config import setup_node, _get_params_for
+from   ..utils  import selectindex, rename
 
 
 def motion_regressors(motion_params, order=0, derivatives=1):

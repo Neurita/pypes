@@ -11,19 +11,17 @@ from   nipype.interfaces.ants    import N4BiasFieldCorrection
 from   nipype.interfaces.base    import traits
 from   nipype.interfaces.utility import IdentityInterface, Function
 
+from   .config  import setup_node, check_atlas_file
 from   .preproc import (spm_apply_deformations,
-                        get_bounding_box,
-                        )
-from   ._utils      import format_pair_list
-from   .utils       import (setup_node,
-                            remove_ext,
-                            check_atlas_file,
-                            spm_tpm_priors_path,
-                            extend_trait_list,
-                            get_input_node,
-                            get_datasink,
-                            get_input_file_name,
-                            extension_duplicates)
+                        get_bounding_box,)
+from   ._utils  import format_pair_list
+from   .utils   import (remove_ext,
+                        spm_tpm_priors_path,
+                        extend_trait_list,
+                        get_input_node,
+                        get_datasink,
+                        get_input_file_name,
+                        extension_duplicates)
 
 
 def biasfield_correct(anat_filepath=traits.Undefined):
@@ -285,6 +283,6 @@ def attach_spm_anat_preprocessing(main_wf, wf_name="spm_anat_preproc"):
 
     # check optional outputs
     if do_atlas:
-            main_wf.connect([(anat_wf, datasink, [("anat_output.atlas_warped", "anat.@atlas_warped")]),])
+        main_wf.connect([(anat_wf, datasink, [("anat_output.atlas_warped", "anat.@atlas_warped")]),])
 
     return main_wf

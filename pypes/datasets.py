@@ -5,15 +5,15 @@ Functions to create pipelines for public and not so public available datasets.
 
 from collections import OrderedDict
 
-from   .utils  import update_config
-from   .anat   import attach_spm_anat_preprocessing
-from   .dti    import (attach_fsl_dti_preprocessing,
-                       attach_camino_tractography)
-from   .fmri   import attach_rest_preprocessing
-from   .io     import build_crumb_workflow
-from   .pet    import (attach_spm_mrpet_preprocessing,
-                       attach_spm_pet_preprocessing,
-                       attach_spm_pet_grouptemplate)
+from   .config  import update_config
+from   .anat    import attach_spm_anat_preprocessing
+from   .dti     import (attach_fsl_dti_preprocessing,
+                        attach_camino_tractography)
+from   .fmri    import attach_rest_preprocessing
+from   .io      import build_crumb_workflow
+from   .pet     import (attach_spm_mrpet_preprocessing,
+                        attach_spm_pet_preprocessing,
+                        attach_spm_pet_grouptemplate)
 
 
 def _cobre_wf_setup(wf_name):
