@@ -48,6 +48,9 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
     rest_input.anat: traits.File
         path to the high-contrast anatomical image
 
+    rest_input.atlas_anat: traits.File
+        The atlas file in anatomical space.
+
     rest_input.coreg_target: traits.File
         path to the bias corrected anatomical image for coregistration.
 

@@ -46,6 +46,9 @@ def spm_mrpet_preprocessing(wf_name="spm_mrpet_preproc"):
     pet_input.in_file: traits.File
         The raw NIFTI_GZ PET image file
 
+    pet_input.atlas_anat: traits.File
+        The atlas file in anatomical space.
+
     pet_input.coreg_target: traits.File
         Target of the co-registration process, i.e., the anatomical image in native space.
 
@@ -95,7 +98,11 @@ def spm_mrpet_preprocessing(wf_name="spm_mrpet_preproc"):
     psf_fwhm = (4.3, 4.3, 4.3)
 
     # input
-    pet_input = setup_node(IdentityInterface(fields=["in_file", "coreg_target", "warp_field", "tissues"]),
+    pet_input = setup_node(IdentityInterface(fields=["in_file",
+                                                     "coreg_target",
+                                                     "warp_field",
+                                                     "tissues",
+                                                     "atlas_anat"]),
                                              name="pet_input")
 
     # coreg pet
@@ -291,7 +298,7 @@ def attach_spm_mrpet_preprocessing(main_wf, wf_name="spm_mrpet_preproc"):
 
     if do_atlas:
             main_wf.connect([(anat_wf,  pet_wf,   [("anat_output.atlas_warped", "pet_input.atlas_anat")]),
-                             (pet_wf,   datasink, [("rest_output.atlas_pet",    "mrpet.@atlas")]),
+                             (pet_wf,   datasink, [("pet_output.atlas_pet",     "mrpet.@atlas")]),
                             ])
 
     return main_wf

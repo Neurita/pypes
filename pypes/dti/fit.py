@@ -141,10 +141,10 @@ def fsl_dti_preprocessing(wf_name="fsl_dti_preproc"):
         # set the registration interpolation to nearest neighbour.
         coreg_atlas.inputs.write_interp = 0
         wf.connect([
-                    (dti_input,   coreg_atlas, [("anat",                 "source")]),
-                    (gunzip_b0,   coreg_atlas, [("out_file",             "target")]),
-                    (dti_input,   coreg_atlas, [("atlas_anat",           "apply_to_files")]),
-                    (coreg_atlas, dti_output,  [("coregistered_files",   "atlas_diff")]),
+                    (dti_input,   coreg_atlas, [("anat",               "source")]),
+                    (gunzip_b0,   coreg_atlas, [("out_file",           "target")]),
+                    (dti_input,   coreg_atlas, [("atlas_anat",         "apply_to_files")]),
+                    (coreg_atlas, dti_output,  [("coregistered_files", "atlas_diff")]),
                   ])
 
     return wf
