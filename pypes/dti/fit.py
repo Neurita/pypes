@@ -90,7 +90,7 @@ def fsl_dti_preprocessing(wf_name="fsl_dti_preproc"):
     denoise      = setup_node(Function(function=nlmeans_denoise,
                                        input_names=['in_file', 'mask_file', 'out_file', 'N'],
                                        output_names=['out_file']),
-                              name='denoise')
+                              name='nlmeans_denoise')
 
     extract_b0   = setup_node(ExtractROI(t_min=0, t_size=1),         name="extract_b0")
     gunzip_b0    = setup_node(Gunzip(),                              name="gunzip_b0")

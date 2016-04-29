@@ -12,7 +12,7 @@ atlas_file: '' # this is being set from config.py
 
 # DTI
 coreg_b0.write_interp: 3
-
+nlmeans_denoise.N: 4
 
 # REST
 coreg_rest.write_interp: 3
@@ -89,6 +89,11 @@ rest_connectivity.atlas_type: labels # choices: "labels", "probabilistic".
 stc_input.slice_mode: alt_inc
 stc_input.time_repetition: 2
 stc_input.num_slices: 33
+
+
+# GROUP PET TEMPLATE
+spm_pet_template_smooth.fwhm: 8
+
 
 # PET PVC
 rbvpvc.pvc: RBV
