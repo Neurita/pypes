@@ -249,7 +249,13 @@ def attach_spm_pet_grouptemplate_preproc(main_wf, wf_name='spm_pet_grouptemplate
 
         # Connect the nodes
         main_wf.connect([
+
+                         # normalize to MNI
                          (gunzip_pet,      warp2template, [("out_file",   "source" )]),
+
+                         # other normalized files
+                         (warp2template, datasink, [("normalized_files",  "pet.others"),
+                                                   ]),
         ])
 
         # Connect the nodes

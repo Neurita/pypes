@@ -9,7 +9,7 @@ import nipype.interfaces.spm     as spm
 from   nipype.interfaces.utility import IdentityInterface
 from   nipype.algorithms.misc    import Gunzip
 
-from   ..config import setup_node, get_config_setting
+from   ..config import setup_node
 from   .._utils import format_pair_list
 from   ..utils  import (get_datasink,
                         extend_trait_list,

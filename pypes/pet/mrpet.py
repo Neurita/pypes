@@ -8,6 +8,7 @@ import nipype.pipeline.engine    as pe
 from   nipype.algorithms.misc    import Gunzip
 from   nipype.interfaces.utility import Select, Merge, IdentityInterface
 
+from   .pvc      import petpvc_workflow
 from   ..config  import setup_node, check_atlas_file
 from   ..preproc import (spm_apply_deformations,
                          spm_normalize,
@@ -339,8 +340,9 @@ def spm_mrpet_preprocessing2(wf_name="spm_mrpet_preproc2"):
 
     Nipype outputs
     --------------
-    pet_output.out_file: existing file
+    pet_output.pvc_out: existing file
         The results of the PVC process
+
 
     pet_output.brain_mask: existing file
         A brain mask calculated with the tissues file.
@@ -370,17 +372,13 @@ def spm_mrpet_preprocessing2(wf_name="spm_mrpet_preproc2"):
     -------
     wf: nipype Workflow
     """
-    # fixed parameters of the NUK mMR
-    psf_fwhm = (4.3, 4.3, 4.3)
-
     # specify input and output fields
     in_fields  = ["in_file",
                   "reference_file",
                   "tissues",
                   "atlas_anat"]
 
-    out_fields = ["out_file",
-                  "brain_mask",
+    out_fields = ["brain_mask",
                   "coreg_others",
                   "coreg_ref",
                   "pet_mni",
@@ -398,89 +396,57 @@ def spm_mrpet_preprocessing2(wf_name="spm_mrpet_preproc2"):
     pet_input = setup_node(IdentityInterface(fields=in_fields, mandatory_inputs=True),
                            name="pet_input")
 
-    # coreg pet
-    gunzip_pet  = setup_node(Gunzip(),                           name="gunzip_pet")
-    coreg_pet   = setup_node(spm_coregister(cost_function="mi"), name="coreg_pet")
-    tissues_sel = setup_node(Select(index=[0, 1, 2]),            name="tissues")
-    select_gm   = setup_node(Select(index=[0]),                  name="select_gm")
-    rbvpvc      = setup_node(petpvc_cmd(fwhm_mm=psf_fwhm,
-                                        pvc_method='RBV'),       name="rbvpvc")
-    warp_pet    = setup_node(spm_normalize(),                    name="warp_pet")
+    # workflow to perform partial volume correction
+    petpvc    = petpvc_workflow(wf_name="petpvc")
 
-    unzip_mrg = setup_node(Merge(3),                             name='merge_for_unzip')
-    gunzipper = pe.MapNode(Gunzip(),                             name="gunzip", iterfield=['in_file'])
+    warp_pet  = setup_node(spm_normalize(), name="warp_pet")
+
+    unzip_mrg = setup_node(Merge(3),        name='merge_for_unzip')
+    gunzipper = pe.MapNode(Gunzip(),        name="gunzip", iterfield=['in_file'])
 
     # output
     pet_output = setup_node(IdentityInterface(fields=out_fields), name="pet_output")
 
-    # workflow to create the mask
-    mask_wf = petpvc_mask(wf_name="petpvc_mask")
-
-    # workflow for intensity normalization
-    norm_wf = intensity_norm(wf_name="intensity_norm_gm")
-
     # Create the workflow object
     wf = pe.Workflow(name=wf_name)
 
+    # add more nodes if to perform atlas registration
     wf.connect([
                 # inputs
-                (pet_input,   gunzip_pet,  [("in_file",            "in_file")]),
-                (pet_input,   coreg_pet,   [("reference_file",     "source")]),
-                (pet_input,   tissues_sel, [("tissues",            "inlist")]),
-
-                # unzip to coregister the reference file (anatomical image) to PET space.
-                (gunzip_pet,  coreg_pet,  [("out_file",            "target")]),
-                (tissues_sel, coreg_pet,  [(("out", flatten_list), "apply_to_files")]),
-
-                # the list of tissues to the mask wf and the GM for PET intensity normalization
-                (coreg_pet,   select_gm,  [(("coregistered_files", flatten_list), "inlist")]),
-                (coreg_pet,   mask_wf,    [(("coregistered_files", flatten_list), "split_tissues.inlist")]),
-
-                # the PET in native space to PVC correction
-                (gunzip_pet,  rbvpvc,     [("out_file", "in_file")]),
-
-                # the merged file with 4 tissues to PCV correction
-                (mask_wf,     rbvpvc,     [("merge_tissues.merged_file", "mask_file")]),
-
-                # normalize voxel values of PET PVCed by demeaning it entirely by GM PET voxel values
-                (rbvpvc,      norm_wf,    [("out_file",            "mean_value.in_file")]),
-                (rbvpvc,      norm_wf,    [("out_file",            "gm_norm.in_file")]),
-                (select_gm,   norm_wf,    [("out",                 "mean_value.mask_file")]),
+                (pet_input,   petpvc,  [("in_file",        "pvc_input.in_file")]),
+                (pet_input,   petpvc,  [("reference_file", "pvc_input.reference_file")]),
+                (pet_input,   petpvc,  [("tissues",        "pvc_input.tissues")]),
 
                 # gunzip some files for SPM Normalize12
-                (rbvpvc,      unzip_mrg,  [("out_file",            "in1")]),
-                (mask_wf,     unzip_mrg,  [("brain_mask.out_file", "in2")]),
-                (norm_wf,     unzip_mrg,  [("gm_norm.out_file",    "in3")]),
-                (unzip_mrg,   gunzipper,  [("out",                 "in_file")]),
+                (petpvc,      unzip_mrg,  [("pvc_output.pvc_out",    "in1")]),
+                (petpvc,      unzip_mrg,  [("pvc_output.brain_mask", "in2")]),
+                (petpvc,      unzip_mrg,  [("pvc_output.gm_norm",    "in3")]),
+                (unzip_mrg,   gunzipper,  [("out",                   "in_file")]),
 
                 # warp the PET PVCed to MNI
-                #(gunzipper,  merge_lists, [("out_file",            "in1")]),
-                #(coreg_pet,  merge_lists, [("coregistered_source", "in2")]),
-                (coreg_pet,   warp_pet,   [("coregistered_source", "image_to_align")]),
+                (petpvc,      warp_pet,   [("pvc_output.coreg_ref",   "image_to_align")]),
                 (gunzipper,   warp_pet,   [("out_file",            "apply_to_files")]),
 
                 # output
-                (rbvpvc,      pet_output, [("out_file",            "out_file")]),
-                (mask_wf,     pet_output, [("brain_mask.out_file", "brain_mask")]),
-                (coreg_pet,   pet_output, [("coregistered_source", "coreg_ref")]),
-                (coreg_pet,   pet_output, [("coregistered_files",  "coreg_others")]),
-                (norm_wf,     pet_output, [("gm_norm.out_file",    "gm_norm")]),
-                (warp_pet,    pet_output, [("normalized_files",    "pet_mni")]),
-                (warp_pet,    pet_output, [("deformation_field",   "warp_field")]),
-               ])
+                (petpvc,   pet_output, [("pvc_output.pvc_out",       "pvc_out")]),
+                (petpvc,   pet_output, [("pvc_output.brain_mask",    "brain_mask")]),
+                (petpvc,   pet_output, [("pvc_output.coreg_ref",     "coreg_ref")]),
+                (petpvc,   pet_output, [("pvc_output.coreg_others",  "coreg_others")]),
+                (petpvc,   pet_output, [("pvc_output.gm_norm",       "gm_norm")]),
+                (warp_pet, pet_output, [("normalized_files",         "pet_mni")]),
+                (warp_pet, pet_output, [("deformation_field",        "warp_field")]),
+                ])
 
-    # add more nodes if to perform atlas registration
-    do_atlas, _ = check_atlas_file()
     if do_atlas:
         coreg_atlas = setup_node(spm_coregister(cost_function="mi"), name="coreg_atlas")
 
         # set the registration interpolation to nearest neighbour.
         coreg_atlas.inputs.write_interp = 0
         wf.connect([
-            (pet_input,   coreg_atlas, [("reference_file",      "source")]),
-            (coreg_pet,   coreg_atlas, [("coregistered_source", "target")]),
-            (pet_input,   coreg_atlas, [("atlas_anat",          "apply_to_files")]),
-            (coreg_atlas, pet_output,  [("coregistered_files",  "atlas_pet")]),
+            (pet_input,   coreg_atlas, [("reference_file",       "source")]),
+            (petpvc,      coreg_atlas, [("pvc_output.coreg_ref", "target")]),
+            (pet_input,   coreg_atlas, [("atlas_anat",           "apply_to_files")]),
+            (coreg_atlas, pet_output,  [("coregistered_files",   "atlas_pet")]),
         ])
 
     return wf
@@ -532,14 +498,16 @@ def attach_spm_mrpet_preprocessing2(main_wf, wf_name="spm_mrpet_preproc"):
 
     # dataSink output substitutions
     regexp_subst = [
-                     (r"/r{pet}.nii$",                  "/{pet}_anat.nii"),
-                     (r"/r{pet}_.*_pvc.nii.gz$",        "/{pet}_anat_pvc.nii.gz"),
-                     (r"/r{pet}_.*_pvc_maths.nii.gz$",  "/{pet}_anat_pvc_norm.nii.gz"),
+                     (r"/{pet}_.*_pvc.nii.gz$",         "/{pet}_pvc.nii.gz"),
+                     (r"/{pet}_.*_pvc_maths.nii.gz$",   "/{pet}_pvc_norm.nii.gz"),
                      (r"/w{pet}.nii",                   "/{pet}_mni.nii"),
                      (r"/w{pet}_.*_pvc.nii$",           "/{pet}_mni_pvc.nii"),
-                     (r"/wr{pet}_.*_pvc_maths.nii$",    "/{pet}_mni_pvc_norm.nii"),
+                     (r"/w{pet}_.*_pvc_maths.nii$",     "/{pet}_mni_pvc_norm.nii"),
                      (r"/wbrain_mask.nii",              "/brain_mask_mni.nii"),
-                     (r"/rm{anat}_corrected.nii$",      "/{anat}_{pet}_space.nii"),
+                     (r"/rm{anat}_corrected.nii$",      "/{anat}_{pet}.nii"),
+                     (r"/rc1{anat}_corrected.nii$",     "/gm_{pet}.nii"),
+                     (r"/rc2{anat}_corrected.nii$",     "/wm_{pet}.nii"),
+                     (r"/rc3{anat}_corrected.nii$",     "/csf_{pet}.nii"),
                    ]
     regexp_subst = format_pair_list(regexp_subst, pet=pet_fbasename, anat=anat_fbasename)
 
@@ -567,7 +535,8 @@ def attach_spm_mrpet_preprocessing2(main_wf, wf_name="spm_mrpet_preproc"):
                                         ]),
 
                      (pet_wf, datasink, [
-                                         ("pet_output.out_file",     "mrpet.@pvc"),
+                                         ("pet_output.pvc_out",      "mrpet.@pvc"),
+                                         ("pet_output.pvc_mask",     "mrpet.@pvc_mask"),
                                          ("pet_output.coreg_others", "mrpet.tissues"),
                                          ("pet_output.coreg_ref",    "mrpet.@anat"),
                                          ("pet_output.brain_mask",   "mrpet.@brain_mask"),
