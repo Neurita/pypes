@@ -51,11 +51,14 @@ def fsl_dti_preprocessing(wf_name="fsl_dti_preproc"):
 
     Nipype Outputs
     --------------
-    dti_output.diff_corrected: traits.File
+    dti_output.eddy_corrected: traits.File
         Eddy currents corrected DTI image.
 
-    dti_output.diff_denoised: traits.File
+    dti_output.denoised: traits.File
         Eddy corrected and nlmeans denoised diffusion file.
+
+    dti_output.diff_corrected: traits.File
+        Eddy currents corrected and denoised DTI image.
 
     dti_output.bvec_rotated: traits.File
         Rotated bvecs file
@@ -76,12 +79,25 @@ def fsl_dti_preprocessing(wf_name="fsl_dti_preproc"):
     -------
     wf: nipype Workflow
     """
+    # specify input and output fields
+    in_fields  = ["diff", "bval", "bvec", "tissues", "anat", "atlas_anat"]
+    out_fields = ["corrected",
+                  "denoised",
+                  "eddy_corrected",
+                  "bvec_rotated",
+                  "bval",
+                  "brain_mask_diff"]
 
-    dti_input    = setup_node(IdentityInterface(
-        fields=["diff", "bval", "bvec", "tissues", "anat", "atlas_anat"],
-        mandatory_inputs=True),
-        name="dti_input")
+    do_atlas, _ = check_atlas_file()
+    if do_atlas:
+        in_fields  += ["atlas_anat"]
+        out_fields += ["atlas_diff"]
 
+    # input interface
+    dti_input    = setup_node(IdentityInterface(fields=in_fields, mandatory_inputs=True),
+                              name="dti_input")
+
+    # processing nodes
     write_acqp   = setup_node(Function(function=dti_acquisition_parameters,
                                        input_names=["in_file"],
                                        output_names=["out_acqp", "out_index"],
@@ -92,26 +108,24 @@ def fsl_dti_preprocessing(wf_name="fsl_dti_preproc"):
                                        output_names=['out_file']),
                               name='nlmeans_denoise')
 
-    extract_b0   = setup_node(ExtractROI(t_min=0, t_size=1),         name="extract_b0")
-    gunzip_b0    = setup_node(Gunzip(),                              name="gunzip_b0")
-    coreg_b0     = setup_node(spm_coregister(cost_function="mi"),    name="coreg_b0")
-    brain_sel    = setup_node(Select(index=[0, 1, 2]),               name="brain_sel")
-    coreg_split  = setup_node(Split(splits=[1, 2], squeeze=True),    name="coreg_split")
-    brain_merge  = setup_node(MultiImageMaths(),                     name="brain_merge")
+    extract_b0   = setup_node(ExtractROI(t_min=0, t_size=1),      name="extract_b0")
+    gunzip_b0    = setup_node(Gunzip(),                           name="gunzip_b0")
+    coreg_b0     = setup_node(spm_coregister(cost_function="mi"), name="coreg_b0")
+    brain_sel    = setup_node(Select(index=[0, 1, 2]),            name="brain_sel")
+    coreg_split  = setup_node(Split(splits=[1, 2], squeeze=True), name="coreg_split")
+
+    brain_merge  = setup_node(MultiImageMaths(),                  name="brain_merge")
+    brain_merge.inputs.op_string = "-add '%s' -add '%s' -abs -kernel gauss 2 -dilM -ero -bin"
+    brain_merge.inputs.out_file = "brain_mask_diff_space.nii.gz"
+
     rot_bvec     = setup_node(Function(function=eddy_rotate_bvecs,
                                        input_names=["in_bvec", "eddy_params"],
                                        output_names=["out_file"],),
                               name="rot_bvec")
-    dti_output   = setup_node(IdentityInterface(fields=["diff_corrected",
-                                                        "diff_denoised",
-                                                        "atlas_diff",
-                                                        "bvec_rotated",
-                                                        "bval",
-                                                        "brain_mask_diff"]),
-                              name="dti_output")
 
-    brain_merge.inputs.op_string = "-add '%s' -add '%s' -abs -kernel gauss 2 -dilM -ero -bin"
-    brain_merge.inputs.out_file = "brain_mask_diff_space.nii.gz"
+    # output interface
+    dti_output   = setup_node(IdentityInterface(fields=out_fields),
+                              name="dti_output")
 
     # Create the workflow object
     wf = pe.Workflow(name=wf_name)
@@ -145,23 +159,24 @@ def fsl_dti_preprocessing(wf_name="fsl_dti_preproc"):
 
                 # output
                 (brain_merge,   dti_output,     [("out_file",            "brain_mask_diff")]),
-                (eddy,          dti_output,     [("out_corrected",       "diff_corrected")]),
-                (denoise,       dti_output,     [("out_file",            "diff_denoised")]),
+                (denoise,       dti_output,     [("out_file",            "denoised")]),
+                (eddy,          dti_output,     [("out_corrected",       "eddy_corrected")]),
+                (denoise,       dti_output,     [("out_file",            "corrected")]),
                 (rot_bvec,      dti_output,     [("out_file",            "bvec_rotated")]),
                 (dti_input,     dti_output,     [("bval",                "bval")]),
               ])
 
     # add more nodes if to perform atlas registration
-    do_atlas, _ = check_atlas_file()
     if do_atlas:
         coreg_atlas = setup_node(spm_coregister(cost_function="mi"), name="coreg_atlas")
 
         # set the registration interpolation to nearest neighbour.
         coreg_atlas.inputs.write_interp = 0
         wf.connect([
-                    (dti_input,   coreg_atlas, [("anat",               "source")]),
+                    (dti_input,   coreg_atlas, [("anat",               "source"),
+                                                ("atlas_anat",         "apply_to_files"),
+                                               ]),
                     (gunzip_b0,   coreg_atlas, [("out_file",           "target")]),
-                    (dti_input,   coreg_atlas, [("atlas_anat",         "apply_to_files")]),
                     (coreg_atlas, dti_output,  [("coregistered_files", "atlas_diff")]),
                   ])
 
@@ -228,24 +243,25 @@ def attach_fsl_dti_preprocessing(main_wf, wf_name="fsl_dti_preproc"):
                                                              regexp_subst)
 
     # input and output diffusion MRI workflow to main workflow connections
-    main_wf.connect([(in_files, dti_wf,   [("diff",                                  "dti_input.diff"),
-                                           ("bval",                                  "dti_input.bval"),
-                                           ("bvec",                                  "dti_input.bvec")
+    main_wf.connect([(in_files, dti_wf,   [("diff",                              "dti_input.diff"),
+                                           ("bval",                              "dti_input.bval"),
+                                           ("bvec",                              "dti_input.bvec")
                                           ]),
-                     (anat_wf,  dti_wf,   [("new_segment.native_class_images",       "dti_input.tissues"),
-                                           ("new_segment.bias_corrected_images",     "dti_input.anat")
+                     (anat_wf,  dti_wf,   [("new_segment.native_class_images",   "dti_input.tissues"),
+                                           ("new_segment.bias_corrected_images", "dti_input.anat")
                                           ]),
-                     (dti_wf,   datasink, [("dti_output.diff_corrected",             "diff.@eddy_corrected"),
-                                           ("dti_output.diff_denoised",              "diff.@denoised"),
-                                           ("dti_output.brain_mask_diff",            "diff.@mask"),
-                                           ("dti_output.bvec_rotated",               "diff.@bvec_rotated"),
-                                           ("dti_output.bval",                       "diff.@bval")
+                     (dti_wf,   datasink, [("dti_output.eddy_corrected",         "diff.@eddy_corrected"),
+                                           ("dti_output.denoised",               "diff.@denoised"),
+                                           ("dti_output.corrected",              "diff.@corrected"),
+                                           ("dti_output.brain_mask_diff",        "diff.@mask"),
+                                           ("dti_output.bvec_rotated",           "diff.@bvec_rotated"),
+                                           ("dti_output.bval",                   "diff.@bval")
                                           ]),
                     ])
 
     if do_atlas:
-            main_wf.connect([(anat_wf, dti_wf,   [("anat_output.atlas_warped",  "dti_input.atlas_anat")]),
-                             (dti_wf,  datasink, [("dti_output.atlas_diff",     "diff.@atlas")]),
+            main_wf.connect([(anat_wf, dti_wf,   [("anat_output.atlas_warped",   "dti_input.atlas_anat")]),
+                             (dti_wf,  datasink, [("dti_output.atlas_diff",      "diff.@atlas")]),
                             ])
 
     return main_wf

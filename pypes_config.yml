@@ -1,6 +1,18 @@
 # ----------------------------------------------------------------------
 # TUM Clinical pypes configuration parameters
 # ----------------------------------------------------------------------
+#Scanning was performed on an integrated Siemens Biograph mMR scanner that was capable of simultaneously
+#acquiring PET and MRI data using the vendor-supplied 12-channel phase-array head coil.
+#PET images, magnetization prepared rapid acquisition gradient echo (MP-RAGE) T1-weighted anatomical images and
+#T2*-weighted echoplanar imaging (EPI) MR data were acquired using the following scanning parameters:
+#PET: list-mode acquisition, 128 slices (gap, 0.5 mm) covering the whole brain; FOV, 450 mm; matrix size,
+#192x192; voxel size, 3.7x2.3x2.7 mm3; EPI: TR, 2.000 ms; TE, 30 ms/angle, 90°; 35 slices (gap, 0.6 mm)
+#aligned to AC/PC covering the whole brain; FOV, 192 mm; matrix size, 64x64; voxel size,
+#3.0x3.0x3.0 mm3 (each measurement consists of 300 acquisitions in interleaved mode with a total scan time of
+#10 min and 8 s); MP-RAGE: TR, 2.300 ms; TE, 2.98 ms; angle, 9°; 160 slices (gap, 0.5 mm) covering the whole brain;
+#FOV, 256 mm; matrix size, 256
+#256; voxel size, 1.0x1.0x1.0 mm3. The measurement has a total scan time of 5 min and 3 s. During the initial 4 min
+# of the design, we acquired arterial spin labeling data that were not analyzed for the current study
 
 ## global configuration parameters
 normalize_atlas: True
@@ -12,7 +24,7 @@ atlas_file: '' # this is being set from config.py
 
 # DTI
 coreg_b0.write_interp: 3
-nlmeans_denoise.N: 4
+nlmeans_denoise.N: 12 # number of channels in the head coil
 
 # REST
 coreg_rest.write_interp: 3
@@ -60,12 +72,15 @@ gsr_pars.num_components: 1
 rest_preproc.canica: True
 
 # CanICA settings
-rest_groupica.do_cca: True
-rest_groupica.standardize: True
-rest_groupica.n_components: 20
-rest_groupica.threshold: 3.0
-rest_groupica.smoothing_fwhm: 8
-#rest_groupica.random_state: 0
+canica.do_cca: True
+canica.standardize: True
+canica.n_components: 20
+canica.threshold: 2.0
+canica.smoothing_fwhm: 8
+#canica.random_state: 0
+
+canica_extra.plot: True
+canica_extra.plot_thr: 2.0 # used if threshold is not set in the ICA
 
 
 # REST CONNECTIVITY
@@ -93,7 +108,7 @@ stc_input.num_slices: 33
 
 # GROUP PET TEMPLATE
 spm_pet_template_smooth.fwhm: 8
-
+spm_pet_template.do_petpvc: True
 
 # PET PVC
 rbvpvc.pvc: RBV

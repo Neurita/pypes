@@ -12,8 +12,10 @@ from   .dti     import (attach_fsl_dti_preprocessing,
 from   .fmri    import attach_rest_preprocessing
 from   .io      import build_crumb_workflow
 from   .pet     import (attach_spm_mrpet_preprocessing,
+                        attach_spm_mrpet_preprocessing2,
                         attach_spm_pet_preprocessing,
-                        attach_spm_pet_grouptemplate)
+                        attach_spm_pet_grouptemplate,
+                        attach_spm_pet_grouptemplate_preproc,)
 
 
 def _cobre_wf_setup(wf_name):
@@ -72,9 +74,19 @@ def _clinical_wf_setup(wf_name):
                                                  ("spm_pet_grouptemplate", attach_spm_pet_grouptemplate),
                                                 ],
 
+                        "spm_pet_template_pvc": [("spm_anat_preproc",               attach_spm_anat_preprocessing),
+                                                 ("spm_pet_preproc",                attach_spm_pet_preprocessing),
+                                                 ("spm_pet_grouptemplate",          attach_spm_pet_grouptemplate),
+                                                 ("spm_pet_grouptemplate_preproc",  attach_spm_pet_grouptemplate_preproc),
+                                                ],
+
                         "spm_anat_pet_preproc": [("spm_anat_preproc",  attach_spm_anat_preprocessing),
                                                  ("spm_mrpet_preproc", attach_spm_mrpet_preprocessing),
                                                 ],
+
+                        "spm_anat_pet_preproc2": [("spm_anat_preproc",  attach_spm_anat_preprocessing),
+                                                  ("spm_mrpet_preproc", attach_spm_mrpet_preprocessing2),
+                                                 ],
 
                         "fsl_dti_preproc":      [("spm_anat_preproc",  attach_spm_anat_preprocessing),
                                                  ("fsl_dti_preproc",   attach_fsl_dti_preprocessing),

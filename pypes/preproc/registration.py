@@ -63,17 +63,13 @@ def spm_apply_deformations(in_imgs=traits.Undefined,
     return norm12
 
 
-def spm_normalize(in_imgs=traits.Undefined, voxel_size=(1, 1, 1), template=None):
+def spm_normalize(in_imgs=traits.Undefined, template=None, **kwargs):
     """Return a Normalize12 interface object.
     SPM12's new Normalise routine for warping an image to a template.
 
     Parameters
     ----------
     in_imgs: iterable of str
-
-    voxel_size: iterable of 3 int
-        Size of the output image voxel in mm in each dimension.
-        Default: `(1, 1, 1)`
 
     template: str
         Template in form of tissue probablitiy maps to normalize to
@@ -108,7 +104,7 @@ def spm_normalize(in_imgs=traits.Undefined, voxel_size=(1, 1, 1), template=None)
 
     norm12 = spm.Normalize12(jobtype='estwrite',
                              tpm=template,
-                             write_voxel_sizes=list(voxel_size))
+                             **kwargs)
 
     #norm12.run()
     return norm12

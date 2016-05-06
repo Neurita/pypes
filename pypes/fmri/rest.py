@@ -18,8 +18,8 @@ from   ..preproc import (auto_spm_slicetime,
                          spm_coregister,
                          )
 
-from   ..postproc.connectivity import ConnectivityCorrelationInterface
-from   ..postproc.decompose    import CanICAInterface
+from   ..nilearn.connectivity import ConnectivityCorrelationInterface
+from   ..nilearn.canica import CanICAInterface
 
 from   ..config import setup_node, get_config_setting, check_atlas_file
 from   .._utils import format_pair_list, flatten_list
@@ -108,6 +108,23 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
         This is the Numpy matrix text file with the timeseries extracted using the atlas
         from the resting-state data.
 
+    rest_output.ica_components: traits.File
+        If `rest_preproc.canica` is True.
+
+    rest_output.ica_loadings: traits.File
+        If `rest_preproc.canica` is True.
+
+    rest_output.ica_score: traits.File
+        If `rest_preproc.canica` is True .
+
+    rest_output.all_icc_plot: traits.File
+        If `rest_preproc.canica` is True and 'canica_extra.plot' is not False.
+        A plot figure in PDF of the ICA results.
+
+    rest_output.iccs_plot: traits.File
+        If `rest_preproc.canica` is True and 'canica_extra.plot' is not False.
+        A plot figure in PDF of the ICA results.
+
     Returns
     -------
     wf: nipype Workflow
@@ -115,16 +132,49 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
     # Create the workflow object
     wf = pe.Workflow(name=wf_name)
 
+    # specify input and output fields
+    in_fields  = ["in_files",
+                  "anat",
+                  "atlas_anat",
+                  "coreg_target",
+                  "tissues",
+                  "lowpass_freq",
+                  "highpass_freq",]
+
+    out_fields = ["motion_corrected",
+                  "motion_params",
+                  "tissues",
+                  "anat",
+                  "time_filtered",
+                  "smooth",
+                  "tsnr_file",
+                  "epi_brain_mask",
+                  "tissues_brain_mask",
+                  "motion_regressors",
+                  "compcor_regressors",
+                  "gsr_regressors",
+                  "nuis_corrected",]
+
+    do_atlas, _     = check_atlas_file()
+    do_connectivity = get_config_setting('rest_preproc.connectivity')
+    do_canica       = get_config_setting('rest_preproc.canica')
+    do_plot         = get_config_setting('canica_extra.plot', default=True)
+
+    if do_atlas:
+        in_fields  += ["atlas_anat"]
+        out_fields += ["atlas_rest"]
+
+    if do_atlas and do_connectivity:
+        out_fields += ["connectivity", "atlas_timeseries"]
+
+    if do_canica:
+        out_fields += ["ica_components", "ica_loadings", "ica_score"]
+
+    if do_canica and do_plot:
+        out_fields += ["all_icc_plot", "iccs_plot"]
+
     # input identities
-    rest_input = setup_node(IdentityInterface(fields=["in_files",
-                                                      "anat",
-                                                      "atlas_anat",
-                                                      "coreg_target",
-                                                      "tissues",
-                                                      "atlas_anat",
-                                                      "lowpass_freq",
-                                                      "highpass_freq",
-                                                      ]),
+    rest_input = setup_node(IdentityInterface(fields=in_fields, mandatory_inputs=True),
                             name="rest_input")
 
     # rs-fMRI preprocessing nodes
@@ -167,27 +217,7 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
     smooth = setup_node(interface=fsl.IsotropicSmooth(fwhm=8), name="fmri_smooth")
 
     # output identities
-    rest_output = setup_node(IdentityInterface(fields=[
-                                                       "motion_corrected",
-                                                       "motion_params",
-                                                       "tissues",
-                                                       "anat",
-                                                       "atlas_rest",
-                                                       "time_filtered",
-                                                       "smooth",
-                                                       "tsnr_file",
-                                                       "epi_brain_mask",
-                                                       "tissues_brain_mask",
-                                                       "motion_regressors",
-                                                       "compcor_regressors",
-                                                       "gsr_regressors",
-                                                       "nuis_corrected",
-                                                       "connectivity",
-                                                       "atlas_timeseries",
-                                                       "ica_components",
-                                                       "ica_loadings",
-                                                       "ica_score",
-                                                       ],),
+    rest_output = setup_node(IdentityInterface(fields=out_fields),
                              name="rest_output")
 
     # Connect the nodes
@@ -263,7 +293,6 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
 
 
     # add more nodes if to perform atlas registration
-    do_atlas, _ = check_atlas_file()
     if do_atlas:
         coreg_atlas = setup_node(spm_coregister(cost_function="mi"), name="coreg_atlas")
 
@@ -277,7 +306,6 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
         ])
 
     # functional connectivity
-    do_connectivity = get_config_setting('rest_preproc.connectivity')
     if do_atlas and do_connectivity:
         conn = setup_node(ConnectivityCorrelationInterface(), name="rest_connectivity")
         wf.connect([
@@ -289,7 +317,6 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
         ])
 
     # CanICA
-    do_canica = get_config_setting('rest_preproc.canica')
     if do_canica:
         ica = setup_node(CanICAInterface(), name="rest_groupica")
         wf.connect([
@@ -300,6 +327,14 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
                                         ("loadings",            "ica_loadings"),
                                        ]),
         ])
+
+        if do_plot:
+            # Connect the plotting nodes
+            wf.connect([
+                        (ica,         rest_output, [("all_icc_plot", "all_icc_plot"),
+                                                    ("iccs_plot",    "iccs_plot"),
+                                                   ]),
+                       ])
 
     return wf
 
@@ -416,5 +451,11 @@ def attach_rest_preprocessing(main_wf, wf_name="rest_preproc"):
                                                   ]),
                             ])
 
+    do_plot = get_config_setting('canica_extra.plot', default=True)
+    if do_canica and do_plot:
+            main_wf.connect([(rest_wf,  datasink, [("rest_output.all_icc_plot", "rest.canica.@all_icc_plot"),
+                                                   ("rest_output.iccs_plot",    "rest.canica.@iccs_plot"),
+                                                  ]),
+                            ])
 
     return main_wf

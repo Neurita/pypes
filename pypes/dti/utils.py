@@ -4,22 +4,24 @@ Utilities to help in the DTI pre-processing
 """
 
 
-def nlmeans_denoise(in_file, mask_file, out_file='', N=4):
+def nlmeans_denoise(in_file, mask_file, out_file='', N=12):
     """ Filepath interface to the nlmeans_denoise_img in pypes.preproc."""
     import os.path as op
     import nibabel as nib
     from boyle.files.names import remove_ext, get_extension
     from pypes.preproc import nlmeans_denoise_img
 
-    den = nlmeans_denoise_img(img=nib.load(in_file), mask=nib.load(mask_file), N=N)
+    den = nlmeans_denoise_img(nib.load(in_file), mask=nib.load(mask_file), N=N)
 
     if not out_file:
         base_name = op.basename(in_file)
         ext = get_extension(base_name)
         base_name = remove_ext(base_name)
-        out_file = op.join(op.dirname(op.abspath(in_file)), '{}_denoised{}'.format(base_name, ext))
+        out_file = '{}_denoised{}'.format(base_name, ext)
 
     den.to_filename(out_file)
+
+    return op.abspath(out_file)
 
 
 def dti_acquisition_parameters(in_file, epi_factor=128):

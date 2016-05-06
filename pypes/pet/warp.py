@@ -9,15 +9,14 @@ import nipype.interfaces.spm     as spm
 from   nipype.interfaces.utility import IdentityInterface
 from   nipype.algorithms.misc    import Gunzip
 
-from   ..preproc import spm_normalize
-from   ..config  import setup_node
-from   .._utils  import format_pair_list
-from   ..utils   import (get_datasink,
-                         extend_trait_list,
-                         get_input_node,
-                         remove_ext,
-                         get_input_file_name,
-                         extension_duplicates)
+from   ..config import setup_node, get_config_setting
+from   .._utils import format_pair_list
+from   ..utils  import (get_datasink,
+                        extend_trait_list,
+                        get_input_node,
+                        remove_ext,
+                        get_input_file_name,
+                        extension_duplicates)
 
 
 def spm_pet_preproc(wf_name="spm_pet_preproc"):
@@ -38,8 +37,6 @@ def spm_pet_preproc(wf_name="spm_pet_preproc"):
     pet_input.in_files: list of traits.File
         The raw NIFTI_GZ PET image files
 
-    pet_input.tissues: list of traits.File
-
     Nipype outputs
     --------------
     pet_output.warped_files: list of existing file
@@ -50,19 +47,22 @@ def spm_pet_preproc(wf_name="spm_pet_preproc"):
     wf: nipype Workflow
     """
     # input
-    pet_input = setup_node(IdentityInterface(fields=["in_files"]),
-                                             name="pet_input",)
+    # check if spm_pet_preproc.do_petpvc is True
+    in_fields  = ["in_files"]
+    out_fields = ["warped_files"]
+
+    pet_input = setup_node(IdentityInterface(fields=in_fields, mandatory_inputs=True),
+                           name="pet_input",)
 
     gunzip_pet  = setup_node(Gunzip(), name="gunzip_pet",)
 
     warp = setup_node(spm.Normalize12(jobtype='estwrite',
                                       affine_regularization_type='mni'),
-                                      name="pet_normalize12")
+                      name="pet_normalize12")
 
     # output
-    pet_output = setup_node(IdentityInterface(fields=["warped_files",
-                                                     ]),
-                                              name="pet_output")
+    pet_output = setup_node(IdentityInterface(fields=out_fields),
+                            name="pet_output")
 
     # Create the workflow object
     wf = pe.Workflow(name=wf_name)

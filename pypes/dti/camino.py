@@ -32,31 +32,44 @@ def camino_tractography(wf_name="camino_tract", fa_tract_stat='mean'):
     tract_input.atlas: traits.File
         path to the atlas file
 
+    Nipypte Outputs
+    ---------------
+    tract_output.tensor
+        The result of fitting the tensor model to the whole image.
+
+    tract_output.tracks
+        The tractography result.
+
+    tract_output.connectivity
+        The atlas ROIxROI structural connectivity matrix.
+
+    tract_output.mean_fa
+        The average FA of the whole image.
+
     Returns
     -------
     wf: nipype Workflow
     """
 
-    tract_input  = pe.Node(IdentityInterface(
-        fields=["diff", "bvec", "bval", "mask", "atlas"],
-        mandatory_inputs=True),                                 name="tract_input")
-    img2vox_diff = pe.Node(Image2Voxel(out_type="float"),       name="img2vox_diff")
-    img2vox_mask = pe.Node(Image2Voxel(out_type="short"),       name="img2vox_mask")
-    fsl2scheme   = pe.Node(FSL2Scheme(),                        name="fsl2scheme")
-    dtifit       = pe.Node(DTIFit(),                            name="dtifit")
-    fa           = pe.Node(ComputeFractionalAnisotropy(),       name="fa")
+    tract_input  = pe.Node(IdentityInterface(fields=["diff", "bvec", "bval", "mask", "atlas"],
+                                             mandatory_inputs=True),
+                           name="tract_input")
+
+    img2vox_diff = pe.Node(Image2Voxel(out_type="float"), name="img2vox_diff")
+    img2vox_mask = pe.Node(Image2Voxel(out_type="short"), name="img2vox_mask")
+    fsl2scheme   = pe.Node(FSL2Scheme(),                  name="fsl2scheme")
+    dtifit       = pe.Node(DTIFit(),                      name="dtifit")
+    fa           = pe.Node(ComputeFractionalAnisotropy(), name="fa")
 
     analyzehdr_fa = pe.Node(interface=AnalyzeHeader(), name="analyzeheader_fa")
     analyzehdr_fa.inputs.datatype = "double"
     fa2nii = pe.Node(interface=misc.CreateNifti(), name='fa2nii')
 
-    track        = pe.Node(Track(
-        inputmodel="dt",
-        out_file="tracts.Bfloat"),                              name="track")
-    conmat       = pe.Node(Conmat(output_root="conmat_"),       name="conmat")
-    tract_output = pe.Node(IdentityInterface(
-        fields=["tensor", "tracks", "connectivity", "mean_fa"]),
-                                                                name="tract_output")
+    track        = pe.Node(Track(inputmodel="dt", out_file="tracts.Bfloat"), name="track")
+    conmat       = pe.Node(Conmat(output_root="conmat_"), name="conmat")
+
+    tract_output = pe.Node(IdentityInterface(fields=["tensor", "tracks", "connectivity", "mean_fa"]),
+                           name="tract_output")
 
     conmat.inputs.tract_stat = fa_tract_stat
 
@@ -133,7 +146,7 @@ def attach_camino_tractography(main_wf, wf_name="camino_tract"):
 
     # input and output diffusion MRI workflow to main workflow connections
     main_wf.connect([(in_files, tract_wf, [("bval",                       "tract_input.bval")]),
-                     (dti_wf,   tract_wf, [("dti_output.diff_corrected",  "tract_input.diff"),
+                     (dti_wf,   tract_wf, [("dti_output.corrected",       "tract_input.diff"),
                                            ("dti_output.bvec_rotated",    "tract_input.bvec"),
                                            ("dti_output.brain_mask_diff", "tract_input.mask"),
                                            ("dti_output.atlas_diff",      "tract_input.atlas")]),

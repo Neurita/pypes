@@ -24,31 +24,77 @@ def plot_connectivity_matrix(connectivity_matrix, label_names):
     return fig
 
 
-def plot_all_components(components_img):
-    """ Plot the components IC spatial maps in only one brain. """
-    from nilearn.plotting import plot_prob_atlas
-    from matplotlib import pyplot as plt
+def plot_ica_results(ica_result, application='nilearn', mask_file='', zscore=0, **kwargs):
+    """ Use nilearn through pypes to plot results from CanICA and DictLearning, given the ICA result folder path.
+    Parameters
+    ----------
+    ica_result: str
+        Path to the ICA output folder or the ICA components volume file.
 
-    fig = plt.figure()
-    plot_prob_atlas(components_img, title='All ICA components', figure=fig)
+    application: str
+        Choicese: ('nilearn', 'gift')
 
-    return fig
+    mask_file: str
+        Path to the brain mask file to be used for thresholding.
 
+    thr: int
+        Value of the Z-score thresholding.
+    """
+    import os.path as op
+    from   glob import glob
 
-def plot_canica_components(components_img):
-    """ Plot the components IC spatial maps in a grid. """
-    from nilearn.image import iter_img
-    from nilearn.plotting import plot_stat_map
-    from matplotlib import pyplot as plt
+    import nibabel as nib
+    from   boyle.nifti.utils import filter_icc
+    from   pypes.nilearn.plot import (plot_all_components,
+                                      plot_canica_components)
 
-    n_ics  = len(list(iter_img(components_img)))
-    n_rows = int(n_ics/2)
-    fig, axes = plt.subplots(n_rows, 2)
-    fig.set_size_inches(6, 3*n_rows)
+    def find_ica_components_file(ica_dir, application='nilearn'):
+        base_dir = op.expanduser(ica_dir)
 
-    for i, cur_img in enumerate(iter_img(components_img)):
-        ax = plt.subplot(n_rows, 2, i+1)
-        plot_stat_map(cur_img, display_mode="z", title="IC %d" % i,
-                      cut_coords=1, colorbar=False, figure=fig, axes=ax)
+        app_choices = ('nilearn', 'gift')
+        if application not in app_choices:
+            raise ValueError('Unexpected value for `application` {}, should be any of ({}).'.format(application,
+                                                                                                    app_choices))
 
-    return fig
+        if application == 'nilearn':
+            fname = 'canica_resting_state.nii.gz'
+        elif application == 'gift':
+            fname = '*_component_ica*.nii'
+
+        icc_files = glob(op.join(base_dir, fname))
+
+        if len(icc_files) != 1:
+            raise IOError('Expected 1 ICC file, found {}: {}.'.format(len(icc_files), icc_files))
+
+        return icc_files[0]
+
+    if not op.exists(ica_result):
+        raise IOError('Expected an existing file or folder, but could not find {}.'.format(ica_result))
+
+    if op.isdir(ica_result):
+        ica_dir  = ica_result
+        icc_file = find_ica_components_file(ica_result, application=application)
+    else:
+        icc_file = ica_result
+        ica_dir  = op.dirname(icc_file)
+
+    # filter the ICC if mask and threshold are set
+    if mask_file and zscore > 0:
+        from nilearn.image import iter_img
+        mask = nib.load(mask_file)
+        icc_imgs = [filter_icc(icc, zscore, True, mask) for icc in list(iter_img(icc_file))]
+    else:
+        icc_imgs = icc_file
+
+    # specify the file paths
+    all_icc_plot_f = op.join(ica_dir, 'all_components.pdf')
+    iccs_plot_f    = op.join(ica_dir, 'canica_components.pdf')
+
+    # make the plots
+    fig1 = plot_canica_components(icc_imgs, **kwargs)
+    fig1.savefig(iccs_plot_f)
+
+    fig2 = plot_all_components(icc_imgs, **kwargs)
+    fig2.savefig(all_icc_plot_f)
+
+    return all_icc_plot_f, iccs_plot_f

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Nipype interfaces to calculate connectivity measures.
+Nipype interfaces to calculate connectivity measures using nilearn.
 """
 import os.path as op
 

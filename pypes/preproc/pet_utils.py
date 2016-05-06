@@ -155,6 +155,7 @@ def intensity_norm(wf_name='intensity_norm'):
     """
     ## calculate masked stats
     mean_value = setup_node(fsl.ImageStats(op_string="-M -k %s"), name='mean_value')
+
     ## normalize
     gm_norm    = setup_node(fsl.BinaryMaths(operation='div'), name='gm_norm')
 
