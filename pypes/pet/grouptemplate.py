@@ -269,9 +269,7 @@ def attach_spm_pet_grouptemplate(main_wf, wf_name="spm_pet_template"):
     do_petpvc = get_config_setting('spm_pet_template.do_petpvc')
 
     if do_petpvc and main_wf.get_node('spm_anat_preproc') is not None:
-        #from .mrpet import _attach_spm_mrpet_grouptemplate_preprocessing
         preproc_wf_name = "spm_mrpet_grouptemplate_preproc"
-        #main_wf = _attach_spm_mrpet_grouptemplate_preprocessing(main_wf, wf_name=preproc_wf_name)
         main_wf = attach_spm_mrpet_preprocessing(main_wf, wf_name=preproc_wf_name, do_group_template=True)
     else:
         preproc_wf_name = "spm_pet_grouptemplate_preproc"
