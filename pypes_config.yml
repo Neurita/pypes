@@ -72,6 +72,7 @@ gsr_pars.num_components: 1
 rest_preproc.canica: True
 
 # CanICA settings
+canica.algorithm: 'canica' # choices: 'canica', 'dictlearning'
 canica.do_cca: True
 canica.standardize: True
 canica.n_components: 20

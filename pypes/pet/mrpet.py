@@ -170,112 +170,6 @@ def spm_mrpet_preprocessing(wf_name="spm_mrpet_preproc"):
     return wf
 
 
-def attach_spm_mrpet_preprocessing(main_wf, wf_name="spm_mrpet_preproc", do_group_template=False):
-    """ Attach a PET pre-processing workflow that uses SPM12 to `main_wf`.
-    This workflow needs MRI based
-
-    Nipype Inputs for `main_wf`
-    ---------------------------
-    Note: The `main_wf` workflow is expected to have an `input_files` and a `datasink` nodes.
-
-    input_files.select.pet: input node
-
-    datasink: nipype Node
-
-    Parameters
-    ----------
-    main_wf: nipype Workflow
-
-    wf_name: str
-        Name of the preprocessing workflow
-
-    do_group_template: bool
-        If True will attach the group template creation and pre-processing pipeline.
-
-    Nipype Workflow Dependencies
-    ----------------------------
-    This workflow depends on:
-    - spm_anat_preproc
-
-    Returns
-    -------
-    main_wf: nipype Workflow
-    """
-    # Dependency workflows
-    anat_wf  = main_wf.get_node("spm_anat_preproc")
-    in_files = get_input_node(main_wf)
-    datasink = get_datasink  (main_wf)
-
-    # The base name of the 'pet' file for the substitutions
-    anat_fbasename = remove_ext(op.basename(get_input_file_name(in_files, 'anat')))
-    pet_fbasename  = remove_ext(op.basename(get_input_file_name(in_files, 'pet')))
-
-    # get the PET preprocessing pipeline
-    if do_group_template:
-        pet_wf = spm_mrpet_grouptemplate_preprocessing(wf_name=wf_name)
-        template_name = 'grptempl'
-    else:
-        pet_wf = spm_mrpet_preprocessing(wf_name=wf_name)
-        template_name = 'mni'
-
-    # dataSink output substitutions
-    regexp_subst = [
-                     (r"/{pet}_.*_pvc.nii.gz$",         "/{pet}_pvc.nii.gz"),
-                     (r"/{pet}_.*_pvc_maths.nii.gz$",   "/{pet}_pvc_norm.nii.gz"),
-                     (r"/w{pet}.nii",                   "/{pet}_{template}.nii"),
-                     (r"/w{pet}_.*_pvc.nii$",           "/{pet}_{template}_pvc.nii"),
-                     (r"/w{pet}_.*_pvc_maths.nii$",     "/{pet}_{template}_pvc_norm.nii"),
-                     (r"/wbrain_mask.nii",              "/brain_mask_{template}.nii"),
-                     (r"/rm{anat}_corrected.nii$",      "/{anat}_{pet}.nii"),
-                     (r"/rc1{anat}_corrected.nii$",     "/gm_{pet}.nii"),
-                     (r"/rc2{anat}_corrected.nii$",     "/wm_{pet}.nii"),
-                     (r"/rc3{anat}_corrected.nii$",     "/csf_{pet}.nii"),
-                   ]
-    regexp_subst = format_pair_list(regexp_subst, pet=pet_fbasename, anat=anat_fbasename, template=template_name)
-
-    # prepare substitution for atlas_file, if any
-    do_atlas, atlas_file = check_atlas_file()
-    if do_atlas:
-        atlas_basename = remove_ext(op.basename(atlas_file))
-        regexp_subst.extend([
-                             (r"/[\w]*{atlas}\.nii$", "/{atlas}_{pet}_space.nii"),
-                            ])
-        regexp_subst = format_pair_list(regexp_subst, atlas=atlas_basename, pet=pet_fbasename)
-
-    regexp_subst += extension_duplicates(regexp_subst)
-    datasink.inputs.regexp_substitutions = extend_trait_list(datasink.inputs.regexp_substitutions,
-                                                             regexp_subst)
-
-    # Connect the nodes
-    main_wf.connect([
-                     # pet file input
-                     (in_files, pet_wf, [("pet", "pet_input.in_file")]),
-
-                     # pet to anat registration
-                     (anat_wf,  pet_wf, [("new_segment.bias_corrected_images", "pet_input.reference_file"),
-                                         ("new_segment.native_class_images",   "pet_input.tissues"),
-                                        ]),
-
-                     (pet_wf, datasink, [
-                                         ("pet_output.pvc_out",      "mrpet.@pvc"),
-                                         ("pet_output.pvc_mask",     "mrpet.@pvc_mask"),
-                                         ("pet_output.coreg_others", "mrpet.tissues"),
-                                         ("pet_output.coreg_ref",    "mrpet.@anat"),
-                                         ("pet_output.brain_mask",   "mrpet.@brain_mask"),
-                                         ("pet_output.gm_norm",      "mrpet.@norm"),
-                                         ("pet_output.pet_warped",   "mrpet.@pet_warped"),
-                                         ("pet_output.warp_field",   "mrpet.@warp_field"),
-                                        ]),
-                     ])
-
-    if do_atlas:
-            main_wf.connect([(anat_wf,  pet_wf,   [("anat_output.atlas_anat", "pet_input.atlas_anat")]),
-                             (pet_wf,   datasink, [("pet_output.atlas_pet",   "mrpet.@atlas")]),
-                            ])
-
-    return main_wf
-
-
 def spm_mrpet_grouptemplate_preprocessing(wf_name="spm_mrpet_grouptemplate_preproc"):
     """ Run the PET pre-processing workflow against the gunzip_pet.in_file files.
     It depends on the anat_preproc_workflow, so if this has not been run, this function
@@ -455,3 +349,109 @@ def spm_mrpet_grouptemplate_preprocessing(wf_name="spm_mrpet_grouptemplate_prepr
         ])
 
     return wf
+
+
+def attach_spm_mrpet_preprocessing(main_wf, wf_name="spm_mrpet_preproc", do_group_template=False):
+    """ Attach a PET pre-processing workflow that uses SPM12 to `main_wf`.
+    This workflow needs MRI based
+
+    Nipype Inputs for `main_wf`
+    ---------------------------
+    Note: The `main_wf` workflow is expected to have an `input_files` and a `datasink` nodes.
+
+    input_files.select.pet: input node
+
+    datasink: nipype Node
+
+    Parameters
+    ----------
+    main_wf: nipype Workflow
+
+    wf_name: str
+        Name of the preprocessing workflow
+
+    do_group_template: bool
+        If True will attach the group template creation and pre-processing pipeline.
+
+    Nipype Workflow Dependencies
+    ----------------------------
+    This workflow depends on:
+    - spm_anat_preproc
+
+    Returns
+    -------
+    main_wf: nipype Workflow
+    """
+    # Dependency workflows
+    anat_wf  = main_wf.get_node("spm_anat_preproc")
+    in_files = get_input_node(main_wf)
+    datasink = get_datasink  (main_wf)
+
+    # The base name of the 'pet' file for the substitutions
+    anat_fbasename = remove_ext(op.basename(get_input_file_name(in_files, 'anat')))
+    pet_fbasename  = remove_ext(op.basename(get_input_file_name(in_files, 'pet')))
+
+    # get the PET preprocessing pipeline
+    if do_group_template:
+        pet_wf = spm_mrpet_grouptemplate_preprocessing(wf_name=wf_name)
+        template_name = 'grptempl'
+    else:
+        pet_wf = spm_mrpet_preprocessing(wf_name=wf_name)
+        template_name = 'mni'
+
+    # dataSink output substitutions
+    regexp_subst = [
+                     (r"/{pet}_.*_pvc.nii.gz$",         "/{pet}_pvc.nii.gz"),
+                     (r"/{pet}_.*_pvc_maths.nii.gz$",   "/{pet}_pvc_norm.nii.gz"),
+                     (r"/w{pet}.nii",                   "/{pet}_{template}.nii"),
+                     (r"/w{pet}_.*_pvc.nii$",           "/{pet}_{template}_pvc.nii"),
+                     (r"/w{pet}_.*_pvc_maths.nii$",     "/{pet}_{template}_pvc_norm.nii"),
+                     (r"/wbrain_mask.nii",              "/brain_mask_{template}.nii"),
+                     (r"/rm{anat}_corrected.nii$",      "/{anat}_{pet}.nii"),
+                     (r"/rc1{anat}_corrected.nii$",     "/gm_{pet}.nii"),
+                     (r"/rc2{anat}_corrected.nii$",     "/wm_{pet}.nii"),
+                     (r"/rc3{anat}_corrected.nii$",     "/csf_{pet}.nii"),
+                   ]
+    regexp_subst = format_pair_list(regexp_subst, pet=pet_fbasename, anat=anat_fbasename, template=template_name)
+
+    # prepare substitution for atlas_file, if any
+    do_atlas, atlas_file = check_atlas_file()
+    if do_atlas:
+        atlas_basename = remove_ext(op.basename(atlas_file))
+        regexp_subst.extend([
+                             (r"/[\w]*{atlas}\.nii$", "/{atlas}_{pet}_space.nii"),
+                            ])
+        regexp_subst = format_pair_list(regexp_subst, atlas=atlas_basename, pet=pet_fbasename)
+
+    regexp_subst += extension_duplicates(regexp_subst)
+    datasink.inputs.regexp_substitutions = extend_trait_list(datasink.inputs.regexp_substitutions,
+                                                             regexp_subst)
+
+    # Connect the nodes
+    main_wf.connect([
+                     # pet file input
+                     (in_files, pet_wf, [("pet", "pet_input.in_file")]),
+
+                     # pet to anat registration
+                     (anat_wf,  pet_wf, [("new_segment.bias_corrected_images", "pet_input.reference_file"),
+                                         ("new_segment.native_class_images",   "pet_input.tissues"),
+                                        ]),
+
+                     (pet_wf, datasink, [
+                                         ("pet_output.pvc_out",      "mrpet.@pvc"),
+                                         ("pet_output.pvc_mask",     "mrpet.@pvc_mask"),
+                                         ("pet_output.coreg_others", "mrpet.tissues"),
+                                         ("pet_output.coreg_ref",    "mrpet.@anat"),
+                                         ("pet_output.brain_mask",   "mrpet.@brain_mask"),
+                                         ("pet_output.gm_norm",      "mrpet.@norm"),
+                                         ("pet_output.pet_warped",   "mrpet.warped.@pet_warped"),
+                                         ("pet_output.warp_field",   "mrpet.@warp_field"),
+                                        ]),
+                     ])
+
+    if do_atlas:
+            main_wf.connect([(anat_wf,  pet_wf,   [("anat_output.atlas_anat", "pet_input.atlas_anat")]),
+                             (pet_wf,   datasink, [("pet_output.atlas_pet",   "mrpet.@atlas")]),
+                            ])
+
+    return main_wf

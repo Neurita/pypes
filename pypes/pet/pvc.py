@@ -107,7 +107,7 @@ def petpvc_workflow(wf_name="spm_mrpet_preproc2"):
     gunzipper = pe.MapNode(Gunzip(),                             name="gunzip", iterfield=['in_file'])
 
     # output
-    pet_output = setup_node(IdentityInterface(fields=out_fields), name="pvc_output")
+    pvc_output = setup_node(IdentityInterface(fields=out_fields), name="pvc_output")
 
     # workflow to create the mask
     mask_wf = petpvc_mask(wf_name="petpvc_mask")
@@ -150,12 +150,12 @@ def petpvc_workflow(wf_name="spm_mrpet_preproc2"):
                 (unzip_mrg,   gunzipper,  [("out",                 "in_file")]),
 
                 # output
-                (rbvpvc,      pet_output, [("out_file",                  "pvc_out")]),
-                (mask_wf,     pet_output, [("brain_mask.out_file",       "brain_mask")]),
-                (mask_wf,     pet_output, [("merge_tissues.merged_file", "pvc_mask")]),
-                (coreg_pet,   pet_output, [("coregistered_source",       "coreg_ref")]),
-                (coreg_pet,   pet_output, [("coregistered_files",        "coreg_others")]),
-                (norm_wf,     pet_output, [("gm_norm.out_file",          "gm_norm")]),
+                (rbvpvc,      pvc_output, [("out_file",                  "pvc_out")]),
+                (mask_wf,     pvc_output, [("brain_mask.out_file",       "brain_mask")]),
+                (mask_wf,     pvc_output, [("merge_tissues.merged_file", "pvc_mask")]),
+                (coreg_pet,   pvc_output, [("coregistered_source",       "coreg_ref")]),
+                (coreg_pet,   pvc_output, [("coregistered_files",        "coreg_others")]),
+                (norm_wf,     pvc_output, [("gm_norm.out_file",          "gm_norm")]),
                ])
 
     return wf

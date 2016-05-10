@@ -134,6 +134,11 @@ def attach_concat_canica(main_wf, wf_name="canica", **kwargs):
 
     # warp each subject to the group template
     canica = setup_node(CanICAInterface(), name="{}_ica".format(wf_name),)
+    algorithm = get_config_setting("{}_ica.algorithm".format(wf_name),
+                                   default=get_config_setting('canica.algorithm',
+                                   default=''))
+    if algorithm:
+        canica.inputs.algorithm = algorithm
 
     # Connect the nodes
     main_wf.connect([
