@@ -40,11 +40,10 @@ def build_crumb_workflow(wfname_attacher, data_crumb, in_out_kwargs, output_dir,
         Mainly 'files_crumb_args' which will declare the values each file
         type the crumb arguments in `data_crumb` must be replaced with.
         Example:
-              {'file_templates':   {'anat':  [('modality', 'anat_1'),
-                                              ('image',    'mprage.nii.gz')],
-                                    'rest':  [('modality', 'rest_1'),
-                                              ('image',    'rest.nii.gz')],
-                                   },
+              {'anat':  [('modality', 'anat_1'),
+                         ('image',    'mprage.nii.gz')],
+              'rest':   [('modality', 'rest_1'),
+                         ('image',    'rest.nii.gz')],
               }
 
     cache_dir: str
@@ -79,7 +78,7 @@ def build_crumb_workflow(wfname_attacher, data_crumb, in_out_kwargs, output_dir,
     main_wf = crumb_wf(work_dir=cache_dir,
                        data_crumb=data_crumb,
                        output_dir=output_dir,
-                       file_templates=in_out_kwargs['file_templates'])
+                       file_templates=in_out_kwargs)
 
     for wf_name, attach_wf in wfname_attacher.items():
         main_wf = attach_wf(main_wf=main_wf, wf_name=wf_name)

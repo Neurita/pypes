@@ -12,10 +12,8 @@ from   .dti     import (attach_fsl_dti_preprocessing,
 from   .fmri    import attach_rest_preprocessing
 from   .io      import build_crumb_workflow
 from   .pet     import (attach_spm_mrpet_preprocessing,
-                        attach_spm_mrpet_preprocessing2,
                         attach_spm_pet_preprocessing,
-                        attach_spm_pet_grouptemplate,
-                        attach_spm_pet_grouptemplate_preproc,)
+                        attach_spm_pet_grouptemplate,)
 
 
 def _cobre_wf_setup(wf_name):
@@ -28,9 +26,20 @@ def _cobre_wf_setup(wf_name):
 
     Returns
     -------
-    wf_attachers: dict with wf attachers
+    wf_attachers: dict with wf attacher functions
 
-    in_out_wf_kwargs: dict with kwargs
+    wf_params: dict with configuration parameters for the workflows.
+        Use this only to fixed configurations needed for the correct functioning of the workflows.
+
+    files_crumb_args: dict with kwargs
+        This arguments are for the in_out_crumb_wf.
+        A dict that declares the values each file type the crumb arguments in `data_crumb` must be replaced with.
+        Example:
+              {'anat':  [('modality', 'anat_1'),
+                         ('image',    'mprage.nii.gz')],
+              'rest':   [('modality', 'rest_1'),
+                         ('image',    'rest.nii.gz')],
+              }
     """
     attach_functions = {"spm_anat_preproc":         [("spm_anat_preproc",  attach_spm_anat_preprocessing)],
 
@@ -62,9 +71,20 @@ def _clinical_wf_setup(wf_name):
 
     Returns
     -------
-    wf_attachers: dict with wf attachers
+    wf_attachers: dict with wf attacher functions
 
-    in_out_wf_kwargs: dict with kwargs
+    wf_params: dict with configuration parameters for the workflows.
+        Use this only to fixed configurations needed for the correct functioning of the workflows.
+
+    files_crumb_args: dict with kwargs
+        This arguments are for the in_out_crumb_wf.
+        A dict that declares the values each file type the crumb arguments in `data_crumb` must be replaced with.
+        Example:
+              {'anat':  [('modality', 'anat_1'),
+                         ('image',    'mprage.nii.gz')],
+              'rest':   [('modality', 'rest_1'),
+                         ('image',    'rest.nii.gz')],
+              }
     """
     attach_functions = {"spm_anat_preproc":     [("spm_anat_preproc",  attach_spm_anat_preprocessing)],
 
@@ -74,19 +94,14 @@ def _clinical_wf_setup(wf_name):
                                                  ("spm_pet_grouptemplate", attach_spm_pet_grouptemplate),
                                                 ],
 
-                        "spm_pet_template_pvc": [("spm_anat_preproc",               attach_spm_anat_preprocessing),
-                                                 ("spm_pet_preproc",                attach_spm_pet_preprocessing),
-                                                 ("spm_pet_grouptemplate",          attach_spm_pet_grouptemplate),
-                                                 ("spm_pet_grouptemplate_preproc",  attach_spm_pet_grouptemplate_preproc),
-                                                ],
+                        "spm_anat_pet_template_pvc": [("spm_anat_preproc",      attach_spm_anat_preprocessing),
+                                                      ("spm_pet_preproc",       attach_spm_pet_preprocessing),
+                                                      ("spm_pet_grouptemplate", attach_spm_pet_grouptemplate),
+                                                     ],
 
                         "spm_anat_pet_preproc": [("spm_anat_preproc",  attach_spm_anat_preprocessing),
                                                  ("spm_mrpet_preproc", attach_spm_mrpet_preprocessing),
                                                 ],
-
-                        "spm_anat_pet_preproc2": [("spm_anat_preproc",  attach_spm_anat_preprocessing),
-                                                  ("spm_mrpet_preproc", attach_spm_mrpet_preprocessing2),
-                                                 ],
 
                         "fsl_dti_preproc":      [("spm_anat_preproc",  attach_spm_anat_preprocessing),
                                                  ("fsl_dti_preproc",   attach_fsl_dti_preprocessing),
@@ -104,8 +119,17 @@ def _clinical_wf_setup(wf_name):
                                                 ],
                        }
 
-    files_crumb_args = {}
+    parameters       = {"spm_pet_template":          [('spm_pet_template.do_petpvc', False),],
+                        "spm_anat_pet_template_pvc": [('spm_pet_template.do_petpvc', True),],
+                       }
 
+    # the pipeline parameters
+    wf_params = parameters.get(wf_name, None)
+    if wf_params is not None:
+        wf_params = dict(wf_params)
+
+    # the input files crumb patterns
+    files_crumb_args = {}
     if 'anat' in wf_name:
         files_crumb_args.update({'anat':  [('image', 'anat_hc.nii.gz')]})
 
@@ -118,9 +142,7 @@ def _clinical_wf_setup(wf_name):
                                  'bvec': [('image', 'diff.bvec')],
                                 })
 
-    params = {'file_templates': files_crumb_args}
-
-    return OrderedDict(attach_functions[wf_name]), params
+    return OrderedDict(attach_functions[wf_name]), wf_params, files_crumb_args
 
 
 def cobre_crumb_workflow(wf_name, data_crumb, output_dir, cache_dir='', config_file='', params=None):
@@ -154,7 +176,10 @@ def cobre_crumb_workflow(wf_name, data_crumb, output_dir, cache_dir='', config_f
 
         atlas_file
     """
-    attach_funcs, in_out_wf_kwargs = _cobre_wf_setup(wf_name)
+    attach_funcs, cfg_params, file_templates = _cobre_wf_setup(wf_name)
+
+    if params is None:
+        params = {}
 
     if config_file:
         update_config(config_file)
@@ -162,9 +187,12 @@ def cobre_crumb_workflow(wf_name, data_crumb, output_dir, cache_dir='', config_f
     if params:
         update_config(params)
 
+    if cfg_params is not None:
+        update_config(cfg_params)
+
     wf = build_crumb_workflow(attach_funcs,
                               data_crumb=data_crumb,
-                              in_out_kwargs=in_out_wf_kwargs,
+                              in_out_kwargs=file_templates,
                               output_dir=output_dir,
                               cache_dir=cache_dir,)
 
@@ -205,12 +233,10 @@ def clinical_crumb_workflow(wf_name, data_crumb, output_dir, cache_dir='', confi
 
         raise_on_filenotfound
     """
-    attach_funcs, in_out_wf_kwargs = _clinical_wf_setup(wf_name)
+    attach_funcs, cfg_params, file_templates = _clinical_wf_setup(wf_name)
 
     if params is None:
         params = {}
-
-    params.update(in_out_wf_kwargs)
 
     if config_file:
         update_config(config_file)
@@ -218,9 +244,12 @@ def clinical_crumb_workflow(wf_name, data_crumb, output_dir, cache_dir='', confi
     if params:
         update_config(params)
 
+    if cfg_params is not None:
+        update_config(cfg_params)
+
     wf = build_crumb_workflow(attach_funcs,
                               data_crumb=data_crumb,
-                              in_out_kwargs=in_out_wf_kwargs,
+                              in_out_kwargs=file_templates,
                               output_dir=output_dir,
                               cache_dir=cache_dir,)
 
