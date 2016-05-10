@@ -7,7 +7,7 @@ The global configuration registry is declared in the bottom of this file.
 """
 import os.path as op
 
-from   nipype import Node, MapNode
+from   nipype import Node, MapNode, JoinNode
 from   kaptan import Kaptan
 
 from nipype.interfaces.utility import isdefined
@@ -230,6 +230,8 @@ def setup_node(interface, name, settings=None, **kwargs):
     typ = kwargs.pop('type', None)
     if typ == 'map':
         node_class = MapNode
+    elif typ == 'join':
+        node_class = JoinNode
     else:
         node_class = Node
     node = node_class(interface=interface, name=name, **kwargs)

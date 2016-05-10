@@ -156,7 +156,7 @@ def _attach_spm_pet_grouptemplate_preprocessing(main_wf, wf_name="spm_pet_groupt
 
     # dataSink output substitutions
     regexp_subst = [
-                     (r"/w{pet}.nii", "/{pet}_warped.nii"),
+                     (r"/w{pet}.nii", "/{pet}_grptemplate.nii"),
                    ]
     regexp_subst = format_pair_list(regexp_subst, pet=pet_fbasename)
     regexp_subst += extension_duplicates(regexp_subst)
@@ -242,8 +242,8 @@ def attach_spm_pet_grouptemplate(main_wf, wf_name="spm_pet_template"):
 
     # group dataSink output substitutions
     regexp_subst = [
-                     (r"/wgrptemplate{pet}_merged_mean_smooth.nii$",  "/{pet}_mni_grouptemplate.nii"),
-                     (r"/w{pet}_merged_mean_smooth.nii$",             "/{pet}_mni_grouptemplate.nii"),
+                     (r"/wgrptemplate{pet}_merged_mean_smooth.nii$",  "/{pet}_grouptemplate_mni.nii"),
+                     (r"/w{pet}_merged_mean_smooth.nii$",             "/{pet}_grouptemplate_mni.nii"),
                    ]
     regexp_subst = format_pair_list(regexp_subst, pet=pet_fbasename)
     regexp_subst += extension_duplicates(regexp_subst)
@@ -281,8 +281,8 @@ def attach_spm_pet_grouptemplate(main_wf, wf_name="spm_pet_template"):
 
     # per-subject datasink output substitutions
     regexp_subst = [
-                     (r"/{pet}_sn.mat$",           "/{pet}_warp2template_params.mat"),
-                     (r"/wgrptemplate_{pet}.nii$", "/{pet}_warped2template.nii"),
+                     (r"/{pet}_sn.mat$",           "/{pet}_grptemplate_params.mat"),
+                     (r"/wgrptemplate_{pet}.nii$", "/{pet}_grptemplate.nii"),
                    ]
     regexp_subst = format_pair_list(regexp_subst, pet=pet_fbasename)
     regexp_subst += extension_duplicates(regexp_subst)
