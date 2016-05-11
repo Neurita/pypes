@@ -48,6 +48,10 @@ def _cobre_wf_setup(wf_name):
                                                      ],
                        }
 
+    if wf_name not in attach_functions:
+        raise KeyError('Expected an existing pipeline name, got {}. '
+                       'Available options: {}'.format(wf_name, list(attach_functions.keys())))
+
     files_crumb_args = {'anat':  [('modality', 'anat_1'),
                                   ('image',    'mprage.nii.gz')]} #'anat_1/mprage.nii.gz',
 
@@ -94,10 +98,10 @@ def _clinical_wf_setup(wf_name):
                                                  ("spm_pet_grouptemplate", attach_spm_pet_grouptemplate),
                                                 ],
 
-                        "spm_anat_pet_template_pvc": [("spm_anat_preproc",      attach_spm_anat_preprocessing),
-                                                      ("spm_pet_preproc",       attach_spm_pet_preprocessing),
-                                                      ("spm_pet_grouptemplate", attach_spm_pet_grouptemplate),
-                                                     ],
+                        "spm_anat_pet_tpm_pvc": [("spm_anat_preproc",        attach_spm_anat_preprocessing),
+                                                 ("spm_pet_preproc",         attach_spm_pet_preprocessing),
+                                                 ("spm_mrpet_grouptemplate", attach_spm_pet_grouptemplate),
+                                                ],
 
                         "spm_anat_pet_preproc": [("spm_anat_preproc",  attach_spm_anat_preprocessing),
                                                  ("spm_mrpet_preproc", attach_spm_mrpet_preprocessing),
@@ -119,9 +123,13 @@ def _clinical_wf_setup(wf_name):
                                                 ],
                        }
 
-    parameters       = {"spm_pet_template":          [('spm_pet_template.do_petpvc', False),],
-                        "spm_anat_pet_template_pvc": [('spm_pet_template.do_petpvc', True),],
+    parameters       = {"spm_pet_template":     [('spm_pet_template.do_petpvc', False),],
+                        "spm_anat_pet_tpm_pvc": [('spm_pet_template.do_petpvc', True),],
                        }
+
+    if wf_name not in attach_functions:
+        raise KeyError('Expected an existing pipeline name, got {}. '
+                       'Available options: {}'.format(wf_name, list(attach_functions.keys())))
 
     # the pipeline parameters
     wf_params = parameters.get(wf_name, None)

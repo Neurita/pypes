@@ -16,6 +16,7 @@ from   ..preproc import (spm_normalize,
                          get_bounding_box)
 
 from   ..utils import (get_datasink,
+                       spm_tpm_priors_path,
                        extend_trait_list,
                        get_input_node,
                        remove_ext,
@@ -121,6 +122,12 @@ def spm_mrpet_preprocessing(wf_name="spm_mrpet_preproc"):
 
     warp_pet = setup_node(spm_normalize(), name="warp_pet")
 
+    tpm_bbox = setup_node(Function(function=get_bounding_box,
+                                   input_names=["in_file"],
+                                   output_names=["bbox"]),
+                          name="tpm_bbox")
+    tpm_bbox.inputs.in_file = spm_tpm_priors_path()
+
     # output
     pet_output = setup_node(IdentityInterface(fields=out_fields), name="pet_output")
 
@@ -143,6 +150,7 @@ def spm_mrpet_preprocessing(wf_name="spm_mrpet_preproc"):
                 # warp the PET PVCed to MNI
                 (petpvc,      warp_pet,   [("pvc_output.coreg_ref", "image_to_align")]),
                 (gunzipper,   warp_pet,   [("out_file",             "apply_to_files")]),
+                (tpm_bbox,    warp_pet,   [("bbox",                 "write_bounding_box")]),
 
                 # output
                 (petpvc,   pet_output, [("pvc_output.pvc_out",      "pvc_out"),
@@ -408,17 +416,17 @@ def attach_spm_mrpet_preprocessing(main_wf, wf_name="spm_mrpet_preproc", do_grou
 
     # dataSink output substitutions
     regexp_subst = [
-                     (r"/{pet}_.*_pvc.nii.gz$",         "/{pet}_pvc.nii.gz"),
-                     (r"/{pet}_.*_pvc_maths.nii.gz$",   "/{pet}_pvc_norm.nii.gz"),
-                     (r"/w.*{pet}.nii",                 "/{pet}_{template}.nii"),
-                     (r"/w.*{pet}_.*_pvc.nii$",         "/{pet}_pvc_{template}.nii"),
-                     (r"/w.*{pet}_.*_pvc_maths.nii$",   "/{pet}_pvc_norm_{template}.nii"),
-                     (r"/w.*brain_mask.nii",            "/brain_mask_{template}.nii"),
-                     (r"/y_rm{anat}_corrected.nii",     "/{anat}_{pet}_{template}_warpfield.nii"),
-                     (r"/rm{anat}_corrected.nii$",      "/{anat}_{pet}_{template}.nii"),
-                     (r"/rc1{anat}_corrected.nii$",     "/gm_{pet}_{template}.nii"),
-                     (r"/rc2{anat}_corrected.nii$",     "/wm_{pet}_{template}.nii"),
-                     (r"/rc3{anat}_corrected.nii$",     "/csf_{pet}_{template}.nii"),
+                     (r"/{pet}_.*_pvc.nii.gz$",       "/{pet}_pvc.nii.gz"),
+                     (r"/{pet}_.*_pvc_maths.nii.gz$", "/{pet}_pvc_norm.nii.gz"),
+                     (r"/w.*{pet}.nii",               "/{pet}_{template}.nii"),
+                     (r"/w.*{pet}_.*_pvc.nii$",       "/{pet}_pvc_{template}.nii"),
+                     (r"/w.*{pet}_.*_pvc_maths.nii$", "/{pet}_pvc_norm_{template}.nii"),
+                     (r"/w.*brain_mask.nii",          "/brain_mask_{template}.nii"),
+                     (r"/y_rm{anat}_corrected.nii",   "/{anat}_{pet}_warpfield.nii"),
+                     (r"/rm{anat}_corrected.nii$",    "/{anat}_{pet}.nii"),
+                     (r"/rc1{anat}_corrected.nii$",   "/gm_{pet}.nii"),
+                     (r"/rc2{anat}_corrected.nii$",   "/wm_{pet}.nii"),
+                     (r"/rc3{anat}_corrected.nii$",   "/csf_{pet}.nii"),
                    ]
     regexp_subst = format_pair_list(regexp_subst, pet=pet_fbasename, anat=anat_fbasename, template=template_name)
 

@@ -267,8 +267,10 @@ def attach_spm_pet_grouptemplate(main_wf, wf_name="spm_pet_template"):
 
     # Now we start with the correction and registration of each subject to the group template
     do_petpvc = get_config_setting('spm_pet_template.do_petpvc')
+    if do_petpvc:
+        if main_wf.get_node('spm_anat_preproc') is None:
+            raise AttributeError("Expected `spm_anat_preproc` workflow node to attach PETPVC.")
 
-    if do_petpvc and main_wf.get_node('spm_anat_preproc') is not None:
         preproc_wf_name = "spm_mrpet_grouptemplate_preproc"
         main_wf = attach_spm_mrpet_preprocessing(main_wf, wf_name=preproc_wf_name, do_group_template=True)
     else:
