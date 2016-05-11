@@ -125,10 +125,9 @@ def attach_concat_canica(main_wf, wf_name="canica", **kwargs):
 
     # concat images
     concat = setup_node(Function(function=concat_imgs,
-                                 input_names=["in_files", "out_file"],
+                                 input_names=["in_files"],
                                  output_names=["out_file"],),
                         name="concat")
-    concat.inputs.out_file = 'concat_img.nii.gz'
 
     makelist = lambda x: [x]
 

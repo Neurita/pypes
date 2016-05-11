@@ -45,7 +45,7 @@ def _cobre_wf_setup(wf_name):
 
                         "spm_anat_rest_preproc":    [("spm_anat_preproc",  attach_spm_anat_preprocessing),
                                                      ("spm_rest_preproc",  attach_rest_preprocessing),
-                                                     ],
+                                                    ],
                        }
 
     if wf_name not in attach_functions:
