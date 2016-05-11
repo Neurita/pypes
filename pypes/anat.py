@@ -167,6 +167,12 @@ def spm_anat_preprocessing(wf_name="spm_anat_preproc"):
     segment     = setup_node(spm_segment(),            name="new_segment")
     warp_anat   = setup_node(spm_apply_deformations(), name="warp_anat")
 
+    tpm_bbox = setup_node(Function(function=get_bounding_box,
+                                   input_names=["in_file"],
+                                   output_names=["bbox"]),
+                          name="tpm_bbox")
+    tpm_bbox.inputs.in_file = spm_tpm_priors_path()
+
     # output node
     anat_output = setup_node(IdentityInterface(fields=out_fields),
                              name="anat_output")
@@ -182,6 +188,7 @@ def spm_anat_preprocessing(wf_name="spm_anat_preproc"):
                 # Normalize12
                 (segment,   warp_anat,  [("forward_deformation_field", "deformation_file")]),
                 (segment,   warp_anat,  [("bias_corrected_images",     "apply_to_files")]),
+                (tpm_bbox,  warp_anat,  [("bbox",                      "write_bounding_box")]),
 
                 # output
                 (warp_anat, anat_output, [("normalized_files",           "anat_mni")]),
