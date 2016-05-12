@@ -2,11 +2,15 @@
 """
 Utilities to use nilearn from nipype
 """
-from functools import wraps
 
 
 def ni2file(**presuffixes):
+    from functools import wraps
+
     """ Pick the nibabel image container output from `f` and stores it in a file.
+    If the shape attribute of the container is True, will save it into a file, otherwise
+    will directly return the scalar value.
+
     To know the path where it has to save the file it looks into argument
     values in this order:
     - `out_file` kwarg in the call to `f`,
@@ -22,6 +26,8 @@ def ni2file(**presuffixes):
             from nipype.utils.filemanip import fname_presuffix
 
             res_img = f(*args, **kwargs)
+            if not res_img.shape: # the result is a scalar value
+                return res_img.get_data().flatten()[0]
 
             out_file = kwargs.get('out_file', presuffixes.pop('out_file', None))
             if out_file is None:
@@ -46,13 +52,28 @@ def ni2file(**presuffixes):
 @ni2file(out_file='nilearn_maths.nii.gz')
 def math_img(formula, out_file='', **imgs):
     """ Use nilearn.image.math_img.
+    This function in addition allows imgs to contain numerical scalar values.
 
     Returns
     -------
     out_file: str
         The absolute path to the output file.
     """
-    from nilearn.image import math_img
+    import numpy as np
+    from   nilearn.image import math_img
+    from   six import string_types
+
+    for arg in list(imgs.keys()):
+        if isinstance(imgs[arg], string_types):
+            continue
+
+        if np.isscalar(imgs[arg]):
+            if arg not in formula:
+                raise ValueError("Could not find {} in the formula: {}.".format(arg, formula))
+
+            formula = formula.replace(arg, str(imgs[arg]))
+            imgs.pop(arg)
+
     return math_img(formula=formula, **imgs)
 
 
@@ -84,7 +105,7 @@ def resample_to_img(source, target, **kwargs):
 
 @ni2file(out_file='concat_img.nii.gz')
 def concat_imgs(in_files, out_file=''):
-    """
+    """ Use nilearn.image.concat_imgs.
     Returns
     -------
     out_file: str
@@ -92,3 +113,51 @@ def concat_imgs(in_files, out_file=''):
     """
     import nilearn.image as niimg
     return niimg.concat_imgs(in_files)
+
+
+@ni2file(suffix='_mean')
+def mean_img(in_file, out_file=''):
+    """ Use nilearn.image.mean_img.
+    Returns
+    -------
+    out_file: str
+        The absolute path to the output file.
+    """
+    import nilearn.image as niimg
+    return niimg.mean_img(in_file)
+
+
+@ni2file(suffix='_smooth')
+def smooth_img(in_file, fwhm, out_file=''):
+    """ Use nilearn.image.smooth_img.
+    Returns
+    -------
+    out_file: str
+        The absolute path to the output file.
+    """
+    import nilearn.image as niimg
+    return niimg.smooth_img(in_file, fwhm=fwhm)
+
+
+@ni2file(suffix='_dil')
+def dil_img(in_file, fwhm, out_file=''):
+    """ Use scipy.ndimagenilearn.image.smooth_img.
+    Returns
+    -------
+    out_file: str
+        The absolute path to the output file.
+    """
+    import numpy as np
+    import nilearn.image as niimg
+
+    # http://docs.scipy.org/doc/scipy/reference/generated/scipy.ndimage.grey_dilation.html#scipy.ndimage.grey_dilation
+    #TODO: create a struturing element from the fwhm
+
+    sigma = float(fwhm) / np.sqrt(8 * np.log(2))
+
+
+    raise NotImplementedError('dil_img has not been implemented yet.')
+
+    return niimg.smooth_img(in_file, fwhm=fwhm)
+
+

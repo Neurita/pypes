@@ -8,18 +8,17 @@ import nipype.pipeline.engine    as pe
 from   nipype.algorithms.misc    import Gunzip
 from   nipype.interfaces.utility import Select, Merge, IdentityInterface
 
-from   ..config  import setup_node
-from   ..preproc import (spm_coregister,
-                         petpvc_cmd,
+from  .utils     import (petpvc_cmd,
                          petpvc_mask,
                          intensity_norm)
-
-from   ..utils import (get_datasink,
-                       extend_trait_list,
-                       get_input_node,
-                       remove_ext,
-                       get_input_file_name,
-                       extension_duplicates)
+from   ..config  import setup_node
+from   ..preproc import spm_coregister
+from   ..utils   import (get_datasink,
+                         extend_trait_list,
+                         get_input_node,
+                         remove_ext,
+                         get_input_file_name,
+                         extension_duplicates)
 
 from   .._utils import (flatten_list,
                         format_pair_list)
@@ -129,33 +128,32 @@ def petpvc_workflow(wf_name="spm_mrpet_preproc2"):
                 (tissues_sel, coreg_pet,  [(("out", flatten_list), "apply_to_files")]),
 
                 # the list of tissues to the mask wf and the GM for PET intensity normalization
-                (coreg_pet,   select_gm,  [(("coregistered_files", flatten_list), "inlist")]),
-                (coreg_pet,   mask_wf,    [(("coregistered_files", flatten_list), "split_tissues.inlist")]),
+                (coreg_pet,   select_gm,  [("coregistered_files", "inlist")]),
+                (coreg_pet,   mask_wf,    [("coregistered_files", "pvcmask_input.tissues")]),
 
                 # the PET in native space to PVC correction
                 (gunzip_pet,  rbvpvc,     [("out_file", "in_file")]),
 
                 # the merged file with 4 tissues to PCV correction
-                (mask_wf,     rbvpvc,     [("merge_tissues.merged_file", "mask_file")]),
+                (mask_wf,     rbvpvc,     [("pvcmask_output.merged_file", "mask_file")]),
 
                 # normalize voxel values of PET PVCed by demeaning it entirely by GM PET voxel values
-                (rbvpvc,      norm_wf,    [("out_file",            "mean_value.in_file")]),
-                (rbvpvc,      norm_wf,    [("out_file",            "gm_norm.in_file")]),
-                (select_gm,   norm_wf,    [("out",                 "mean_value.mask_file")]),
+                (rbvpvc,      norm_wf,    [("out_file", "intnorm_input.source")]),
+                (select_gm,   norm_wf,    [("out",      "intnorm_input.mask")]),
 
                 # gunzip some files for SPM Normalize12
-                (rbvpvc,      unzip_mrg,  [("out_file",            "in1")]),
-                (mask_wf,     unzip_mrg,  [("brain_mask.out_file", "in2")]),
-                (norm_wf,     unzip_mrg,  [("gm_norm.out_file",    "in3")]),
-                (unzip_mrg,   gunzipper,  [("out",                 "in_file")]),
+                (rbvpvc,      unzip_mrg,  [("out_file",                   "in1")]),
+                (mask_wf,     unzip_mrg,  [("pvcmask_output.brain_mask",  "in2")]),
+                (norm_wf,     unzip_mrg,  [("intnorm_output.out_file",    "in3")]),
+                (unzip_mrg,   gunzipper,  [("out",                        "in_file")]),
 
                 # output
-                (rbvpvc,      pvc_output, [("out_file",                  "pvc_out")]),
-                (mask_wf,     pvc_output, [("brain_mask.out_file",       "brain_mask")]),
-                (mask_wf,     pvc_output, [("merge_tissues.merged_file", "pvc_mask")]),
-                (coreg_pet,   pvc_output, [("coregistered_source",       "coreg_ref")]),
-                (coreg_pet,   pvc_output, [("coregistered_files",        "coreg_others")]),
-                (norm_wf,     pvc_output, [("gm_norm.out_file",          "gm_norm")]),
+                (rbvpvc,      pvc_output, [("out_file",                   "pvc_out")]),
+                (mask_wf,     pvc_output, [("pvcmask_output.brain_mask",  "brain_mask")]),
+                (mask_wf,     pvc_output, [("pvcmask_output.merged_file", "pvc_mask")]),
+                (coreg_pet,   pvc_output, [("coregistered_source",        "coreg_ref")]),
+                (coreg_pet,   pvc_output, [("coregistered_files",         "coreg_others")]),
+                (norm_wf,     pvc_output, [("intnorm_output.out_file",    "gm_norm")]),
                ])
 
     return wf
@@ -207,12 +205,12 @@ def attach_petpvc_workflow(main_wf, wf_name="spm_petpvc"):
     # dataSink output substitutions
     # dataSink output substitutions
     regexp_subst = [
-                     (r"/{pet}_.*_pvc.nii.gz$",         "/{pet}_pvc.nii.gz"),
-                     (r"/{pet}_.*_pvc_maths.nii.gz$",   "/{pet}_pvc_norm.nii.gz"),
-                     (r"/rm{anat}_corrected.nii$",      "/{anat}_{pet}.nii"),
-                     (r"/rc1{anat}_corrected.nii$",     "/gm_{pet}.nii"),
-                     (r"/rc2{anat}_corrected.nii$",     "/wm_{pet}.nii"),
-                     (r"/rc3{anat}_corrected.nii$",     "/csf_{pet}.nii"),
+                     (r"/{pet}_.*_pvc.nii.gz$",       "/{pet}_pvc.nii.gz"),
+                     (r"/{pet}_.*_pvc_maths.nii.gz$", "/{pet}_pvc_norm.nii.gz"),
+                     (r"/rm{anat}_corrected.nii$",    "/{anat}_{pet}.nii"),
+                     (r"/rc1{anat}_corrected.nii$",   "/gm_{pet}.nii"),
+                     (r"/rc2{anat}_corrected.nii$",   "/wm_{pet}.nii"),
+                     (r"/rc3{anat}_corrected.nii$",   "/csf_{pet}.nii"),
                    ]
     regexp_subst = format_pair_list(regexp_subst, pet=pet_fbasename, anat=anat_fbasename)
     regexp_subst += extension_duplicates(regexp_subst)
@@ -225,17 +223,17 @@ def attach_petpvc_workflow(main_wf, wf_name="spm_petpvc"):
                      (in_files, pet_wf, [("pet", "pvc_input.in_file")]),
 
                      # pet to anat registration
-                     (anat_wf,  pet_wf, [("new_segment.bias_corrected_images",     "pet_input.reference_file"),
-                                         ("new_segment.native_class_images",       "pet_input.tissues"),
+                     (anat_wf,  pet_wf, [("new_segment.bias_corrected_images", "pet_input.reference_file"),
+                                         ("new_segment.native_class_images",   "pet_input.tissues"),
                                         ]),
 
                      (pet_wf, datasink, [
                                          ("pvc_output.pvc_out",      "mrpet.@pvc"),
                                          ("pvc_output.pvc_mask",     "mrpet.@pvc_mask"),
-                                         ("pvc_output.coreg_others", "mrpet.tissues"),
-                                         ("pvc_output.coreg_ref",    "mrpet.@anat"),
-                                         ("pvc_output.brain_mask",   "mrpet.@brain_mask"),
                                          ("pvc_output.gm_norm",      "mrpet.@norm"),
+                                         ("pvc_output.coreg_others", "pet.tissues"),
+                                         ("pvc_output.coreg_ref",    "pet.@anat"),
+                                         ("pvc_output.brain_mask",   "pet.@brain_mask"),
                                         ]),
                      ])
 

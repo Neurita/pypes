@@ -3,13 +3,13 @@
 Nipype registration nodes and workflows
 """
 import nipype.pipeline.engine    as pe
-from   nipype.interfaces         import fsl
-from   nipype.interfaces.utility import IdentityInterface
+from   nipype.interfaces.utility import IdentityInterface, Function
 
 import nipype.interfaces.spm  as spm
 import nipype.interfaces.afni as afni
 from   nipype.interfaces.base import traits
 
+from ..nilearn import mean_img, concat_imgs, smooth_img
 from ..config  import setup_node
 from ..utils   import spm_tpm_priors_path
 
@@ -209,38 +209,41 @@ def spm_group_template(wf_name="spm_group_template"):
     wf: nipype Workflow
     """
     # input
-    input = setup_node(IdentityInterface(fields=["in_files"]),
-                       name="grptemplate_input",)
+    input = setup_node(IdentityInterface(fields=["in_files"]), name="grptemplate_input",)
 
     # merge
-    merge  = setup_node(fsl.Merge(dimension='t'),
+    concat = setup_node(Function(function=concat_imgs, input_names=["in_files"], output_names=["out_file"],
+                                 imports=['from pypes.nilearn import ni2file']),
                         name='merge_time')
 
     # average
-    average = setup_node(fsl.MeanImage(dimension='T'),
-                         name='average')
+    average = setup_node(Function(function=mean_img, input_names=["in_files"], output_names=["out_file"],
+                                 imports=['from pypes.nilearn import ni2file']),
+                        name='average')
 
     # smooth
-    smooth = setup_node(fsl.IsotropicSmooth(fwhm=8),
-                        name="{}_smooth".format(wf_name))
+    smooth = setup_node(Function(function=smooth_img,
+                                 input_names=["in_file", "fwhm"],
+                                 output_names=["out_file"],
+                                 imports=['from pypes.nilearn import ni2file']),
+                         name="{}_smooth".format(wf_name))
 
-    #output
-    output = setup_node(IdentityInterface(fields=["template"]),
-                       name="grptemplate_output",)
+    # output
+    output = setup_node(IdentityInterface(fields=["template"]), name="grptemplate_output",)
 
     # Create the workflow object
     wf = pe.Workflow(name=wf_name)
 
     wf.connect([
                 # input
-                (input,       merge,   [("in_files",    "in_files")]),
+                (input,       concat,  [("in_files", "in_files")]),
 
                 # merge, average and smooth
-                (merge,       average, [("merged_file", "in_file")]),
-                (average,     smooth,  [("out_file",    "in_file")]),
+                (concat,      average, [("out_file", "in_file")]),
+                (average,     smooth,  [("out_file", "in_file")]),
 
                 # output
-                (smooth,     output,   [("out_file",    "template")]),
+                (smooth,     output,   [("out_file", "template")]),
                ])
 
     return wf

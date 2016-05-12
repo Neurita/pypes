@@ -18,6 +18,7 @@ from   ..preproc import (auto_spm_slicetime,
                          spm_coregister,
                          )
 
+from   ..nilearn import mean_img, smooth_img
 from   ..nilearn.connectivity import ConnectivityCorrelationInterface
 from   ..nilearn.canica import CanICAInterface
 
@@ -183,8 +184,11 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
     stc_wf  = auto_spm_slicetime()
     realign = setup_node(nipy_motion_correction(), name='realign')
 
-    # Take the mean over time to get a target volume
-    meanvol     = setup_node(fsl.MeanImage(), name="meanvol")
+    # average
+    average = setup_node(Function(function=mean_img, input_names=["in_file"], output_names=["out_file"],
+                                 imports=['from pypes.nilearn import ni2file']),
+                        name='average')
+
     mean_gunzip = setup_node(Gunzip(),        name="mean_gunzip")
 
     # co-registration nodes
@@ -213,8 +217,13 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
                                    function=bandpass_filter),
                           name='bandpass_filter')
 
-    # smoothing
-    smooth = setup_node(interface=fsl.IsotropicSmooth(fwhm=8), name="fmri_smooth")
+    # smooth
+    smooth = setup_node(Function(function=smooth_img,
+                                 input_names=["in_file", "fwhm"],
+                                 output_names=["out_file"],
+                                 imports=['from pypes.nilearn import ni2file']),
+                         name="fmri_smooth")
+    smooth.inputs.fwhm = get_config_setting('fmri_smooth.fwhm', default=8)
 
     # output identities
     rest_output = setup_node(IdentityInterface(fields=out_fields),
@@ -232,8 +241,8 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
                 (stc_wf,      realign,       [("stc_output.timecorrected_files", "in_file")]),
 
                 # coregistration target
-                (realign,     meanvol,       [("out_file", "in_file")]),
-                (meanvol,     mean_gunzip,   [("out_file", "in_file")]),
+                (realign,     average,       [("out_file", "in_file")]),
+                (average,     mean_gunzip,   [("out_file", "in_file")]),
                 (mean_gunzip, coreg,         [("out_file", "target")]),
 
                 # epi brain mask

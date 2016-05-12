@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from .pet_utils import petpvc_cmd, petpvc_mask, intensity_norm
 from .petpvc import PETPVC
 from .realign import nipy_motion_correction
 from .denoise import (nlmeans_denoise_img,

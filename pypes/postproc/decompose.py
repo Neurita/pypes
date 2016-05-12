@@ -9,7 +9,7 @@ from   nipype.interfaces.utility import IdentityInterface, Function
 
 from   .plotting import plot_ica_results
 from   ..nilearn.canica import CanICAInterface
-from   ..nilearn.utils import concat_imgs
+from   ..nilearn.image import concat_imgs
 from   ..config  import setup_node, get_config_setting
 from   ..utils   import (get_trait_value,
                          get_datasink,)

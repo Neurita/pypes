@@ -117,7 +117,7 @@ def spm_mrpet_preprocessing(wf_name="spm_mrpet_preproc"):
     # workflow to perform partial volume correction
     petpvc    = petpvc_workflow(wf_name="petpvc")
 
-    unzip_mrg = setup_node(Merge(3), name='merge_for_unzip')
+    merge_list = setup_node(Merge(3), name='merge_for_unzip')
     gunzipper = pe.MapNode(Gunzip(), name="gunzip", iterfield=['in_file'])
 
     warp_pet = setup_node(spm_normalize(), name="warp_pet")
@@ -137,15 +137,17 @@ def spm_mrpet_preprocessing(wf_name="spm_mrpet_preproc"):
     # add more nodes if to perform atlas registration
     wf.connect([
                 # inputs
-                (pet_input,   petpvc,  [("in_file",        "pvc_input.in_file"),
-                                        ("reference_file", "pvc_input.reference_file"),
-                                        ("tissues",        "pvc_input.tissues")]),
+                (pet_input, petpvc,     [("in_file",        "pvc_input.in_file"),
+                                         ("reference_file", "pvc_input.reference_file"),
+                                         ("tissues",        "pvc_input.tissues")]),
 
                 # gunzip some files for SPM Normalize
-                (petpvc,    unzip_mrg, [("pvc_output.pvc_out",    "in1"),
-                                        ("pvc_output.brain_mask", "in2"),
-                                        ("pvc_output.gm_norm",    "in3")]),
-                (unzip_mrg, gunzipper, [("out",                   "in_file")]),
+                (petpvc,    merge_list, [("pvc_output.pvc_out",    "in1"),
+                                         ("pvc_output.brain_mask", "in2"),
+                                         ("pvc_output.gm_norm",    "in3")]),
+                (pet_input, merge_list, [("in_file",               "in4")]),
+
+                (merge_list, gunzipper, [("out", "in_file")]),
 
                 # warp the PET PVCed to MNI
                 (petpvc,      warp_pet,   [("pvc_output.coreg_ref", "image_to_align")]),
@@ -416,17 +418,19 @@ def attach_spm_mrpet_preprocessing(main_wf, wf_name="spm_mrpet_preproc", do_grou
 
     # dataSink output substitutions
     regexp_subst = [
-                     (r"/{pet}_.*_pvc.nii.gz$",       "/{pet}_pvc.nii.gz"),
-                     (r"/{pet}_.*_pvc_maths.nii.gz$", "/{pet}_pvc_norm.nii.gz"),
-                     (r"/w.*{pet}.nii",               "/{pet}_{template}.nii"),
-                     (r"/w.*{pet}_.*_pvc.nii$",       "/{pet}_pvc_{template}.nii"),
-                     (r"/w.*{pet}_.*_pvc_maths.nii$", "/{pet}_pvc_norm_{template}.nii"),
-                     (r"/w.*brain_mask.nii",          "/brain_mask_{template}.nii"),
-                     (r"/y_rm{anat}_corrected.nii",   "/{anat}_{pet}_warpfield.nii"),
-                     (r"/rm{anat}_corrected.nii$",    "/{anat}_{pet}.nii"),
-                     (r"/rc1{anat}_corrected.nii$",   "/gm_{pet}.nii"),
-                     (r"/rc2{anat}_corrected.nii$",   "/wm_{pet}.nii"),
-                     (r"/rc3{anat}_corrected.nii$",   "/csf_{pet}.nii"),
+                     (r"/{pet}_.*_pvc.nii.gz$",           "/{pet}_pvc.nii.gz"),
+                     (r"/{pet}_.*_pvc_maths.nii.gz$",     "/{pet}_pvc_norm.nii.gz"),
+                     (r"/{pet}_.*_pvc_intnormed.nii.gz$", "/{pet}_pvc_norm.nii.gz"),
+                     (r"/w.*{pet}.nii",                   "/{pet}_{template}.nii"),
+                     (r"/w.*{pet}_.*_pvc.nii$",           "/{pet}_pvc_{template}.nii"),
+                     (r"/w.*{pet}_.*_pvc_maths.nii$",     "/{pet}_pvc_norm_{template}.nii"),
+                     (r"/w.*{pet}_.*_pvc_intnormed.nii$", "/{pet}_pvc_norm_{template}.nii"),
+                     (r"/w.*brain_mask.nii",              "/brain_mask_{template}.nii"),
+                     (r"/y_rm{anat}_corrected.nii",       "/{anat}_{pet}_warpfield.nii"),
+                     (r"/rm{anat}_corrected.nii$",        "/{anat}_{pet}.nii"),
+                     (r"/rc1{anat}_corrected.nii$",       "/gm_{pet}.nii"),
+                     (r"/rc2{anat}_corrected.nii$",       "/wm_{pet}.nii"),
+                     (r"/rc3{anat}_corrected.nii$",       "/csf_{pet}.nii"),
                    ]
     regexp_subst = format_pair_list(regexp_subst, pet=pet_fbasename, anat=anat_fbasename, template=template_name)
 
@@ -456,13 +460,13 @@ def attach_spm_mrpet_preprocessing(main_wf, wf_name="spm_mrpet_preproc", do_grou
                      (pet_wf, datasink, [
                                          ("pet_output.pvc_out",      "mrpet.@pvc"),
                                          ("pet_output.pvc_mask",     "mrpet.@pvc_mask"),
-                                         ("pet_output.coreg_others", "mrpet.tissues"),
-                                         ("pet_output.coreg_ref",    "mrpet.@anat"),
                                          ("pet_output.brain_mask",   "mrpet.@brain_mask"),
                                          ("pet_output.gm_norm",      "mrpet.@norm"),
-                                         ("pet_output.pet_warped",   "mrpet.@pet_warped"),
                                          ("pet_output.pvc_warped",   "mrpet.@pvc_warped"),
+                                         ("pet_output.coreg_others", "mrpet.tissues"),
+                                         ("pet_output.coreg_ref",    "mrpet.@anat"),
                                          ("pet_output.warp_field",   "mrpet.@warp_field"),
+                                         ("pet_output.pet_warped",   "mrpet.@pet_warped"),
                                         ]),
                      ])
 
