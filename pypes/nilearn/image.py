@@ -22,25 +22,34 @@ def ni2file(**presuffixes):
     def nifti_out(f):
         @wraps(f)
         def wrapped(*args, **kwargs):
-            import os.path as op
-            from nipype.utils.filemanip import fname_presuffix
-
             res_img = f(*args, **kwargs)
             if not res_img.shape: # the result is a scalar value
                 return res_img.get_data().flatten()[0]
 
-            out_file = kwargs.get('out_file', presuffixes.pop('out_file', None))
-            if out_file is None:
-                out_file = args[1]
-                if not op.exists(out_file):
-                    raise IOError('Expected an existing file to use as reference for'
-                                  ' the output file name, got {}.'.format(out_file))
+            import os.path as op
+            from nipype.utils.filemanip import fname_presuffix
 
-                if not presuffixes:
+            out_file = kwargs.get('out_file', presuffixes.pop('out_file', None))
+            if out_file is not None:
+                if not presuffixes and op.exists(out_file):
                     raise IOError('The file {} already exists, please add a presuffix to the'
                                   'decorator.'.format(out_file))
 
-            out_file = fname_presuffix(out_file, **presuffixes)
+                out_file = fname_presuffix(out_file, **presuffixes)
+            else:
+                in_file = kwargs.get('in_file', None)
+                if in_file is None and bool(args):
+                    in_file = args[0]
+                    if not op.exists(in_file):
+                        raise IOError('Expected an existing file to use as reference for'
+                                      ' the output file name, got {}.'.format(in_file))
+
+                out_file = fname_presuffix(op.basename(in_file), **presuffixes)
+
+            if not out_file:
+                raise ValueError("Could not find a output file name for this function: "
+                                " {}({}, {}).".format(f.__name__, *args, **kwargs))
+
             res_img.to_filename(out_file)
 
             return op.abspath(out_file)
@@ -104,7 +113,7 @@ def resample_to_img(source, target, **kwargs):
 
 
 @ni2file(out_file='concat_img.nii.gz')
-def concat_imgs(in_files, out_file=''):
+def concat_imgs(in_files, out_file=None):
     """ Use nilearn.image.concat_imgs.
     Returns
     -------
@@ -116,7 +125,7 @@ def concat_imgs(in_files, out_file=''):
 
 
 @ni2file(suffix='_mean')
-def mean_img(in_file, out_file=''):
+def mean_img(in_file, out_file=None):
     """ Use nilearn.image.mean_img.
     Returns
     -------
@@ -128,7 +137,7 @@ def mean_img(in_file, out_file=''):
 
 
 @ni2file(suffix='_smooth')
-def smooth_img(in_file, fwhm, out_file=''):
+def smooth_img(in_file, fwhm, out_file=None):
     """ Use nilearn.image.smooth_img.
     Returns
     -------
@@ -140,24 +149,42 @@ def smooth_img(in_file, fwhm, out_file=''):
 
 
 @ni2file(suffix='_dil')
-def dil_img(in_file, fwhm, out_file=''):
-    """ Use scipy.ndimagenilearn.image.smooth_img.
+def binary_dilation_img(in_file, radius=2, selem=None, out_file=None):
+    """ Use skimage.morphology.binary_dilation to dilate a binary image.
+    By default a ball-shaped structuring element with `radius` in mm is used.
+
+    Parameters
+    ----------
+    in_file: str
+        Path to the input binary file.
+
+    radius: int
+        The radius in mm of the ball-shaped element used for the morphology operation.
+        If the conversion from mm to voxels is not integer, will use the ceil value.
+
+    selem: numpy.ndarray
+        A 3D structring element.
+        If None will create a 3D ball with the given `radius`.
+
+    out_file: str
+        Path to the output file.
+
     Returns
     -------
     out_file: str
         The absolute path to the output file.
     """
-    import numpy as np
+    import math
+    import nibabel as nib
+    import skimage.morphology as skm
     import nilearn.image as niimg
 
-    # http://docs.scipy.org/doc/scipy/reference/generated/scipy.ndimage.grey_dilation.html#scipy.ndimage.grey_dilation
-    #TODO: create a struturing element from the fwhm
+    if selem is None:
+        size  = math.ceil()
+        selem = skm.ball(size)
 
-    sigma = float(fwhm) / np.sqrt(8 * np.log(2))
+    data = skm.binary_dilation(nib.load(in_file), selem=selem)
 
-
-    raise NotImplementedError('dil_img has not been implemented yet.')
-
-    return niimg.smooth_img(in_file, fwhm=fwhm)
+    return niimg.new_img_like(in_file, data)
 
 

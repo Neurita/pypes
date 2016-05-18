@@ -303,28 +303,27 @@ class STCParameters(object):
 
         time_repetition
         """
-
         # If you have used this class for more than once and this exception is raised check the following comment:
         # TODO: decide to remove `isdefined` or change the `is not None` checks in the `set` functions
-        from nipype.interfaces.base import isdefined
-        if not isdefined(num_slices):
-            raise ValueError("Expected `None` or an integer for `num_slices`, got a traits.Undefined.")
-
         self.in_files         = in_files
         self.num_slices       = num_slices
+        self.slice_order      = slice_order
         self.time_repetition  = time_repetition
         self.time_acquisition = time_acquisition
-        self.slice_order      = slice_order
         self.ref_slice        = ref_slice
         self.slice_mode       = slice_mode
 
-        num_slices       = self.set_num_slices()
-        slice_order      = self.set_slice_order()
-        time_repetition  = self.set_time_repetition()
-        time_acquisition = self.set_time_acquisition()
-        ref_slice        = self.set_ref_slice()
+        _ = self.set_num_slices()
+        _ = self.set_slice_order()
+        _ = self.set_time_repetition()
+        _ = self.set_time_acquisition()
+        _ = self.set_ref_slice()
 
-        return num_slices, ref_slice, slice_order, time_acquisition, time_repetition
+        return (self.num_slices,
+                self.ref_slice,
+                self.slice_order,
+                self.time_acquisition,
+                self.time_repetition)
 
     def _check_in_files(self):
         if isinstance(self.in_files, str):
@@ -365,7 +364,8 @@ class STCParameters(object):
 
     def set_num_slices(self):
         if self.num_slices is not None:
-            return self.num_slices
+            if self.num_slices > 0:
+                return self.num_slices
 
         error_msg = 'The number of z slices for all `in_files` are not the same, got {}.'
         self.num_slices = self._check_all_equal(_get_n_slices, error_msg)

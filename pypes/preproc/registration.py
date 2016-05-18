@@ -10,7 +10,7 @@ import nipype.interfaces.afni as afni
 from   nipype.interfaces.base import traits
 
 from ..nilearn import mean_img, concat_imgs, smooth_img
-from ..config  import setup_node
+from ..config  import setup_node, get_config_setting
 from ..utils   import spm_tpm_priors_path
 
 
@@ -217,9 +217,12 @@ def spm_group_template(wf_name="spm_group_template"):
                         name='merge_time')
 
     # average
-    average = setup_node(Function(function=mean_img, input_names=["in_files"], output_names=["out_file"],
-                                 imports=['from pypes.nilearn import ni2file']),
+    average = setup_node(Function(function=mean_img,
+                                  input_names=["in_file", "out_file"],
+                                  output_names=["out_file"],
+                                  imports=['from pypes.nilearn import ni2file']),
                         name='average')
+    average.inputs.out_file = 'group_average.nii.gz'
 
     # smooth
     smooth = setup_node(Function(function=smooth_img,
@@ -227,6 +230,7 @@ def spm_group_template(wf_name="spm_group_template"):
                                  output_names=["out_file"],
                                  imports=['from pypes.nilearn import ni2file']),
                          name="{}_smooth".format(wf_name))
+    smooth.inputs.fwhm = get_config_setting("{}_smooth".format(wf_name), default=8)
 
     # output
     output = setup_node(IdentityInterface(fields=["template"]), name="grptemplate_output",)

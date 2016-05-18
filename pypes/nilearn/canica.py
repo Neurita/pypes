@@ -43,6 +43,9 @@ class CanICAInputSpec(BaseInterfaceInputSpec):
     standardize = traits.Bool(desc="If standardize is True, the time-series are centered and normed: "
                                    "their mean is put to 0 and their variance to 1 in the time dimension.",
                               default_value=True, usedefault=True)
+    n_jobs = traits.Int(desc="The number of CPUs to use to do the computation. -1 means 'all CPUs', "
+                             "-2 'all CPUs but one', and so on.",
+                        default_value=1, usedefault=True)
 
 
 class CanICAOutputSpec(TraitedSpec):
@@ -73,6 +76,7 @@ class CanICAInterface(BaseInterface):
         threshold         = get_trait_value(self.inputs, 'threshold',      default=None)
         random_state      = get_trait_value(self.inputs, 'random_state',   default=None)
         n_init            = get_trait_value(self.inputs, 'n_init')
+        n_jobs            = get_trait_value(self.inputs, 'n_jobs')
         n_epochs          = get_trait_value(self.inputs, 'n_epochs')
         alpha             = get_trait_value(self.inputs, 'alpha')
 
@@ -89,6 +93,7 @@ class CanICAInterface(BaseInterface):
                                      do_cca=do_cca,
                                      verbose=1,
                                      n_init=n_init,
+                                     n_jobs=n_jobs,
                                      )
 
         elif algorithm == 'dictlearning':
@@ -98,10 +103,10 @@ class CanICAInterface(BaseInterface):
                                            random_state=random_state,
                                            standardize=standardize,
                                            smoothing_fwhm=smoothing_fwhm,
-                                           do_cca=do_cca,
                                            verbose=1,
                                            n_epochs=n_epochs,
                                            alpha=alpha,
+                                           n_jobs=n_jobs,
                                            )
 
         # set output file names

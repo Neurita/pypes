@@ -107,6 +107,10 @@ def _clinical_wf_setup(wf_name):
                                                  ("spm_mrpet_preproc", attach_spm_mrpet_preprocessing),
                                                 ],
 
+                        "spm_anat_rest_preproc":[("spm_anat_preproc",  attach_spm_anat_preprocessing),
+                                                 ("spm_rest_preproc",  attach_rest_preprocessing),
+                                                ],
+
                         "fsl_dti_preproc":      [("spm_anat_preproc",  attach_spm_anat_preprocessing),
                                                  ("fsl_dti_preproc",   attach_fsl_dti_preprocessing),
                                                 ],
@@ -143,6 +147,9 @@ def _clinical_wf_setup(wf_name):
 
     if 'pet' in wf_name:
         files_crumb_args.update({'pet':  [('image', 'pet_fdg.nii.gz')],})
+
+    if 'rest' in wf_name:
+        files_crumb_args.update({'rest':  [('image', 'rest.nii.gz')],})
 
     if 'dti' in wf_name:
         files_crumb_args.update({'diff': [('image', 'diff.nii.gz')],

@@ -24,7 +24,7 @@ from   .._utils import (flatten_list,
                         format_pair_list)
 
 
-def petpvc_workflow(wf_name="spm_mrpet_preproc2"):
+def petpvc_workflow(wf_name="pet_pvc"):
     """ Run the PET pre-processing workflow against the gunzip_pet.in_file files.
     It coregisters the reference_file and tissues to PET space, then applies PVC and grey matter normalization.
 

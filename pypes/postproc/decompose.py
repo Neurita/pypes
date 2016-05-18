@@ -126,7 +126,8 @@ def attach_concat_canica(main_wf, wf_name="canica", **kwargs):
     # concat images
     concat = setup_node(Function(function=concat_imgs,
                                  input_names=["in_files"],
-                                 output_names=["out_file"],),
+                                 output_names=["out_file"],
+                                 imports=['from pypes.nilearn import ni2file']),
                         name="concat")
 
     makelist = lambda x: [x]
@@ -166,7 +167,7 @@ def attach_concat_canica(main_wf, wf_name="canica", **kwargs):
     plot_thr = get_config_setting('canica_extra.plot_thr', default=0)
     plot_thr = get_trait_value(canica.inputs, 'threshold', default=plot_thr)
 
-    # concat images
+    # plto ica results images
     plot_ica = setup_node(Function(function=plot_ica_results,
                                    input_names=["ica_result", "application", "mask_file", "zscore", "bg_img"],
                                    output_names=["all_icc_plot", "iccs_plot"],),

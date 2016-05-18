@@ -337,14 +337,6 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
                                        ]),
         ])
 
-        if do_plot:
-            # Connect the plotting nodes
-            wf.connect([
-                        (ica,         rest_output, [("all_icc_plot", "all_icc_plot"),
-                                                    ("iccs_plot",    "iccs_plot"),
-                                                   ]),
-                       ])
-
     return wf
 
 
@@ -441,8 +433,8 @@ def attach_rest_preprocessing(main_wf, wf_name="rest_preproc"):
                     ])
 
     if do_atlas:
-            main_wf.connect([(anat_wf,  rest_wf,  [("anat_output.atlas_warped", "rest_input.atlas_anat")]),
-                             (rest_wf,  datasink, [("rest_output.atlas_rest",   "rest.@atlas")]),
+            main_wf.connect([(anat_wf,  rest_wf,  [("anat_output.atlas_anat", "rest_input.atlas_anat")]),
+                             (rest_wf,  datasink, [("rest_output.atlas_rest", "rest.@atlas")]),
                             ])
 
     do_connectivity = get_config_setting('rest_preproc.connectivity')
