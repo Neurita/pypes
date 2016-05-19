@@ -26,13 +26,13 @@ class CanICAInputSpec(BaseInterfaceInputSpec):
                                  "Please see the related documentation for details.",
                             exists=True)
     n_components = traits.Int(desc="Number of components to extract.", default_value=20, usedefault=True)
-    n_init = traits.Int(desc="CanICA: The number of times the fastICA algorithm is restarted.", default_value=10, usedefault=True)
-    n_epochs = traits.Int(desc="DictLearning: Number of epochs the algorithm should run on the data.", default_value=1, usedefault=True)
-    alpha = traits.Float(desc="DictLearning: Sparsity controlling parameter.", default_value=1.0, usedefault=True)
-    do_cca = traits.Bool(desc="Indicate if a Canonical Correlation Analysis must be run after the PCA.",
+    n_init = traits.Int(desc="CanICA only: The number of times the fastICA algorithm is restarted.", default_value=10, usedefault=True)
+    n_epochs = traits.Int(desc="DictLearning only: Number of epochs the algorithm should run on the data.", default_value=1, usedefault=True)
+    alpha = traits.Float(desc="DictLearning only: Sparsity controlling parameter.", default_value=1.0, usedefault=True)
+    do_cca = traits.Bool(desc="CanICA only: Indicate if a Canonical Correlation Analysis must be run after the PCA.",
                          default_value=True, usedefault=True)
     threshold = traits.Either(traits.Bool, traits.Float,
-                              desc="If None, no thresholding is applied.\n"
+                              desc="CanICA only: If None, no thresholding is applied.\n"
                                    "If ‘auto’, then we apply a thresholding that will keep the n_voxels, \n"
                                    "more intense voxels across all the maps, n_voxels being the number of voxels \n"
                                    "in a brain volume. A float value indicates the ratio of voxels to keep "
@@ -99,7 +99,6 @@ class CanICAInterface(BaseInterface):
         elif algorithm == 'dictlearning':
             self._estimator = DictLearning(mask=mask,
                                            n_components=n_components,
-                                           threshold=threshold,
                                            random_state=random_state,
                                            standardize=standardize,
                                            smoothing_fwhm=smoothing_fwhm,
