@@ -115,8 +115,8 @@ def fsl_dti_preprocessing(wf_name="fsl_dti_preproc"):
     coreg_split  = setup_node(Split(splits=[1, 2], squeeze=True), name="coreg_split")
 
     brain_merge  = setup_node(MultiImageMaths(),                  name="brain_merge")
-    brain_merge.inputs.op_string = "-add '%s' -add '%s' -abs -kernel gauss 2 -dilM -ero -bin"
-    brain_merge.inputs.out_file = "brain_mask_diff_space.nii.gz"
+    brain_merge.inputs.op_string = "-add '%s' -add '%s' -abs -kernel gauss 4 -dilM -ero -kernel gauss 1 -dilM -bin"
+    brain_merge.inputs.out_file = "brain_mask_diff.nii.gz"
 
     rot_bvec     = setup_node(Function(function=eddy_rotate_bvecs,
                                        input_names=["in_bvec", "eddy_params"],
