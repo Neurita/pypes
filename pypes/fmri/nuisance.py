@@ -38,6 +38,7 @@ def rest_noise_filter_wf(wf_name='rest_noise_removal'):
     rest_noise_input.csf_mask
 
     rest_noise_input.motion_params
+        Nipy motion parameters.
 
     Nipype Outputs
     --------------
@@ -57,6 +58,25 @@ def rest_noise_filter_wf(wf_name='rest_noise_removal'):
     rest_noise_output.compcor_regressors
         CompCor regressors file.
 
+    rest_noise_output.art_displacement_files
+        One image file containing the voxel-displacement timeseries.
+
+    rest_noise_output.art_intensity_files
+        One file containing the global intensity values determined from the brainmask.
+
+    rest_noise_output.art_norm_files
+        One file containing the composite norm.
+
+    rest_noise_output.art_outlier_files
+         One file containing a list of 0-based indices corresponding to outlier volumes.
+
+    rest_noise_output.art_plot_files
+        One image file containing the detected outliers.
+
+    rest_noise_output.art_statistic_files
+        One file containing information about the different types of artifacts and if design info is provided then
+        details of stimulus correlated motion and a listing or artifacts by event type.
+
     Returns
     -------
     rm_nuisance_wf: nipype Workflow
@@ -65,12 +85,28 @@ def rest_noise_filter_wf(wf_name='rest_noise_removal'):
     # Create the workflow object
     wf = pe.Workflow(name=wf_name)
 
+    in_fields = ["in_file",
+                 "brain_mask",
+                 "wm_mask",
+                 "csf_mask",
+                 "motion_params",]
+
+    out_fields = ["tsnr_file",
+                  "motion_corrected",
+                  "nuis_corrected",
+                  "motion_regressors",
+                  "compcor_regressors",
+                  "gsr_regressors",
+                  "art_displacement_files",
+                  "art_intensity_files",
+                  "art_norm_files",
+                  "art_outlier_files",
+                  "art_plot_files",
+                  "art_statistic_files",
+                 ]
+
     # input identities
-    rest_noise_input = setup_node(IdentityInterface(fields=["in_file",
-                                                            "brain_mask",
-                                                            "wm_mask",
-                                                            "csf_mask",
-                                                            "motion_params"],
+    rest_noise_input = setup_node(IdentityInterface(fields=in_fields,
                                                     mandatory_inputs=True),
                                   name="rest_noise_input")
 
@@ -85,6 +121,12 @@ def rest_noise_filter_wf(wf_name='rest_noise_removal'):
     # images in the functional series are outliers based on deviations in
     # intensity or movement.
     art = setup_node(rapidart_artifact_detection(), name="detect_artifact")
+    art.inputs.use_differences = [True, True]
+    art.inputs.use_norm = True
+    art.inputs.norm_threshold = 1 #norm_threshold
+    art.inputs.zintensity_threshold = 9
+    art.inputs.mask_type = 'file'
+    art.inputs.parameter_source = 'NiPy'
 
     # Compute motion regressors
     motion_regs = setup_node(Function(input_names=['motion_params',
@@ -138,14 +180,7 @@ def rest_noise_filter_wf(wf_name='rest_noise_removal'):
                             name='gsr_filter')
 
     # output identities
-    rest_noise_output = setup_node(IdentityInterface(fields=[
-                                                             "tsnr_file",
-                                                             "motion_corrected",
-                                                             "nuis_corrected",
-                                                             "motion_regressors",
-                                                             "compcor_regressors",
-                                                             "gsr_regressors",
-                                                            ],
+    rest_noise_output = setup_node(IdentityInterface(fields=out_fields,
                                                      mandatory_inputs=True),
                                     name="rest_noise_output")
 
@@ -157,6 +192,7 @@ def rest_noise_filter_wf(wf_name='rest_noise_removal'):
                 # artifact detection
                 (rest_noise_input, art, [("in_file",        "realigned_files"),
                                          ("motion_params",  "realignment_parameters"),
+                                         ("brain_mask",     "mask_file"),
                                         ]),
 
                 # calculte motion regressors
@@ -169,15 +205,22 @@ def rest_noise_filter_wf(wf_name='rest_noise_removal'):
                 (motion_regs,   motart_pars, [("out_files",     "motion_params")]),
 
                 # motion filtering
-                (rest_noise_input, motion_filter,   [("in_file",                            "in_file"),
-                                                     (("in_file", rename, "_filtermotart"), "out_res_name"),
-                                                    ]),
-                (motart_pars,      motion_filter,   [(("out_files", selectindex, [0]),      "design")]),
+                (rest_noise_input, motion_filter, [("in_file",                            "in_file"),
+                                                   (("in_file", rename, "_filtermotart"), "out_res_name"),
+                                                  ]),
+                (motart_pars,      motion_filter, [(("out_files", selectindex, [0]),      "design")]),
 
                 # output
-                (tsnr,             rest_noise_output, [("tsnr_file",   "tsnr_file")]),
-                (motart_pars,      rest_noise_output, [("out_files",   "motion_regressors")]),
-                (motion_filter,    rest_noise_output, [("out_res",     "motion_corrected")]),
+                (tsnr,             rest_noise_output, [("tsnr_file",            "tsnr_file")]),
+                (motart_pars,      rest_noise_output, [("out_files",            "motion_regressors")]),
+                (motion_filter,    rest_noise_output, [("out_res",              "motion_corrected")]),
+                (art,              rest_noise_output, [("displacement_files",   "art_displacement_files"),
+                                                       ("intensity_files",      "art_intensity_files"),
+                                                       ("norm_files",           "art_norm_files"),
+                                                       ("outlier_files",        "art_outlier_files"),
+                                                       ("plot_files",           "art_plot_files"),
+                                                       ("statistic_files",      "art_statistic_files"),
+                                                      ]),
                 ])
 
     last_filter = motion_filter

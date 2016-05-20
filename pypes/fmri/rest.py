@@ -16,6 +16,9 @@ from   .nuisance import rest_noise_filter_wf
 from   ..preproc import (auto_spm_slicetime,
                          nipy_motion_correction,
                          spm_coregister,
+                         spm_normalize,
+                         get_bounding_box,
+                         spm_tpm_priors_path,
                          )
 
 from   ..nilearn import mean_img, smooth_img
@@ -126,6 +129,37 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
         If `rest_preproc.canica` is True and 'canica_extra.plot' is not False.
         A plot figure in PDF of the ICA results.
 
+    rest_output.time_filtered_mni: traits.File
+        The time filtered file in MNI space
+
+    rest_output.smooth_mni: traits.File
+        The time filtered and smooth file in MNI space
+
+    rest_output.epi_mni: traits.File
+        The motion corrected file in MNI space.
+
+    rest_output.epi_mni_warpfield: traits.File
+        The warp field to register the coregistered anatomical file into MNI space.
+
+    rest_output.art_displacement_files
+        One image file containing the voxel-displacement timeseries.
+
+    rest_output.art_intensity_files
+        One file containing the global intensity values determined from the brainmask.
+
+    rest_output.art_norm_files
+        One file containing the composite norm.
+
+    rest_output.art_outlier_files
+         One file containing a list of 0-based indices corresponding to outlier volumes.
+
+    rest_output.art_plot_files
+        One image file containing the detected outliers.
+
+    rest_output.art_statistic_files
+        One file containing information about the different types of artifacts and if design info is provided then
+        details of stimulus correlated motion and a listing or artifacts by event type.
+
     Returns
     -------
     wf: nipype Workflow
@@ -148,13 +182,23 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
                   "anat",
                   "time_filtered",
                   "smooth",
+                  "time_filtered_mni",
+                  "smooth_mni",
                   "tsnr_file",
                   "epi_brain_mask",
                   "tissues_brain_mask",
                   "motion_regressors",
                   "compcor_regressors",
                   "gsr_regressors",
-                  "nuis_corrected",]
+                  "nuis_corrected",
+                  "epi_mni",
+                  "epi_mni_warpfield",
+                  "art_displacement_files",
+                  "art_intensity_files",
+                  "art_norm_files",
+                  "art_outlier_files",
+                  "art_plot_files",
+                  "art_statistic_files",]
 
     do_atlas, _     = check_atlas_file()
     do_connectivity = get_config_setting('rest_preproc.connectivity')
@@ -179,8 +223,8 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
                             name="rest_input")
 
     # rs-fMRI preprocessing nodes
-    trim    = setup_node(Trim(),
-                         name="trim")
+    trim    = setup_node(Trim(), name="trim")
+
     stc_wf  = auto_spm_slicetime()
     realign = setup_node(nipy_motion_correction(), name='realign')
 
@@ -192,13 +236,14 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
     mean_gunzip = setup_node(Gunzip(),        name="mean_gunzip")
 
     # co-registration nodes
-    coreg     = setup_node(spm_coregister(cost_function="mi"), name="coreg_rest")
+    coreg     = setup_node(spm_coregister(cost_function="mi"), name="coreg_fmri")
     brain_sel = setup_node(Select(index=[0, 1, 2]),            name="brain_sel")
 
     # brain masks
     epi_mask     = setup_node(ComputeMask(),         name='epi_mask')
     tissue_mask  = setup_node(fsl.MultiImageMaths(), name='tissue_mask')
-    tissue_mask.inputs.op_string = "-add %s -add %s -kernel gauss 2 -dilM -ero -bin"
+    tissue_mask.inputs.op_string = "-add %s -add %s -abs -kernel gauss 4 -dilM -ero -kernel gauss 1 -dilM -bin"
+    tissue_mask.inputs.out_file = "tissue_brain_mask.nii.gz"
 
     gm_select    = setup_node(Select(index=[0]),     name="gm_sel")
     wmcsf_select = setup_node(Select(index=[1, 2]),  name="wmcsf_sel")
@@ -208,6 +253,15 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
     wm_select  = setup_node(Select(index=[1]), name="wm_sel")
     csf_select = setup_node(Select(index=[2]), name="csf_sel")
 
+    # normalize to MNI
+    warp     = setup_node(spm_normalize(), name="warp")
+    gunzip   = setup_node(Gunzip(),        name="noise_gunzip")
+    tpm_bbox = setup_node(Function(function=get_bounding_box,
+                                   input_names=["in_file"],
+                                   output_names=["bbox"]),
+                          name="tpm_bbox")
+    tpm_bbox.inputs.in_file = spm_tpm_priors_path()
+
     # bandpass filtering
     bandpass = setup_node(Function(input_names=['files',
                                                 'lowpass_freq',
@@ -215,14 +269,14 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
                                                 'tr'],
                                    output_names=['out_files'],
                                    function=bandpass_filter),
-                          name='bandpass_filter')
+                          name='bandpass_mni')
 
     # smooth
     smooth = setup_node(Function(function=smooth_img,
                                  input_names=["in_file", "fwhm"],
                                  output_names=["out_file"],
                                  imports=['from pypes.nilearn import ni2file']),
-                         name="fmri_smooth")
+                         name="fmri_smooth_mni")
     smooth.inputs.fwhm = get_config_setting('fmri_smooth.fwhm', default=8)
 
     # output identities
@@ -271,17 +325,23 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
                 # motion statistics
                 # TODO
 
+                # normalize to template
+                (coreg,       warp,        [("coregistered_source",              "image_to_align")]),
+                (noise_wf,    gunzip,      [("rest_noise_output.nuis_corrected", "in_file")]),
+                (gunzip,      warp,        [("out_file",                         "apply_to_files")]),
+                (tpm_bbox,    warp,        [("bbox",                             "write_bounding_box")]),
+
                 # temporal filtering
-                (stc_wf,     bandpass,     [("stc_output.time_repetition",          "tr")]),
-                (rest_input, bandpass,     [("lowpass_freq",                        "lowpass_freq"),
-                                            ("highpass_freq",                       "highpass_freq"),
+                (warp,        bandpass,    [("normalized_files",                 "files")]),
+                (stc_wf,      bandpass,    [("stc_output.time_repetition",       "tr")]),
+                (rest_input,  bandpass,    [("lowpass_freq",                     "lowpass_freq"),
+                                            ("highpass_freq",                    "highpass_freq"),
                                            ]),
-                (noise_wf,   bandpass,     [("rest_noise_output.nuis_corrected",    "files")]),
 
                 # smoothing
                 (bandpass,    smooth,      [("out_files",           "in_file")]),
 
-                #output
+                # output
                 (epi_mask,    rest_output, [("brain_mask",          "epi_brain_mask")]),
                 (tissue_mask, rest_output, [("out_file",            "tissues_brain_mask")]),
                 (realign,     rest_output, [("out_file",            "motion_corrected"),
@@ -290,16 +350,34 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
                 (coreg,       rest_output, [("coregistered_files",  "tissues"),
                                             ("coregistered_source", "anat"),
                                            ]),
-                (noise_wf,    rest_output, [("rest_noise_output.motion_regressors",  "motion_regressors"),
-                                            ("rest_noise_output.compcor_regressors", "compcor_regressors"),
-                                            ("rest_noise_output.gsr_regressors",     "gsr_regressors"),
-                                            ("rest_noise_output.nuis_corrected",     "nuis_corrected"),
-                                            ("rest_noise_output.tsnr_file",          "tsnr_file"),
+                (noise_wf,    rest_output, [("rest_noise_output.motion_regressors",      "motion_regressors"),
+                                            ("rest_noise_output.compcor_regressors",     "compcor_regressors"),
+                                            ("rest_noise_output.gsr_regressors",         "gsr_regressors"),
+                                            ("rest_noise_output.nuis_corrected",         "nuis_corrected"),
+                                            ("rest_noise_output.tsnr_file",              "tsnr_file"),
+                                            ("rest_noise_output.art_displacement_files", "art_displacement_files"),
+                                            ("rest_noise_output.art_intensity_files",    "art_intensity_files"),
+                                            ("rest_noise_output.art_norm_files",         "art_norm_files"),
+                                            ("rest_noise_output.art_outlier_files",      "art_outlier_files"),
+                                            ("rest_noise_output.art_plot_files",         "art_plot_files"),
+                                            ("rest_noise_output.art_statistic_files",    "art_statistic_files"),
                                            ]),
-                (bandpass,    rest_output, [("out_files",                            "time_filtered")]),
-                (smooth,      rest_output, [("out_file",                             "smooth")]),
+                (bandpass,    rest_output, [("out_files",                            "time_filtered_mni")]),
+                (smooth,      rest_output, [("out_file",                             "smooth_mni")]),
+                (warp,        rest_output, [("normalized_files",                     "epi_mni"),
+                                            ("deformation_field",                    "epi_mni_warpfield"),
+                                           ]),
               ])
 
+    # apply bandpass and smoothing to the image in native space as well
+    bandpass_func = bandpass.clone(name="bandpass_filter_func")
+    smooth_func = smooth.clone(name="fmri_smooth_func")
+    wf.connect([
+                (noise_wf,       bandpass_func, [("rest_noise_output.nuis_corrected", "files")]),
+                (bandpass_func,  smooth_func,   [("out_files",                        "in_file")]),
+                (bandpass_func,  rest_output,   [("out_files",                        "time_filtered")]),
+                (smooth_func,    rest_output,   [("out_file",                         "smooth")]),
+               ])
 
     # add more nodes if to perform atlas registration
     if do_atlas:
@@ -308,35 +386,34 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
         # set the registration interpolation to nearest neighbour.
         coreg_atlas.inputs.write_interp = 0
         wf.connect([
-            (rest_input,  coreg_atlas, [("anat",                "source")]),
-            (mean_gunzip, coreg_atlas, [("out_file",            "target")]),
-            (rest_input,  coreg_atlas, [("atlas_anat",          "apply_to_files")]),
-            (coreg_atlas, rest_output, [("coregistered_files",  "atlas_rest")]),
+            (rest_input,  coreg_atlas, [("anat",               "source")]),
+            (mean_gunzip, coreg_atlas, [("out_file",           "target")]),
+            (rest_input,  coreg_atlas, [("atlas_anat",         "apply_to_files")]),
+            (coreg_atlas, rest_output, [("coregistered_files", "atlas_rest")]),
         ])
 
     # functional connectivity
     if do_atlas and do_connectivity:
         conn = setup_node(ConnectivityCorrelationInterface(), name="rest_connectivity")
         wf.connect([
-            (coreg_atlas, conn,        [("coregistered_files",  "atlas_file")]),
-            (bandpass,    conn,        [("out_files",           "in_files")]),
-            (conn,        rest_output, [("connectivity",        "connectivity"),
-                                        ("timeseries",          "atlas_timeseries"),
-                                       ]),
+            (coreg_atlas,   conn,        [("coregistered_files", "atlas_file")]),
+            (bandpass_func, conn,        [("out_files",          "in_files")]),
+            (conn,          rest_output, [("connectivity",       "connectivity"),
+                                          ("timeseries",         "atlas_timeseries"),
+                                         ]),
         ])
 
     # CanICA
     if do_canica:
         ica = setup_node(CanICAInterface(), name="rest_groupica")
         wf.connect([
-            (bandpass,    ica,         [("out_files",           "in_files")]),
-            (tissue_mask, ica,         [("out_file",            "mask")]),
-            (ica,         rest_output, [("components",          "ica_components"),
-                                        ("score",               "ica_score"),
-                                        ("loadings",            "ica_loadings"),
+            (bandpass,    ica,         [("out_files",  "in_files")]),
+            (tissue_mask, ica,         [("out_file",   "mask")]),
+            (ica,         rest_output, [("components", "ica_components"),
+                                        ("score",      "ica_score"),
+                                        ("loadings",   "ica_loadings"),
                                        ]),
         ])
-
     return wf
 
 
@@ -372,25 +449,39 @@ def attach_rest_preprocessing(main_wf, wf_name="rest_preproc"):
 
     # The base name of the 'rest' file for the substitutions
     rest_fbasename = remove_ext(op.basename(get_input_file_name(in_files, 'rest')))
+    anat_fbasename = remove_ext(op.basename(get_input_file_name(in_files, 'anat')))
 
     # dataSink output substitutions
     regexp_subst = [
-                    (r"/rc1[\w]+_corrected_maths\.nii$",                          "/tissue_brain_mask.nii"),
-                    (r"/rc1[\w]+_corrected\.nii$",                                "/gm.nii"),
-                    (r"/rc2[\w]+_corrected\.nii$",                                "/wm.nii"),
-                    (r"/rc3[\w]+_corrected\.nii$",                                "/csf.nii"),
-                    (r"/rm[\w]+_corrected\.nii$",                                 "/anat.nii"),
-                    (r"/corr_stc{rest}_trim\.nii$",                               "/slice_time_corrected.nii"),
-                    (r"/stc{rest}_trim\.nii\.par$",                               "/motion_parameters.txt"),
-                    (r"/corr_stc{rest}_trim_filt\.nii$",                          "/time_filt.nii"),
-                    (r"/corr_stc{rest}_trim_mean_mask\.\.nii$",                   "/epi_brain_mask.nii"),
-                    (r"/corr_stc{rest}_trim_filtermotart\.nii$",                  "/motion_corrected.nii"),
-                    (r"/corr_stc{rest}_trim_filtermotart[\w_]*_cleaned\.nii$",    "/nuisance_corrected.nii"),
-                    (r"/corr_stc{rest}_trim_filtermotart[\w_]*_gsr\.nii$",        "/nuisance_corrected.nii"),
-                    (r"/corr_stc{rest}_trim_filtermotart[\w_]*_bandpassed\.nii$", "/time_filtered.nii"),
-                    (r"/corr_stc{rest}_trim_filtermotart[\w_]*_smooth\.nii$",     "/smooth.nii"),
+                    (r"/rc1[\w]+_corrected\.nii$",                                 "/gm_{rest}.nii"),
+                    (r"/rc2[\w]+_corrected\.nii$",                                 "/wm_{rest}.nii"),
+                    (r"/rc3[\w]+_corrected\.nii$",                                 "/csf_{rest}.nii"),
+                    (r"/rm[\w]+_corrected\.nii$",                                  "/{anat}_{rest}.nii"),
+                    (r"/y_rm{anat}_corrected\.nii$",                               "/{rest}_to_mni_warpfield.nii"),
+                    (r"/corr_stc{rest}_trim\.nii$",                                "/slice_time_corrected.nii"),
+                    (r"/stc{rest}_trim\.nii\.par$",                                "/motion_parameters.txt"),
+                    (r"/corr_stc{rest}_trim_filt\.nii$",                           "/time_filt.nii"),
+                    (r"/corr_stc{rest}_trim_mean_mask\.\.nii$",                    "/epi_brain_mask_{rest}.nii"),
+                    (r"/tissue_brain_mask\.nii$",                                  "/tissue_brain_mask_{rest}.nii"),
+
+                    (r"/art\..*_outliers\.txt$",                                   "/artifact_outliers.txt"),
+                    (r"/global_intensity\..*\.txt$",                               "/global_intensities.txt"),
+                    (r"/norm\..*_outliers\.txt$",                                  "/motion_norms.txt"),
+                    (r"/stats\..*\.txt$",                                          "/motion_stats.json"),
+                    (r"/plot\..*\.png$",                                           "/artifact_plots.png"),
+
+                    (r"/corr_stc{rest}_trim_filtermotart\.nii$",                   "/{rest}_motion_corrected.nii"),
+                    (r"/corr_stc{rest}_trim_filtermotart[\w_]*_cleaned\.nii$",     "/{rest}_nuisance_corrected.nii"),
+                    (r"/corr_stc{rest}_trim_filtermotart[\w_]*_gsr\.nii$",         "/{rest}_nuisance_corrected.nii"),
+                    (r"/corr_stc{rest}_trim_filtermotart[\w_]*_bandpassed\.nii$",  "/{rest}_time_filtered.nii"),
+                    (r"/corr_stc{rest}_trim_filtermotart[\w_]*_smooth\.nii$",      "/{rest}_smooth.nii"),
+
+                    (r"/wcorr_stc{rest}_trim_filtermotart[\w_]*_cleaned\.nii$",    "/{rest}_nuisance_corrected_mni.nii"),
+                    (r"/wcorr_stc{rest}_trim_filtermotart[\w_]*_gsr\.nii$",        "/{rest}_nuisance_corrected_mni.nii"),
+                    (r"/wcorr_stc{rest}_trim_filtermotart[\w_]*_bandpassed\.nii$", "/{rest}_time_filtered_mni.nii"),
+                    (r"/wcorr_stc{rest}_trim_filtermotart[\w_]*_smooth\.nii$",     "/{rest}_smooth_mni.nii"),
                    ]
-    regexp_subst = format_pair_list(regexp_subst, rest=rest_fbasename)
+    regexp_subst = format_pair_list(regexp_subst, rest=rest_fbasename, anat=anat_fbasename)
 
     # prepare substitution for atlas_file, if any
     do_atlas, atlas_file = check_atlas_file()
@@ -416,19 +507,29 @@ def attach_rest_preprocessing(main_wf, wf_name="rest_preproc"):
 
                     # test output
                     (rest_wf,  datasink,  [
-                                           ("rest_output.epi_brain_mask",        "rest.@epi_brain_mask"),
-                                           ("rest_output.tissues_brain_mask",    "rest.@tissues_brain_mask"),
-                                           ("rest_output.tissues",               "rest.@tissues"),
-                                           ("rest_output.anat",                  "rest.@anat"),
-                                           ("rest_output.motion_regressors",     "rest.@motion_regressors"),
-                                           ("rest_output.compcor_regressors",    "rest.@compcor_regressors"),
-                                           ("rest_output.gsr_regressors",        "rest.@gsr_regressors"),
-                                           ("rest_output.motion_params",         "rest.@motion_params"),
-                                           ("rest_output.motion_corrected",      "rest.@motion_corrected"),
-                                           ("rest_output.nuis_corrected",        "rest.@nuis_corrected"),
-                                           ("rest_output.time_filtered",         "rest.@time_filtered"),
-                                           ("rest_output.smooth",                "rest.@smooth"),
-                                           ("rest_output.tsnr_file",             "rest.@tsnr"),
+                                           ("rest_output.epi_brain_mask",         "rest.@epi_brain_mask"),
+                                           ("rest_output.tissues_brain_mask",     "rest.@tissues_brain_mask"),
+                                           ("rest_output.tissues",                "rest.@tissues"),
+                                           ("rest_output.anat",                   "rest.@anat"),
+                                           ("rest_output.motion_regressors",      "rest.@motion_regressors"),
+                                           ("rest_output.compcor_regressors",     "rest.@compcor_regressors"),
+                                           ("rest_output.gsr_regressors",         "rest.@gsr_regressors"),
+                                           ("rest_output.motion_params",          "rest.@motion_params"),
+                                           ("rest_output.motion_corrected",       "rest.@motion_corrected"),
+                                           ("rest_output.nuis_corrected",         "rest.@nuis_corrected"),
+                                           #("rest_output.time_filtered",          "rest.@time_filtered"),
+                                           #("rest_output.time_filtered_mni",      "rest.@time_filtered_mni"),
+                                           ("rest_output.smooth",                 "rest.@smooth"),
+                                           ("rest_output.smooth_mni",             "rest.@smooth_mni"),
+                                           ("rest_output.tsnr_file",              "rest.@tsnr"),
+                                           ("rest_output.epi_mni",                "rest.@epi_mni"),
+                                           ("rest_output.epi_mni_warpfield",      "rest.@epi_mni_warpfield"),
+                                           ("rest_output.art_displacement_files", "rest.artifact_stats.@displacement"),
+                                           ("rest_output.art_intensity_files",    "rest.artifact_stats.@art_intensity"),
+                                           ("rest_output.art_norm_files",         "rest.artifact_stats.@art_norm"),
+                                           ("rest_output.art_outlier_files",      "rest.artifact_stats.@art_outlier"),
+                                           ("rest_output.art_plot_files",         "rest.artifact_stats.@art_plot"),
+                                           ("rest_output.art_statistic_files",    "rest.artifact_stats.@art_statistic"),
                                           ]),
                     ])
 
