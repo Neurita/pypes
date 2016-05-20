@@ -149,22 +149,19 @@ def smooth_img(in_file, fwhm, out_file=None):
 
 
 @ni2file(suffix='_dil')
-def binary_dilation_img(in_file, radius=2, selem=None, out_file=None):
-    """ Use skimage.morphology.binary_dilation to dilate a binary image.
-    By default a ball-shaped structuring element with `radius` in mm is used.
+def gauss_dilate_img(in_file, fwhm=2, out_file=None):
+    """ Use nilearn.image.smooth_img to smooth the borders of a binary image and then
+    threshold it to >= 0.5 for a "Gaussian binary dilation".
+
+    Only use this on binary images!
 
     Parameters
     ----------
     in_file: str
         Path to the input binary file.
 
-    radius: int
-        The radius in mm of the ball-shaped element used for the morphology operation.
-        If the conversion from mm to voxels is not integer, will use the ceil value.
-
-    selem: numpy.ndarray
-        A 3D structring element.
-        If None will create a 3D ball with the given `radius`.
+    fwhm: int or float
+        The FWHM in mm of the smoothing Gaussian kernel.
 
     out_file: str
         Path to the output file.
@@ -174,17 +171,17 @@ def binary_dilation_img(in_file, radius=2, selem=None, out_file=None):
     out_file: str
         The absolute path to the output file.
     """
-    import math
-    import nibabel as nib
-    import skimage.morphology as skm
     import nilearn.image as niimg
+    from   nilearn._utils import check_niimg
 
-    if selem is None:
-        size  = math.ceil()
-        selem = skm.ball(size)
+    def as_type(img, dtype=float):
+        return niimg.new_img_like(img, check_niimg(img).get_data().astype(dtype))
 
-    data = skm.binary_dilation(nib.load(in_file), selem=selem)
+    def thr_img(img, thr):
+        return niimg.new_img_like(img, check_niimg(img).get_data() >= thr)
 
-    return niimg.new_img_like(in_file, data)
+    nu_img = niimg.smooth_img(as_type(in_file, float), fwhm=fwhm)
+
+    return thr_img(nu_img, 0.5)
 
 
