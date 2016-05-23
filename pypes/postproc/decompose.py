@@ -170,7 +170,7 @@ def attach_concat_canica(main_wf, wf_name="canica", **kwargs):
     # plto ica results images
     plot_ica = setup_node(Function(function=plot_ica_results,
                                    input_names=["ica_result", "application", "mask_file", "zscore", "bg_img"],
-                                   output_names=["all_icc_plot", "iccs_plot"],),
+                                   output_names=["all_icc_plot", "iccs_plot", "sliced_ic_plots"],),
                           name="plot_ica")
     plot_ica.inputs.zscore      = plot_thr
     plot_ica.inputs.mask_file   = get_trait_value(canica.inputs, 'mask')
@@ -182,8 +182,9 @@ def attach_concat_canica(main_wf, wf_name="canica", **kwargs):
                      (canica,   plot_ica,     [("components",   "ica_result")]),
 
                      # canica output
-                     (plot_ica, ica_datasink, [("all_icc_plot", "@all_icc_plot"),
-                                               ("iccs_plot",    "@iccs_plot"),
+                     (plot_ica, ica_datasink, [("all_icc_plot",     "@all_icc_plot"),
+                                               ("iccs_plot",        "@iccs_plot"),
+                                               ("sliced_ic_plots",  "@sliced_ic_plots"),
                                               ]),
                      ])
 

@@ -39,14 +39,24 @@ def plot_ica_results(ica_result, application='nilearn', mask_file='', zscore=0, 
 
     thr: int
         Value of the Z-score thresholding.
+
+    Returns
+    -------
+    all_icc_plot_f: str
+
+    iccs_plot_f: str
+
+    sliced_ic_plots: list of str
     """
     import os.path as op
     from   glob import glob
 
     import nibabel as nib
-    from   boyle.nifti.utils import filter_icc
+    from   boyle.nifti.utils  import filter_icc
+    from   nilearn.image      import iter_img
     from   pypes.nilearn.plot import (plot_all_components,
-                                      plot_canica_components)
+                                      plot_canica_components,
+                                      plot_multi_slices)
 
     def find_ica_components_file(ica_dir, application='nilearn'):
         base_dir = op.expanduser(ica_dir)
@@ -80,21 +90,36 @@ def plot_ica_results(ica_result, application='nilearn', mask_file='', zscore=0, 
 
     # filter the ICC if mask and threshold are set
     if mask_file and zscore > 0:
-        from nilearn.image import iter_img
         mask = nib.load(mask_file)
         icc_imgs = [filter_icc(icc, zscore, True, mask) for icc in list(iter_img(icc_file))]
     else:
         icc_imgs = icc_file
 
     # specify the file paths
-    all_icc_plot_f = op.join(ica_dir, 'all_components.pdf')
-    iccs_plot_f    = op.join(ica_dir, 'canica_components.pdf')
+    all_icc_plot_f  = op.join(ica_dir, 'all_components_zscore_{}.pdf'.format(zscore))
+    iccs_plot_f     = op.join(ica_dir, 'ic_components_zscore_{}.pdf'.format(zscore))
+    icc_multi_slice = op.join(ica_dir, 'ic_map_{}_zscore_{}.pdf')
 
     # make the plots
     fig1 = plot_canica_components(icc_imgs, **kwargs)
-    fig1.savefig(iccs_plot_f)
+    fig1.savefig(iccs_plot_f, facecolor=fig1.get_facecolor(), edgecolor='none')
 
     fig2 = plot_all_components(icc_imgs, **kwargs)
-    fig2.savefig(all_icc_plot_f)
+    fig2.savefig(all_icc_plot_f, facecolor=fig2.get_facecolor(), edgecolor='none')
 
-    return all_icc_plot_f, iccs_plot_f
+    # make the multi sliced IC plots
+    sliced_ic_plots = []
+    for i, img in enumerate(iter_img(icc_imgs)):
+        fig3 = plot_multi_slices(img,
+                                cut_dir="z",
+                                n_cuts=24,
+                                n_cols=4,
+                                title="IC map {} (z-score {})".format(i+1, zscore),
+                                title_fontsize=32,
+                                plot_func=None,
+                                **kwargs)
+        out_f = icc_multi_slice.format(i+1, zscore)
+        fig3.savefig(out_f, facecolor=fig3.get_facecolor(), edgecolor='none')
+        sliced_ic_plots.append(out_f)
+
+    return all_icc_plot_f, iccs_plot_f, sliced_ic_plots

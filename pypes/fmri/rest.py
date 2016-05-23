@@ -129,8 +129,9 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
         If `rest_preproc.canica` is True and 'canica_extra.plot' is not False.
         A plot figure in PDF of the ICA results.
 
-    rest_output.time_filtered_mni: traits.File
-        The time filtered file in MNI space
+    # TODO: remove?
+    #rest_output.time_filtered_mni: traits.File
+    #    The time filtered file in MNI space
 
     rest_output.smooth_mni: traits.File
         The time filtered and smooth file in MNI space
@@ -182,7 +183,7 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
                   "anat",
                   "time_filtered",
                   "smooth",
-                  "time_filtered_mni",
+                  #"time_filtered_mni",
                   "smooth_mni",
                   "tsnr_file",
                   "epi_brain_mask",
@@ -323,23 +324,22 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
                 (realign,       noise_wf,   [("par_file",             "rest_noise_input.motion_params",)]),
 
                 # motion statistics
-                # TODO
+                (noise_wf,      bandpass,   [("rest_noise_output.nuis_corrected", "files")]),
 
                 # normalize to template
                 (coreg,       warp,        [("coregistered_source",              "image_to_align")]),
-                (noise_wf,    gunzip,      [("rest_noise_output.nuis_corrected", "in_file")]),
+                (bandpass,    gunzip,      [("out_files",                        "in_file")]),
                 (gunzip,      warp,        [("out_file",                         "apply_to_files")]),
                 (tpm_bbox,    warp,        [("bbox",                             "write_bounding_box")]),
 
                 # temporal filtering
-                (warp,        bandpass,    [("normalized_files",                 "files")]),
                 (stc_wf,      bandpass,    [("stc_output.time_repetition",       "tr")]),
                 (rest_input,  bandpass,    [("lowpass_freq",                     "lowpass_freq"),
                                             ("highpass_freq",                    "highpass_freq"),
                                            ]),
 
                 # smoothing
-                (bandpass,    smooth,      [("out_files",           "in_file")]),
+                (warp,        smooth,      [("normalized_files",    "in_file")]),
 
                 # output
                 (epi_mask,    rest_output, [("brain_mask",          "epi_brain_mask")]),
@@ -362,7 +362,7 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
                                             ("rest_noise_output.art_plot_files",         "art_plot_files"),
                                             ("rest_noise_output.art_statistic_files",    "art_statistic_files"),
                                            ]),
-                (bandpass,    rest_output, [("out_files",                            "time_filtered_mni")]),
+                (bandpass,    rest_output, [("out_files",                            "time_filtered")]),
                 (smooth,      rest_output, [("out_file",                             "smooth_mni")]),
                 (warp,        rest_output, [("normalized_files",                     "epi_mni"),
                                             ("deformation_field",                    "epi_mni_warpfield"),
@@ -370,13 +370,13 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
               ])
 
     # apply bandpass and smoothing to the image in native space as well
-    bandpass_func = bandpass.clone(name="bandpass_filter_func")
+    #bandpass_func = bandpass.clone(name="bandpass_filter_func")
     smooth_func = smooth.clone(name="fmri_smooth_func")
     wf.connect([
-                (noise_wf,       bandpass_func, [("rest_noise_output.nuis_corrected", "files")]),
-                (bandpass_func,  smooth_func,   [("out_files",                        "in_file")]),
-                (bandpass_func,  rest_output,   [("out_files",                        "time_filtered")]),
-                (smooth_func,    rest_output,   [("out_file",                         "smooth")]),
+                #(noise_wf,       bandpass_func, [("rest_noise_output.nuis_corrected", "files")]),
+                (bandpass,     smooth_func,   [("out_files",                        "in_file")]),
+                #(bandpass,     rest_output,   [("out_files",                        "time_filtered")]),
+                (smooth_func,  rest_output,   [("out_file",                         "smooth")]),
                ])
 
     # add more nodes if to perform atlas registration
@@ -396,11 +396,11 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
     if do_atlas and do_connectivity:
         conn = setup_node(ConnectivityCorrelationInterface(), name="rest_connectivity")
         wf.connect([
-            (coreg_atlas,   conn,        [("coregistered_files", "atlas_file")]),
-            (bandpass_func, conn,        [("out_files",          "in_files")]),
-            (conn,          rest_output, [("connectivity",       "connectivity"),
-                                          ("timeseries",         "atlas_timeseries"),
-                                         ]),
+            (coreg_atlas, conn,        [("coregistered_files", "atlas_file")]),
+            (bandpass,    conn,        [("out_files",          "in_files")]),
+            (conn,        rest_output, [("connectivity",       "connectivity"),
+                                        ("timeseries",         "atlas_timeseries"),
+                                       ]),
         ])
 
     # CanICA
@@ -522,7 +522,7 @@ def attach_rest_preprocessing(main_wf, wf_name="rest_preproc"):
                                            ("rest_output.smooth",                 "rest.@smooth"),
                                            ("rest_output.smooth_mni",             "rest.@smooth_mni"),
                                            ("rest_output.tsnr_file",              "rest.@tsnr"),
-                                           ("rest_output.epi_mni",                "rest.@epi_mni"),
+                                           #("rest_output.epi_mni",                "rest.@epi_mni"),
                                            ("rest_output.epi_mni_warpfield",      "rest.@epi_mni_warpfield"),
                                            ("rest_output.art_displacement_files", "rest.artifact_stats.@displacement"),
                                            ("rest_output.art_intensity_files",    "rest.artifact_stats.@art_intensity"),
