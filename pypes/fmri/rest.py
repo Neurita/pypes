@@ -327,25 +327,25 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
                 (noise_wf,      bandpass,   [("rest_noise_output.nuis_corrected", "files")]),
 
                 # normalize to template
-                (coreg,       warp,        [("coregistered_source",              "image_to_align")]),
-                (bandpass,    gunzip,      [("out_files",                        "in_file")]),
-                (gunzip,      warp,        [("out_file",                         "apply_to_files")]),
-                (tpm_bbox,    warp,        [("bbox",                             "write_bounding_box")]),
+                (coreg,       warp,        [("coregistered_source", "image_to_align")]),
+                (bandpass,    gunzip,      [("out_files",           "in_file")]),
+                (gunzip,      warp,        [("out_file",            "apply_to_files")]),
+                (tpm_bbox,    warp,        [("bbox",                "write_bounding_box")]),
 
                 # temporal filtering
-                (stc_wf,      bandpass,    [("stc_output.time_repetition",       "tr")]),
-                (rest_input,  bandpass,    [("lowpass_freq",                     "lowpass_freq"),
-                                            ("highpass_freq",                    "highpass_freq"),
+                (stc_wf,      bandpass,    [("stc_output.time_repetition", "tr")]),
+                (rest_input,  bandpass,    [("lowpass_freq",               "lowpass_freq"),
+                                            ("highpass_freq",              "highpass_freq"),
                                            ]),
 
                 # smoothing
-                (warp,        smooth,      [("normalized_files",    "in_file")]),
+                (warp,        smooth,      [("normalized_files", "in_file")]),
 
                 # output
-                (epi_mask,    rest_output, [("brain_mask",          "epi_brain_mask")]),
-                (tissue_mask, rest_output, [("out_file",            "tissues_brain_mask")]),
-                (realign,     rest_output, [("out_file",            "motion_corrected"),
-                                            ("par_file",            "motion_params"),
+                (epi_mask,    rest_output, [("brain_mask",       "epi_brain_mask")]),
+                (tissue_mask, rest_output, [("out_file",         "tissues_brain_mask")]),
+                (realign,     rest_output, [("out_file",         "motion_corrected"),
+                                            ("par_file",         "motion_params"),
                                            ]),
                 (coreg,       rest_output, [("coregistered_files",  "tissues"),
                                             ("coregistered_source", "anat"),
