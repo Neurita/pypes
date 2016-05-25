@@ -26,7 +26,7 @@ Anatomical MRI
 - `SPM12 <http://www.fil.ion.ucl.ac.uk/spm/software/spm12/>`_ (anatomical image and atlas warping, and tissue segmentation).
 
 
-PET-MRI
+FDG-PET
 -------
 
 - `SPM12 <http://www.fil.ion.ucl.ac.uk/spm/software/spm12/>`_ (anatomical co-registration and atlas normalization) and
