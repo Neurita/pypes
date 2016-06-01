@@ -56,9 +56,11 @@ motion_regressors.derivatives: 1
 motart_parameters.detrend_poly: 2
 
 # Threshold to use to detect motion-related outliers when composite motion is being used
-detect_artifact.norm_threshold: 1
-detect_artifact.parameter_source: NiPy
-detect_artifact.mask_type: spm_global
+detect_artifacts.parameter_source: NiPy
+detect_artifacts.mask_type: file
+detect_artifacts.use_norm: True
+detect_artifacts.zintensity_threshold: 3
+detect_artifacts.norm_threshold: 1
 
 # Number of principal components to calculate when running CompCor. 5 or 6 is recommended.
 compcor_pars.num_components: 5
@@ -68,10 +70,10 @@ gsr_pars.num_components: 1
 
 
 # INDEPENDENT COMPONENTS ANALYSIS
-## True to perform CanICA
-rest_preproc.canica: True
+## True to perform CanICA on one subject
+rest_preproc.canica: False
 
-# CanICA settings
+# One-subject CanICA
 canica.algorithm: 'canica' # choices: 'canica', 'dictlearning'
 canica.do_cca: True
 canica.standardize: True
@@ -94,7 +96,6 @@ rest_connectivity.smoothing_fwhm: 8
 #rest_connectivity.resampling_target: # choices: "mask", "maps" or undefined.
 rest_connectivity.atlas_type: labels # choices: "labels", "probabilistic".
 
-
 # REST (COBRE DB)
 # http://fcon_1000.projects.nitrc.org/indi/retro/cobre.html
 # Rest scan:
@@ -104,12 +105,15 @@ rest_connectivity.atlas_type: labels # choices: "labels", "probabilistic".
 # - interleaved.
 stc_input.slice_mode: alt_inc
 stc_input.time_repetition: 2
-stc_input.num_slices: 33
-
+#stc_input.num_slices: 33
 
 # GROUP PET TEMPLATE
-spm_pet_template_smooth.fwhm: 8
-spm_pet_template.do_petpvc: True
+spm_pet_grouptemplate_smooth.fwhm: 8
+spm_pet_grouptemplate.do_petpvc: True
+
+# GROUP PET TEMPLATE with MR co-registration
+spm_mrpet_grouptemplate_smooth.fwhm: 8
+spm_mrpet_grouptemplate.do_petpvc: True
 
 # PET PVC
 rbvpvc.pvc: RBV

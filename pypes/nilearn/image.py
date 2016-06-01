@@ -114,7 +114,7 @@ def resample_to_img(source, target, **kwargs):
 
 @ni2file(out_file='concat_img.nii.gz')
 def concat_imgs(in_files, out_file=None):
-    """ Use nilearn.image.concat_imgs.
+    """ Use nilearn.image.concat_imgs to concat images of up to 4 dimensions.
     Returns
     -------
     out_file: str
@@ -122,6 +122,33 @@ def concat_imgs(in_files, out_file=None):
     """
     import nilearn.image as niimg
     return niimg.concat_imgs(in_files)
+
+
+def concat_3D_imgs(in_files, out_file=None):
+    """ Use nilearn.image.concat_imgs to concat 3D volumes into one 4D volume.
+
+    If `in_files` is a list of 3D volumes the return value is the path to one 4D volume.
+    Else if `in_files` is a list of 4D volumes the return value is `in_files`.
+
+    Returns
+    -------
+    out_file: str
+        The absolute path to the output file.
+    """
+    from   nilearn._utils import check_niimg_3d
+
+    all_3D = True
+    for img in in_files:
+        try:
+            _ = check_niimg_3d(img)
+        except Exception:
+            all_3D = False
+            break
+
+    if not all_3D:
+        return in_files
+    else:
+        return concat_imgs(in_files)
 
 
 @ni2file(suffix='_mean')

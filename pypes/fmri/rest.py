@@ -129,9 +129,8 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
         If `rest_preproc.canica` is True and 'canica_extra.plot' is not False.
         A plot figure in PDF of the ICA results.
 
-    # TODO: remove?
-    #rest_output.time_filtered_mni: traits.File
-    #    The time filtered file in MNI space
+    rest_output.time_filtered_mni: traits.File
+        The time filtered file in MNI space
 
     rest_output.smooth_mni: traits.File
         The time filtered and smooth file in MNI space
@@ -183,7 +182,7 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
                   "anat",
                   "time_filtered",
                   "smooth",
-                  #"time_filtered_mni",
+                  "time_filtered_mni",
                   "smooth_mni",
                   "tsnr_file",
                   "epi_brain_mask",
@@ -364,7 +363,7 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
                                            ]),
                 (bandpass,    rest_output, [("out_files",                            "time_filtered")]),
                 (smooth,      rest_output, [("out_file",                             "smooth_mni")]),
-                (warp,        rest_output, [("normalized_files",                     "epi_mni"),
+                (warp,        rest_output, [("normalized_files",                     "time_filtered_mni"),
                                             ("deformation_field",                    "epi_mni_warpfield"),
                                            ]),
               ])
@@ -518,11 +517,11 @@ def attach_rest_preprocessing(main_wf, wf_name="rest_preproc"):
                                            ("rest_output.motion_corrected",       "rest.@motion_corrected"),
                                            ("rest_output.nuis_corrected",         "rest.@nuis_corrected"),
                                            #("rest_output.time_filtered",          "rest.@time_filtered"),
-                                           #("rest_output.time_filtered_mni",      "rest.@time_filtered_mni"),
+                                           ("rest_output.time_filtered_mni",      "rest.@time_filtered_mni"),
                                            ("rest_output.smooth",                 "rest.@smooth"),
-                                           ("rest_output.smooth_mni",             "rest.@smooth_mni"),
+                                           #("rest_output.smooth_mni",             "rest.@smooth_mni"),
                                            ("rest_output.tsnr_file",              "rest.@tsnr"),
-                                           #("rest_output.epi_mni",                "rest.@epi_mni"),
+                                           ("rest_output.epi_mni",                "rest.@epi_mni"),
                                            ("rest_output.epi_mni_warpfield",      "rest.@epi_mni_warpfield"),
                                            ("rest_output.art_displacement_files", "rest.artifact_stats.@displacement"),
                                            ("rest_output.art_intensity_files",    "rest.artifact_stats.@art_intensity"),

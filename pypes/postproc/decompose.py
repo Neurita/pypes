@@ -9,10 +9,11 @@ from   nipype.interfaces.utility import IdentityInterface, Function
 
 from   .plotting import plot_ica_results
 from   ..nilearn.canica import CanICAInterface
-from   ..nilearn.image import concat_imgs
+from   ..nilearn.image import concat_3D_imgs
 from   ..config  import setup_node, get_config_setting
 from   ..utils   import (get_trait_value,
                          get_datasink,)
+from   .._utils import _check_list
 
 
 def attach_canica(main_wf, wf_name="canica", **kwargs):
@@ -124,13 +125,11 @@ def attach_concat_canica(main_wf, wf_name="canica", **kwargs):
                             name="ica_subjs")
 
     # concat images
-    concat = setup_node(Function(function=concat_imgs,
+    concat = setup_node(Function(function=concat_3D_imgs,
                                  input_names=["in_files"],
                                  output_names=["out_file"],
                                  imports=['from pypes.nilearn import ni2file']),
                         name="concat")
-
-    makelist = lambda x: [x]
 
     # warp each subject to the group template
     canica = setup_node(CanICAInterface(), name="{}_ica".format(wf_name),)
@@ -149,7 +148,7 @@ def attach_concat_canica(main_wf, wf_name="canica", **kwargs):
                      (ica_subjs, concat, [("ica_subjs", "in_files")]),
 
                      # canica
-                     (concat, canica, [(("out_file", makelist), "in_files")]),
+                     (concat, canica, [(("out_file", _check_list), "in_files")]),
 
                      # canica output
                      (canica, ica_datasink, [("components", "@components"),

@@ -10,7 +10,7 @@ def plot_all_components(components_img, **kwargs):
     from matplotlib import pyplot as plt
 
     fig = plt.figure(facecolor='white')
-    p   = plot_prob_atlas(components_img, title='All ICA components', figure=fig, **kwargs)
+    p   = plot_prob_atlas(components_img, figure=fig, draw_cross=False, **kwargs)
     p.close()
 
     return fig
@@ -113,7 +113,7 @@ def plot_multi_slices(img, cut_dir="z", n_cuts=20, n_cols=4, figsize=(10, 20),
         p = plot_func(img,
                       display_mode=cut_dir,
                       cut_coords=cut_chunks,
-                      colorbar=False,
+                      colorbar=True,
                       figure=fig,
                       axes=ax,
                       **kwargs)

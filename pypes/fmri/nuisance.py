@@ -16,10 +16,11 @@ from   ..preproc import motion_regressors, extract_noise_components, create_regr
 
 def rapidart_artifact_detection():
     art = ArtifactDetect()
-    art.inputs.use_differences      = [True, True]
+    art.inputs.use_differences      = [True, False]
     art.inputs.use_norm             = True
-    art.inputs.zintensity_threshold = 9
-    art.inputs.mask_type            = 'spm_global'
+    art.inputs.zintensity_threshold = 3
+    art.inputs.norm_threshold       = 1
+    art.inputs.mask_type            = 'file'
     art.inputs.parameter_source     = 'NiPy'
     return art
 
@@ -120,13 +121,7 @@ def rest_noise_filter_wf(wf_name='rest_noise_removal'):
     # Use :class:`nipype.algorithms.rapidart` to determine which of the
     # images in the functional series are outliers based on deviations in
     # intensity or movement.
-    art = setup_node(rapidart_artifact_detection(), name="detect_artifact")
-    art.inputs.use_differences = [True, True]
-    art.inputs.use_norm = True
-    art.inputs.norm_threshold = 1 #norm_threshold
-    art.inputs.zintensity_threshold = 9
-    art.inputs.mask_type = 'file'
-    art.inputs.parameter_source = 'NiPy'
+    art = setup_node(rapidart_artifact_detection(), name="detect_artifacts")
 
     # Compute motion regressors
     motion_regs = setup_node(Function(input_names=['motion_params',
