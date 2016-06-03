@@ -111,13 +111,13 @@ def plot_ica_results(ica_result, application='nilearn', mask_file='', zscore=0, 
     sliced_ic_plots = []
     for i, img in enumerate(iter_img(icc_imgs)):
         fig3 = plot_multi_slices(img,
-                                cut_dir="z",
-                                n_cuts=24,
-                                n_cols=4,
-                                title="IC map {} (z-score {})".format(i+1, zscore),
-                                title_fontsize=32,
-                                plot_func=None,
-                                **kwargs)
+                                 cut_dir="z",
+                                 n_cuts=24,
+                                 n_cols=4,
+                                 title="IC map {} (z-score {})".format(i+1, zscore),
+                                 title_fontsize=32,
+                                 plot_func=None,
+                                 **kwargs)
         out_f = icc_multi_slice.format(i+1, zscore)
         fig3.savefig(out_f, facecolor=fig3.get_facecolor(), edgecolor='none')
         sliced_ic_plots.append(out_f)
