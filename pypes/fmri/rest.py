@@ -361,10 +361,10 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
                                             ("rest_noise_output.art_plot_files",         "art_plot_files"),
                                             ("rest_noise_output.art_statistic_files",    "art_statistic_files"),
                                            ]),
-                (bandpass,    rest_output, [("out_files",                            "time_filtered")]),
-                (smooth,      rest_output, [("out_file",                             "smooth_mni")]),
-                (warp,        rest_output, [("normalized_files",                     "time_filtered_mni"),
-                                            ("deformation_field",                    "epi_mni_warpfield"),
+                (bandpass,    rest_output, [("out_files",         "time_filtered")]),
+                (smooth,      rest_output, [("out_file",          "smooth_mni")]),
+                (warp,        rest_output, [("normalized_files",  "time_filtered_mni"),
+                                            ("deformation_field", "epi_mni_warpfield"),
                                            ]),
               ])
 

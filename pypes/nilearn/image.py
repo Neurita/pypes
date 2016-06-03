@@ -124,6 +124,7 @@ def concat_imgs(in_files, out_file=None):
     return niimg.concat_imgs(in_files)
 
 
+@ni2file(out_file='concat_img.nii.gz')
 def concat_3D_imgs(in_files, out_file=None):
     """ Use nilearn.image.concat_imgs to concat 3D volumes into one 4D volume.
 
@@ -135,6 +136,8 @@ def concat_3D_imgs(in_files, out_file=None):
     out_file: str
         The absolute path to the output file.
     """
+    import nilearn.image as niimg
+
     from   nilearn._utils import check_niimg_3d
 
     all_3D = True
@@ -148,7 +151,7 @@ def concat_3D_imgs(in_files, out_file=None):
     if not all_3D:
         return in_files
     else:
-        return concat_imgs(in_files)
+        return niimg.concat_imgs(in_files)
 
 
 @ni2file(suffix='_mean')
