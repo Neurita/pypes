@@ -31,6 +31,11 @@ class CanICAInputSpec(BaseInterfaceInputSpec):
     alpha = traits.Float(desc="DictLearning only: Sparsity controlling parameter.", default_value=1.0, usedefault=True)
     do_cca = traits.Bool(desc="CanICA only: Indicate if a Canonical Correlation Analysis must be run after the PCA.",
                          default_value=True, usedefault=True)
+    memory = traits.Str(desc="Used to cache the masking process. By default, no caching is done. "
+                        "If a string is given, it is the path to the caching directory.",
+                        default_value='.', usedefault=True,)
+    memory_level = traits.Int(desc="Rough estimator of the amount of memory used by caching. "
+                              "Higher value means more memory for caching.", default_value=0, usedefaul=True)
     threshold = traits.Either(traits.Bool, traits.Float,
                               desc="CanICA only: If None, no thresholding is applied.\n"
                                    "If ‘auto’, then we apply a thresholding that will keep the n_voxels, \n"
@@ -79,6 +84,8 @@ class CanICAInterface(BaseInterface):
         n_jobs            = get_trait_value(self.inputs, 'n_jobs')
         n_epochs          = get_trait_value(self.inputs, 'n_epochs')
         alpha             = get_trait_value(self.inputs, 'alpha')
+        memory            = get_trait_value(self.inputs, 'memory')
+        memory_level      = get_trait_value(self.inputs, 'memory_level')
 
         self._confounds   = get_trait_value(self.inputs, 'confounds',)
 
@@ -93,6 +100,8 @@ class CanICAInterface(BaseInterface):
                                      do_cca=do_cca,
                                      verbose=1,
                                      n_init=n_init,
+                                     memory=memory,
+                                     memory_level=memory_level,
                                      n_jobs=n_jobs,
                                      )
 
@@ -105,6 +114,8 @@ class CanICAInterface(BaseInterface):
                                            verbose=1,
                                            n_epochs=n_epochs,
                                            alpha=alpha,
+                                           memory=memory,
+                                           memory_level=memory_level,
                                            n_jobs=n_jobs,
                                            )
 

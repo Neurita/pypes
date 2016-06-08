@@ -24,7 +24,7 @@ def plot_connectivity_matrix(connectivity_matrix, label_names):
     return fig
 
 
-def plot_ica_results(ica_result, application='nilearn', mask_file='', zscore=0, **kwargs):
+def plot_ica_results(ica_result, application='nilearn', mask_file='', mode='+', zscore=0, **kwargs):
     """ Use nilearn through pypes to plot results from CanICA and DictLearning, given the ICA result folder path.
     Parameters
     ----------
@@ -37,7 +37,12 @@ def plot_ica_results(ica_result, application='nilearn', mask_file='', zscore=0, 
     mask_file: str
         Path to the brain mask file to be used for thresholding.
 
-    thr: int
+    mode: str
+        Choices: '+' for positive threshold,
+                 '+-' for positive and negative threshold and
+                 '-' for negative threshold.
+
+    zscore: int or float
         Value of the Z-score thresholding.
 
     Returns
@@ -91,7 +96,7 @@ def plot_ica_results(ica_result, application='nilearn', mask_file='', zscore=0, 
     # filter the ICC if mask and threshold are set
     if mask_file and zscore > 0:
         mask = nib.load(mask_file)
-        icc_imgs = [filter_icc(icc, zscore, True, mask) for icc in list(iter_img(icc_file))]
+        icc_imgs = [filter_icc(icc, mask=mask, thr=zscore, zscore=True, mode=mode) for icc in list(iter_img(icc_file))]
     else:
         icc_imgs = icc_file
 
