@@ -23,6 +23,12 @@ def ni2file(**presuffixes):
         @wraps(f)
         def wrapped(*args, **kwargs):
             res_img = f(*args, **kwargs)
+            if isinstance(res_img, list):
+                if len(res_img) == 1:
+                    res_img = res_img[0]
+                else:
+                    return res_img
+
             if not res_img.shape: # the result is a scalar value
                 return res_img.get_data().flatten()[0]
 
@@ -141,7 +147,7 @@ def concat_3D_imgs(in_files, out_file=None):
     from   nilearn._utils import check_niimg_3d
 
     all_3D = True
-    for img in in_files:
+    for idx, img in enumerate(in_files):
         try:
             _ = check_niimg_3d(img)
         except Exception:
@@ -149,6 +155,8 @@ def concat_3D_imgs(in_files, out_file=None):
             break
 
     if not all_3D:
+        #raise AttributeError('Expected all input images to be 3D volumes, but '
+        #                     ' at least the {}th is not.'.format(idx))
         return in_files
     else:
         return niimg.concat_imgs(in_files)
