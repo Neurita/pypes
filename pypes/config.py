@@ -160,7 +160,7 @@ def update_config(value):
     """ Value can be a configuration file path or a dictionary with
     configuration settings."""
     global PYPES_CFG
-    if isinstance(value, str) and op.isfile(value):
+    if isinstance(value, str):
         PYPES_CFG.update_from_file(value)
     elif isinstance(value, dict):
         PYPES_CFG.update(value)
