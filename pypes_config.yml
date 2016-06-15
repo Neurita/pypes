@@ -70,10 +70,10 @@ gsr_pars.num_components: 1
 
 
 # INDEPENDENT COMPONENTS ANALYSIS
-## True to perform CanICA on one subject
+## True to perform CanICA
 rest_preproc.canica: False
 
-# One-subject CanICA
+# CanICA settings
 canica.algorithm: 'canica' # choices: 'canica', 'dictlearning'
 canica.do_cca: True
 canica.standardize: True

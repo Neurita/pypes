@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Utilities to use nilearn from nipype
+Utilities to use nilearn.image from nipype
 """
 
 

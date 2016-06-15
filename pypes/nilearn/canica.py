@@ -35,7 +35,7 @@ class CanICAInputSpec(BaseInterfaceInputSpec):
                         "If a string is given, it is the path to the caching directory.",
                         default_value='.', usedefault=True,)
     memory_level = traits.Int(desc="Rough estimator of the amount of memory used by caching. "
-                              "Higher value means more memory for caching.", default_value=0, usedefault=True)
+                              "Higher value means more memory for caching.", default_value=1, usedefault=True)
     threshold = traits.Either(traits.Bool, traits.Float,
                               desc="CanICA only: If None, no thresholding is applied.\n"
                                    "If ‘auto’, then we apply a thresholding that will keep the n_voxels, \n"
@@ -86,7 +86,7 @@ class CanICAInterface(BaseInterface):
         alpha             = get_trait_value(self.inputs, 'alpha')
         memory            = get_trait_value(self.inputs, 'memory')
         memory_level      = get_trait_value(self.inputs, 'memory_level')
-        self._confounds   = get_trait_value(self.inputs, 'confounds',)
+        confounds         = get_trait_value(self.inputs, 'confounds')
 
         # init the estimator
         if algorithm == 'canica':
@@ -120,6 +120,8 @@ class CanICAInterface(BaseInterface):
 
         # set output file names
         self._estimator_name = algorithm
+        self._confounds = confounds
+
         self._reconstructed_img_file = '{}_resting_state.nii.gz'.format(self._estimator_name)
         self._score_file   = '{}_score.txt'.format(self._estimator_name)
         self._loading_file = '{}_{}_loading.txt'

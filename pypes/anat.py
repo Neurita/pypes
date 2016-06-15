@@ -215,7 +215,7 @@ def spm_anat_preprocessing(wf_name="spm_anat_preproc"):
         # connect the atlas registration nodes
         wf.connect([
                     (anat_input,    gunzip_atlas, [("atlas_file",                 "in_file")]),
-                    (anat_input,    anat_bbox,    [("in_file",                    "in_file")]),
+                    (gunzip_anat,   anat_bbox,    [("out_file",                   "in_file")]),
                     (gunzip_atlas,  warp_atlas,   [("out_file",                   "apply_to_files")]),
                     (segment,       warp_atlas,   [("inverse_deformation_field",  "deformation_file")]),
                     (anat_bbox,     warp_atlas,   [("bbox",                       "write_bounding_box")]),
