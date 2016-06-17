@@ -83,6 +83,7 @@ def plot_multi_slices(img, cut_dir="z", n_cuts=20, n_cols=4, figsize=(10, 20),
     from matplotlib import pyplot as plt
     from matplotlib import gridspec
     import nilearn.plotting as niplot
+    import nilearn.image as niimg
 
     # there is another version without grouper, but it is less efficient.
     def grouper(iterable, n, fillvalue=None):
@@ -95,8 +96,10 @@ def plot_multi_slices(img, cut_dir="z", n_cuts=20, n_cols=4, figsize=(10, 20),
     if plot_func is None:
         plot_func = niplot.plot_stat_map
 
+    _img = niimg.load_img(img)
+
     n_rows = math.ceil(n_cuts/n_cols)
-    cuts   = niplot.find_cut_slices(img, n_cuts=n_cuts, direction=cut_dir)
+    cuts   = niplot.find_cut_slices(_img, n_cuts=n_cuts, direction=cut_dir)
 
     fig = plt.figure(figsize=figsize, facecolor='black')
     gs  = gridspec.GridSpec(n_rows, 1)
@@ -104,20 +107,25 @@ def plot_multi_slices(img, cut_dir="z", n_cuts=20, n_cols=4, figsize=(10, 20),
     if title:
         fig.suptitle(title, fontsize=title_fontsize)
 
+    kwargs.setdefault('threshold', None)
     plots = []
     for i, cut_chunks in enumerate(grouper(cuts, n_cols)):
         ax = plt.subplot(gs[i])
 
         cut_chunks = [cut for cut in cut_chunks if cut is not None]
 
-        p = plot_func(img,
-                      display_mode=cut_dir,
-                      cut_coords=cut_chunks,
-                      colorbar=True,
-                      figure=fig,
-                      axes=ax,
-                      **kwargs)
-        plots.append(p)
+        try:
+            p = plot_func(_img,
+                          display_mode=cut_dir,
+                          cut_coords=cut_chunks,
+                          colorbar=True,
+                          figure=fig,
+                          axes=ax,
+                          **kwargs)
+        except:
+            raise
+        else:
+            plots.append(p)
 
     for p in plots:
         p.close()

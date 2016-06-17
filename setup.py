@@ -44,11 +44,11 @@ LICENSE = 'New BSD'
 setup_dict = dict(
     name=MODULE_NAME,
     version=__version__,
-    description='Active Learning on Scikit-Learn',
+    description='Reusable neuroimaging pipelines with Nipype.',
 
-    license='New BSD',
-    author='GMUM and GIC/ACPySS developers',
-    author_email='',
+    license=LICENSE,
+    author='Alexandre Savio',
+    author_email='alexsavio@gmail.com',
     maintainer='',
     maintainer_email='',
 
