@@ -22,7 +22,7 @@ Apart from the requirements, the external dependencies for each pipeline are:
 
 Anatomical MRI
 --------------
-- `ANTs` <http://stnava.github.io/ANTs/>`_ (N4 inhomogeneity correction algorithm)
+- `ANTs <http://stnava.github.io/ANTs/>`_ (N4 inhomogeneity correction algorithm)
 - `SPM12 <http://www.fil.ion.ucl.ac.uk/spm/software/spm12/>`_ (anatomical image and atlas warping, and tissue segmentation).
 
 
