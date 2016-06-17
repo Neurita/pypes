@@ -22,27 +22,24 @@ Apart from the requirements, the external dependencies for each pipeline are:
 
 Anatomical MRI
 --------------
-
+- `ANTs` <http://stnava.github.io/ANTs/>`_ (N4 inhomogeneity correction algorithm)
 - `SPM12 <http://www.fil.ion.ucl.ac.uk/spm/software/spm12/>`_ (anatomical image and atlas warping, and tissue segmentation).
 
 
 FDG-PET
 -------
-
 - `SPM12 <http://www.fil.ion.ucl.ac.uk/spm/software/spm12/>`_ (anatomical co-registration and atlas normalization) and
-- `PETPVC <https://github.com/UCL/PETPVC>`_ (partial volume correction).
+- `PETPVC <https://github.com/UCL/PETPVC>`_ (PET partial volume correction).
 
 
 DTI and tractography
 --------------------
-
 - `SPM12 <http://www.fil.ion.ucl.ac.uk/spm/software/spm12/>`_ (anatomical co-registration and atlas normalization),
 - `FSL <http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/>`_ (`Eddy <http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/eddy>`_ for motion and eddy-currents correction and fslmaths) and
 - `Camino <http://camino.cs.ucl.ac.uk/>`_ (diffusion tensor model fitting and deterministic tractography).
 
 Resting-state fMRI preprocessing
 --------------------------------
-
 - `SPM12 <http://www.fil.ion.ucl.ac.uk/spm/software/spm12/>`_ (anatomical co-registration and atlas normalization),
 - `NiPy <http://nipy.org/nipy/documentation.html>`_ (Realign for motion correction, this is already in the requirements.txt file) and
 - `FSL <http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/>`_ (GLM for nuisance correction and fslmaths).
