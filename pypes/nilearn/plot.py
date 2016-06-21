@@ -2,6 +2,7 @@
 """
 Plotting utilities to use nilearn from nipype
 """
+import logging
 
 
 def plot_all_components(components_img, **kwargs):
@@ -42,7 +43,7 @@ def plot_canica_components(components_img, **kwargs):
     return fig
 
 
-def plot_multi_slices(img, cut_dir="z", n_cuts=20, n_cols=4, figsize=(10, 20),
+def plot_multi_slices(img, cut_dir="z", n_cuts=20, n_cols=4, figsize=(2.5, 3),
                       title="", title_fontsize=32, plot_func=None, **kwargs):
     """ Create a plot of `n_cuts` of `img` organized distributed in `n_cols`.
     Parameters
@@ -101,13 +102,13 @@ def plot_multi_slices(img, cut_dir="z", n_cuts=20, n_cols=4, figsize=(10, 20),
     n_rows = math.ceil(n_cuts/n_cols)
     cuts   = niplot.find_cut_slices(_img, n_cuts=n_cuts, direction=cut_dir)
 
+    figsize = figsize[0] * n_cols, figsize[1] * n_rows
     fig = plt.figure(figsize=figsize, facecolor='black')
     gs  = gridspec.GridSpec(n_rows, 1)
 
     if title:
         fig.suptitle(title, fontsize=title_fontsize)
 
-    kwargs.setdefault('threshold', None)
     plots = []
     for i, cut_chunks in enumerate(grouper(cuts, n_cols)):
         ax = plt.subplot(gs[i])
@@ -122,8 +123,8 @@ def plot_multi_slices(img, cut_dir="z", n_cuts=20, n_cols=4, figsize=(10, 20),
                           figure=fig,
                           axes=ax,
                           **kwargs)
-        except:
-            raise
+        except IndexError:
+            logging.warning('Could not plot for coords {}.'.format(cut_chunks))
         else:
             plots.append(p)
 
