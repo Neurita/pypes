@@ -99,8 +99,11 @@ def plot_multi_slices(img, cut_dir="z", n_cuts=20, n_cols=4, figsize=(2.5, 3),
 
     _img = niimg.load_img(img)
 
-    n_rows = math.ceil(n_cuts/n_cols)
-    cuts   = niplot.find_cut_slices(_img, n_cuts=n_cuts, direction=cut_dir)
+    n_rows = 1
+    if n_cuts > n_cols:
+        n_rows = math.ceil(n_cuts/n_cols)
+
+    cuts = niplot.find_cut_slices(_img, n_cuts=n_cuts, direction=cut_dir)
 
     figsize = figsize[0] * n_cols, figsize[1] * n_rows
     fig = plt.figure(figsize=figsize, facecolor='black')
@@ -125,10 +128,54 @@ def plot_multi_slices(img, cut_dir="z", n_cuts=20, n_cols=4, figsize=(2.5, 3),
                           **kwargs)
         except IndexError:
             logging.warning('Could not plot for coords {}.'.format(cut_chunks))
-        else:
+        finally:
             plots.append(p)
 
     for p in plots:
         p.close()
 
     return fig
+
+
+def plot_stat_overlay(bg_img, stat_img, contour_img, **kwargs):
+    """Plot over bg_img a stat_img and the countour."""
+    import nilearn.plotting as niplot
+    display = niplot.plot_stat_map(stat_img, bg_img=bg_img, **kwargs)
+    display.add_contours(contour_img, filled=True, alpha=0.4, levels=[0.5], colors='b')
+    return display
+
+
+def plot_overlays(stat_imgs, contour_imgs, bg_img, figsize=(2.5, 3), **kwargs):
+    """Plots each contour_imgs as an overlay of its corresponding `stat_imgs`.
+    `contour_imgs` and `stat_imgs` must have the same length."""
+
+    from matplotlib import pyplot as plt
+    from matplotlib import gridspec
+
+    _stat_imgs = list(stat_imgs)
+    _cnts_imgs = list(contour_imgs)
+    n_stats    = len(_stat_imgs)
+    n_conts    = len(_cnts_imgs)
+    if n_stats != n_conts:
+        raise AttributeError('The lenght of `stat_imgs` and `contour_imgs` are '
+                             'different, got {} and {}.'.format(n_stats, n_conts))
+
+    n_rows = n_conts
+    n_cols = 3 # because I am doing the ortho plot
+
+    figsize = figsize[0] * n_cols, figsize[1] * n_rows
+    fig = plt.figure(figsize=figsize, facecolor='black')
+    gs  = gridspec.GridSpec(n_rows, 1)
+
+    plots = []
+    for i, (simg, cimg) in enumerate(zip(_stat_imgs, _cnts_imgs)):
+        ax = plt.subplot(gs[i])
+        p = plot_stat_overlay(simg, cimg, bg_img=bg_img, figure=fig, axes=ax, **kwargs)
+        plots.append(p)
+
+    for p in plots:
+        p.close()
+
+    return fig
+
+

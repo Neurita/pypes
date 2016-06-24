@@ -2,8 +2,8 @@
 """
 Helper functions to manage external files.
 """
-
 from   os          import path as op
+from   glob        import glob
 from   functools   import wraps
 
 import nibabel as nib
@@ -163,3 +163,13 @@ def rename(in_files, suffix=None):
         else:
             out_files.append(name + suffix + ext)
     return list_to_filename(out_files)
+
+
+def fetch_one_file(dirpath, file_pattern):
+    """ Return the unique file path in dirpath that matches fnmatch file_pattern. Raise IOError."""
+    files = glob(op.join(dirpath, file_pattern))
+    if len(files) > 1:
+        raise IOError('Found more than one file that matched the '
+        'pattern {} in {}: {}'.format(file_pattern, dirpath, files))
+
+    return files[0]
