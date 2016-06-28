@@ -16,21 +16,23 @@ def build_raw_loadings_table(loads, patids):
         patid = patids[p]
         loadings.append([patid] + list(loads[p, :]))
 
-    df = pd.DataFrame.from_records(loadings)
-    return df
+    # set the column names
+    n_ics = loads.shape[1]
+    cols = ['subject_id'] + list(range(1, n_ics+1))
+
+    # fill the df
+    return pd.DataFrame.from_records(loadings, columns=cols)
 
 
 def add_groups_to_loadings_table(df, groups):
     """ Merge `df` and `groups` on 'subject_id' and sort by 'group'.
     Note: `groups` must have 'subject_id' (as well as `df`) and 'group' columns.
     """
-    n_ics = df.shape[1] - 1
-    df.columns = ['subject_id'] + list(range(1, n_ics+1))
     if groups is not None:
         df = pd.merge(df, groups, on='subject_id')
         df = df.sort_values('group')
 
-    df['group'] = df['group'].astype('category')
+    df.loc[:, 'group'] = df.loc[:, 'group'].astype('category')
     return df
 
 

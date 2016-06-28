@@ -137,15 +137,15 @@ def plot_multi_slices(img, cut_dir="z", n_cuts=20, n_cols=4, figsize=(2.5, 3),
     return fig
 
 
-def plot_stat_overlay(bg_img, stat_img, contour_img, **kwargs):
+def plot_stat_overlay(stat_img, contour_img, bg_img, **kwargs):
     """Plot over bg_img a stat_img and the countour."""
     import nilearn.plotting as niplot
     display = niplot.plot_stat_map(stat_img, bg_img=bg_img, **kwargs)
-    display.add_contours(contour_img, filled=True, alpha=0.4, levels=[0.5], colors='b')
+    display.add_contours(contour_img, filled=True, alpha=0.6, levels=[0.5], colors='g')
     return display
 
 
-def plot_overlays(stat_imgs, contour_imgs, bg_img, figsize=(2.5, 3), **kwargs):
+def plot_overlays(stat_imgs, contour_imgs, bg_img, figsize=(2.5, 3), title='', **kwargs):
     """Plots each contour_imgs as an overlay of its corresponding `stat_imgs`.
     `contour_imgs` and `stat_imgs` must have the same length."""
 

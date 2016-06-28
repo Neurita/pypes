@@ -6,6 +6,7 @@ import re
 import os.path as op
 from   glob import glob
 
+import numpy              as np
 import scipy.io           as sio
 import pandas             as pd
 import nilearn.image      as niimg
@@ -134,7 +135,7 @@ class ICAResultsPlotter(object):
             return
 
         ic_file = self._fetch_components_file()
-        self._icc_imgs = filter_ics(ic_file, mask=self.mask_file, zscore=self.zscore)
+        self._icc_imgs = list(filter_ics(ic_file, mask=self.mask_file, zscore=self.zscore))
 
     def plot_icmaps(self, outtype='pdf', **kwargs):
         """ Plot the thresholded IC spatial maps and store the outputs in the ICA results folder.
@@ -229,11 +230,6 @@ class GIFTICAResultsPlotter(ICAResultsPlotter):
         -------
         loadings_df: pandas.DataFrame
         """
-        # # the output file paths
-        # rawloadings_filename   = 'subject_loadings.xls'
-        # grouploadings_filename = 'subject_group_loadings.xls'
-        # check_blob_outdir      = 'check_icmap_blob'
-
         # make sure this object has been .fit()
         self._update()
 
@@ -254,7 +250,7 @@ class GIFTICAResultsPlotter(ICAResultsPlotter):
         # process the paths to extract the patient IDs given by `patid_re`
         in_files = [f.split(',')[0] for f in in_files]
         patid_re = re.compile(subjid_pat, re.I)
-        patids = [patid_re.search(f).group() for f in in_files]
+        patids  = [patid_re.search(f).group() for f in in_files]
 
         # load the loadings file
         loadf = fetch_one_file(self.ica_dir, self._loadings_fname)
@@ -321,6 +317,7 @@ class GIFTICAResultsPlotter(ICAResultsPlotter):
 
         # let's first pick the simple version of the loadings
         df = self.simple_loadings_sheet(group_labels_file, subjid_pat=subjid_pat)
+
         # group the df by group
         grouped = df.groupby('group')
 
@@ -338,21 +335,28 @@ class GIFTICAResultsPlotter(ICAResultsPlotter):
                                  'got {} and {}.'.format(n_ics, len(group_averages.columns)))
 
         # multiply the avg blob value with the group loadings
-        sign_df = group_averages * blob_avgs
+        sign_df = np.sign(group_averages * blob_avgs)
 
         # multiply the whole group loadings by the IC blob sign
+        groups_data = []
         for name, group in grouped:
-            group[list(range(1, n_ics+1))] = [group[list(range(1, n_ics+1))] * sign_df.ix[name]]
+            changed_sign_group = group.loc[:, range(1, n_ics+1)] * sign_df.loc[name, :]
+            group.loc[:, range(1, n_ics+1)] = changed_sign_group
+            groups_data.append(group)
 
         # put the dataframe back into one whole ungrouped dataframe
-        return pd.concat((group for name, group in group.items()))
+        return pd.concat(groups_data)
 
-    def plot_icmaps_and_blobs(self, outdir, outtype='pdf', bg_img=None, **kwargs):
-        """ Plot the IC maps with the largest blobs overlaid."""
+    def plot_icmaps_and_blobs(self, outfile, bg_img=None, **kwargs):
+        """ Plot the IC maps with the largest blobs overlaid.
+        Parameters
+        ----------
+
+        """
         # make sure this object has been .fit()
         self._update()
-        # TODO
-        #fig = plot_overlays(stat_imgs, contour_imgs, bg_img, figsize=(2.5, 3), **kwargs):
-        # save fig
+        fig = plot_overlays(self._icc_imgs, self._get_icmaps_blobs(),
+                            bg_img=bg_img, figsize=(2.5, 3), **kwargs)
 
-        # close fig
+        # save fig
+        fig.savefig(outfile, facecolor=fig.get_facecolor(), edgecolor='none')

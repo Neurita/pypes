@@ -22,9 +22,9 @@ def run_pype(workflow, plugin="MultiProc", n_cpus=4):
     except:
         raise
     finally:
-        import ipdb, sys
+        import pdb, sys
         print(sys.exc_info())
-        ipdb.post_mortem(sys.exc_info()[2])
+        pdb.post_mortem(sys.exc_info()[2])
 
 
 @task
