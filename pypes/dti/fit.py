@@ -260,8 +260,8 @@ def attach_fsl_dti_preprocessing(main_wf, wf_name="fsl_dti_preproc"):
                     ])
 
     if do_atlas:
-            main_wf.connect([(anat_wf, dti_wf,   [("anat_output.atlas_warped",   "dti_input.atlas_anat")]),
-                             (dti_wf,  datasink, [("dti_output.atlas_diff",      "diff.@atlas")]),
+            main_wf.connect([(anat_wf, dti_wf,   [("anat_output.atlas_anat",   "dti_input.atlas_anat")]),
+                             (dti_wf,  datasink, [("dti_output.atlas_diff",    "diff.@atlas")]),
                             ])
 
     return main_wf
