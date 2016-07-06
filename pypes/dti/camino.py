@@ -8,6 +8,7 @@ from   nipype.interfaces.utility import IdentityInterface
 from   nipype.interfaces.camino  import (Image2Voxel, FSL2Scheme, DTIFit, Track,
                                          Conmat, ComputeFractionalAnisotropy, AnalyzeHeader)
 
+from   ..config  import setup_node
 from   ..utils import (get_datasink,
                        get_input_node,
                        get_data_dims,
@@ -50,25 +51,27 @@ def camino_tractography(wf_name="camino_tract", fa_tract_stat='mean'):
     -------
     wf: nipype Workflow
     """
+    in_fields  = ["diff", "bvec", "bval", "mask", "atlas"]
+    out_fields = ["tensor", "tracks", "connectivity", "mean_fa"]
 
-    tract_input  = pe.Node(IdentityInterface(fields=["diff", "bvec", "bval", "mask", "atlas"],
+    tract_input  = setup_node(IdentityInterface(fields=in_fields,
                                              mandatory_inputs=True),
                            name="tract_input")
 
-    img2vox_diff = pe.Node(Image2Voxel(out_type="float"), name="img2vox_diff")
-    img2vox_mask = pe.Node(Image2Voxel(out_type="short"), name="img2vox_mask")
-    fsl2scheme   = pe.Node(FSL2Scheme(),                  name="fsl2scheme")
-    dtifit       = pe.Node(DTIFit(),                      name="dtifit")
-    fa           = pe.Node(ComputeFractionalAnisotropy(), name="fa")
+    img2vox_diff = setup_node(Image2Voxel(out_type="float"), name="img2vox_diff")
+    img2vox_mask = setup_node(Image2Voxel(out_type="short"), name="img2vox_mask")
+    fsl2scheme   = setup_node(FSL2Scheme(),                  name="fsl2scheme")
+    dtifit       = setup_node(DTIFit(),                      name="dtifit")
+    fa           = setup_node(ComputeFractionalAnisotropy(), name="fa")
 
-    analyzehdr_fa = pe.Node(interface=AnalyzeHeader(), name="analyzeheader_fa")
+    analyzehdr_fa = setup_node(interface=AnalyzeHeader(), name="analyzeheader_fa")
     analyzehdr_fa.inputs.datatype = "double"
-    fa2nii = pe.Node(interface=misc.CreateNifti(), name='fa2nii')
+    fa2nii = setup_node(interface=misc.CreateNifti(), name='fa2nii')
 
-    track        = pe.Node(Track(inputmodel="dt", out_file="tracts.Bfloat"), name="track")
-    conmat       = pe.Node(Conmat(output_root="conmat_"), name="conmat")
+    track        = setup_node(Track(inputmodel="dt", out_file="tracts.Bfloat"), name="track")
+    conmat       = setup_node(Conmat(output_root="conmat_"), name="conmat")
 
-    tract_output = pe.Node(IdentityInterface(fields=["tensor", "tracks", "connectivity", "mean_fa"]),
+    tract_output = setup_node(IdentityInterface(fields=out_fields),
                            name="tract_output")
 
     conmat.inputs.tract_stat = fa_tract_stat
