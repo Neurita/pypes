@@ -26,6 +26,10 @@ atlas_file: '' # this is being set from config.py
 coreg_b0.write_interp: 3
 nlmeans_denoise.N: 12 # number of channels in the head coil
 
+# Camino Tractography
+track.curvethresh: 50
+track.anisthresh: 0.2
+
 # REST
 coreg_rest.write_interp: 3
 
