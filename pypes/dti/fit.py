@@ -232,7 +232,7 @@ def attach_fsl_dti_preprocessing(main_wf, wf_name="fsl_dti_preproc"):
     if do_atlas:
         atlas_basename = remove_ext(op.basename(atlas_file))
         regexp_subst.extend([
-                             (r"/[\w]*{atlas}\.nii$", "/{atlas}_{diff}_space.nii"),
+                             (r"/[\w]*{atlas}.*\.nii$", "/{atlas}_{diff}_space.nii"),
                             ])
         regexp_subst = format_pair_list(regexp_subst, atlas=atlas_basename,
                                                       diff=diff_fbasename)
