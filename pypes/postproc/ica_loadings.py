@@ -10,7 +10,9 @@ from   boyle.nifti.roi      import largest_connected_component
 
 
 def build_raw_loadings_table(loads, patids):
-    """ Build a spreadsheet-ready pandas.DataFrame with the content of the loadings matrix and subjects ids."""
+    """ Build a spreadsheet-ready pandas.DataFrame with the content of the
+    loadings matrix and subjects ids.
+    """
     loadings = []
     for p in range(len(patids)):
         patid = patids[p]
@@ -30,7 +32,7 @@ def add_groups_to_loadings_table(df, groups):
     """
     if groups is not None:
         df = pd.merge(df, groups, on='subject_id')
-        df = df.sort_values('group')
+        df = df.sort_values(by=['group', 'subject_id'], ascending=[True, True])
 
     df.loc[:, 'group'] = df.loc[:, 'group'].astype('category')
     return df
