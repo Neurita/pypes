@@ -197,7 +197,6 @@ def attach_fsl_dti_preprocessing(main_wf, wf_name="fsl_dti_preproc"):
         atlas_file: str
             Path to the anatomical atlas to be transformed to diffusion MRI space.
 
-
     Nipype Inputs for `main_wf`
     ---------------------------
     Note: The `main_wf` workflow is expected to have an `input_files` and a `datasink` nodes.

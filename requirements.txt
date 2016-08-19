@@ -1,7 +1,10 @@
-nibabel>=2.0.0
-hansel>=0.9.0
-nilearn>=0.2.5
-git+https://github.com/emre/kaptan.git@master#egg=kaptan
-git+https://github.com/nipy/nipype@master#egg=nipype
-git+https://github.com/neurita/boyle@master#egg=boyle
-git+https://github.com/moloney/dcmstack#egg=dcmstack
+matplotlib==1.5.2
+nibabel==2.0.2
+hansel==0.9.1
+nilearn==0.2.5
+git+https://github.com/nipy/nipy.git@91d91f5495a63d42c3e9452ac7b7dd97f6545052#egg=nipy
+git+https://github.com/nipy/nipype.git@3f48cb77ae53ca6e69935ccd32ddc39f50287141#egg=nipype
+git+https://git@github.com/emre/kaptan.git@b64ad9b6941896cce88de02b5753df8e7e7c4498#egg=kaptan
+git+https://github.com/moloney/dcmstack@c12d27d2c802d75a33ad70110124500a83e851ee#egg=dcmstack
+git+https://github.com/darcymason/pydicom@688216c3775df884b09bb49d9f17c382767f826c#egg=pydicom
+git+https://github.com/neurita/boyle@4e8d82c4bca6c3326b9677286de236fd91921162#egg=boyle
