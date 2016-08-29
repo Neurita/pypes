@@ -33,7 +33,7 @@ def plot_canica_components(components_img, **kwargs):
     plots = []
     for i, ic_img in enumerate(iter_img(components_img)):
         ax = plt.subplot(gs[i])
-        p  = plot_stat_map(ic_img, display_mode="z", title="IC %d" % i,
+        p  = plot_stat_map(ic_img, display_mode="z", title="IC {}".format(i+1),
                            cut_coords=1, colorbar=False, figure=fig, axes=ax, **kwargs)
         plots.append(p)
 
