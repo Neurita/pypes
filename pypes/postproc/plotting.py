@@ -250,6 +250,9 @@ class MIALABICAResultsPlotter(ICAResultsPlotter):
         comps_img = niimg.load_img(compsf)
         return comps_img
 
+    def _fetch_components_file(self):
+        return fetch_one_file(self.ica_dir, self._comps_fname, extra_prefix='*tmap')
+
     def _get_subject_files(self):
         """ Load the .mat file with subjects lists, mainly to get the order in
         which subjects are introduced in the other matrices.
@@ -342,7 +345,7 @@ class GIFTICAResultsPlotter(MIALABICAResultsPlotter):
     def _load_timecourses(self):
         """ Return the timecourses image file and checks if the shape is correct."""
         # load the timecourses file
-        tcsf = fetch_one_file(self.ica_dir, self._tcs_fname)
+        tcsf = fetch_one_file(self.ica_dir, self._tcs_fname, extra_prefix='*tmap')
         tcs = niimg.load_img(tcsf).get_data()
         return tcs
 
