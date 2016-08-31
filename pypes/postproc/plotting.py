@@ -246,7 +246,7 @@ class MIALABICAResultsPlotter(ICAResultsPlotter):
 
     def _load_components(self):
         """ Return components image file and check shape match."""
-        compsf = fetch_one_file(self.ica_dir, self._comps_fname)
+        compsf = fetch_one_file(self.ica_dir, self._comps_fname, extra_prefix='*tmap')
         comps_img = niimg.load_img(compsf)
         return comps_img
 
@@ -389,7 +389,7 @@ class GIFTICAResultsPlotter(MIALABICAResultsPlotter):
             idxs = np.where(sids == sid)
             break
         import pdb; pdb.set_trace()
-
+        # TODO
 
 
         # build the raw loadings table

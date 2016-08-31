@@ -25,8 +25,8 @@ def plot_canica_components(components_img, **kwargs):
     from matplotlib import pyplot as plt
     from matplotlib import gridspec
 
-    n_ics     = len(list(iter_img(components_img)))
-    n_rows    = math.ceil(n_ics/2)
+    n_ics  = len(list(iter_img(components_img)))
+    n_rows = math.ceil(n_ics/2)
     fig = plt.figure(figsize=(6, 3*n_rows), facecolor='black')
     gs  = gridspec.GridSpec(n_rows, 2)
 
@@ -157,7 +157,7 @@ def plot_overlays(stat_imgs, contour_imgs, bg_img, figsize=(2.5, 3), title='', *
     n_stats    = len(_stat_imgs)
     n_conts    = len(_cnts_imgs)
     if n_stats != n_conts:
-        raise AttributeError('The lenght of `stat_imgs` and `contour_imgs` are '
+        raise AttributeError('The length of `stat_imgs` and `contour_imgs` are '
                              'different, got {} and {}.'.format(n_stats, n_conts))
 
     n_rows = n_conts
