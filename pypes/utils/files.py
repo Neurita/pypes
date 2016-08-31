@@ -165,11 +165,21 @@ def rename(in_files, suffix=None):
     return list_to_filename(out_files)
 
 
-def fetch_one_file(dirpath, file_pattern):
-    """ Return the unique file path in dirpath that matches fnmatch file_pattern. Raise IOError."""
+def fetch_one_file(dirpath, file_pattern, extra_prefix=None):
+    """ Return the unique file path in dirpath that matches fnmatch file_pattern. Raise IOError.
+    Add the extra_prefix to try the search again, if the file_pattern finds more than one file.
+    """
     files = glob(op.join(dirpath, file_pattern))
+
+    if not files:
+        raise IOError('Expected at least one file that matched the '
+                      'pattern {} in {}.'.format(file_pattern, dirpath))
+
     if len(files) > 1:
-        raise IOError('Found more than one file that matched the '
-        'pattern {} in {}: {}'.format(file_pattern, dirpath, files))
+        if extra_prefix is None:
+            raise IOError('Found more than one file that matched the '
+                          'pattern {} in {}: {}'.format(file_pattern, dirpath, files))
+        else:
+            return fetch_one_file(dirpath, extra_prefix + file_pattern)
 
     return files[0]
