@@ -81,8 +81,6 @@ def _get_n_slices(in_file):
     try:
         n_slices = img.header.get_n_slices()
     except:
-        pass
-    else:
         n_slices = img.shape[2]
     finally:
         return n_slices
