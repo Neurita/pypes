@@ -118,9 +118,9 @@ def petpvc_mask(wf_name="petpvc_mask"):
     brain_mask.inputs.formula  = "np.abs(gm + wm + csf) > 0"
 
     ## concat the tissues images and the background for PETPVC
-    concat = setup_node(Function(function=concat_imgs, input_names=["in_files"], output_names=["out_file"],
-                                 imports=['from pypes.nilearn import ni2file']),
-                        name='merge_tissues')
+    merge_tissues = setup_node(Function(function=concat_imgs, input_names=["in_files"], output_names=["out_file"],
+                                        imports=['from pypes.nilearn import ni2file']),
+                               name='merge_tissues')
 
     # output
     pvcmask_output = setup_node(IdentityInterface(fields=out_fields), name="pvcmask_output")
@@ -144,11 +144,11 @@ def petpvc_mask(wf_name="petpvc_mask"):
                 (img_bkg,       merge_list, [("out_file", "in4")]),
 
                 # merge into 4D: [GM, WM, CSF, BKG]
-                (merge_list,    concat,     [("out", "in_files")]),
+                (merge_list,    merge_tissues,  [("out", "in_files")]),
 
                 # output
-                (concat,     pvcmask_output, [("out_file", "merged_file")]),
-                (brain_mask, pvcmask_output, [("out_file", "brain_mask")]),
+                (merge_tissues, pvcmask_output, [("out_file", "merged_file")]),
+                (brain_mask,    pvcmask_output, [("out_file", "brain_mask")]),
               ])
 
     return wf
