@@ -143,7 +143,7 @@ def petpvc_workflow(wf_name="pet_pvc"):
 
                 # gunzip some files for SPM Normalize12
                 (rbvpvc,      unzip_mrg,  [("out_file",                    "in1")]),
-                (mask_wf,     unzip_mrg,  [("pvcmask_output.tissues_mask", "in2")]),
+                (mask_wf,     unzip_mrg,  [("pvcmask_output.brain_mask",   "in2")]),
                 (norm_wf,     unzip_mrg,  [("intnorm_output.out_file",     "in3")]),
                 (unzip_mrg,   gunzipper,  [("out",                         "in_file")]),
 
@@ -151,7 +151,7 @@ def petpvc_workflow(wf_name="pet_pvc"):
                 (coreg_pet,   pvc_output, [("coregistered_source",         "coreg_ref")]),
                 (coreg_pet,   pvc_output, [("coregistered_files",          "coreg_others")]),
                 (rbvpvc,      pvc_output, [("out_file",                    "pvc_out")]),
-                (mask_wf,     pvc_output, [("pvcmask_output.tissues_mask", "brain_mask")]),
+                (mask_wf,     pvc_output, [("pvcmask_output.brain_mask",   "brain_mask")]),
                 (mask_wf,     pvc_output, [("pvcmask_output.petpvc_mask",  "petpvc_mask")]),
                 (norm_wf,     pvc_output, [("intnorm_output.out_file",     "gm_norm")]),
                ])
