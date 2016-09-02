@@ -114,7 +114,7 @@ def petpvc_mask(wf_name="petpvc_mask"):
                                      output_names=["out_file"],
                                      imports=['from pypes.nilearn import ni2file']),
                             name='brain_mask')
-    brain_mask.inputs.out_file = "brain_mask.nii.gz"
+    brain_mask.inputs.out_file = "petpvc_tissue_mask.nii.gz"
     brain_mask.inputs.formula  = "np.abs(gm + wm + csf) > 0"
 
     ## concat the tissues images and the background for PETPVC
