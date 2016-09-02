@@ -60,8 +60,11 @@ def petpvc_workflow(wf_name="pet_pvc"):
     pvc_output.pvc_out: existing file
         The output of the PETPVC process.
 
-    pvc_output.pvc_mask: existing file
+    pvc_output.petpvc_mask: existing file
         The mask built for the PETPVC.
+
+    pvc_output.brain_mask: existing file
+        A brain mask calculated with the tissues file.
 
     pvc_output.gm_norm: existing file
         The output of the grey matter intensity normalization process.
@@ -83,6 +86,7 @@ def petpvc_workflow(wf_name="pet_pvc"):
                   "coreg_others",
                   "pvc_out",
                   "petpvc_mask",
+                  "brain_mask",
                   "gm_norm",]
 
     # input
@@ -131,17 +135,17 @@ def petpvc_workflow(wf_name="pet_pvc"):
                 (gunzip_pet,  rbvpvc,     [("out_file", "in_file")]),
 
                 # the merged file with 4 tissues to PCV correction
-                (mask_wf,     rbvpvc,     [("pvcmask_output.merged_file", "mask_file")]),
+                (mask_wf,     rbvpvc,     [("pvcmask_output.petpvc_mask", "mask_file")]),
 
                 # normalize voxel values of PET PVCed by demeaning it entirely by GM PET voxel values
                 (rbvpvc,      norm_wf,    [("out_file", "intnorm_input.source")]),
                 (select_gm,   norm_wf,    [("out",      "intnorm_input.mask")]),
 
                 # gunzip some files for SPM Normalize12
-                (rbvpvc,      unzip_mrg,  [("out_file",                   "in1")]),
-                (mask_wf,     unzip_mrg,  [("pvcmask_output.brain_mask",  "in2")]),
-                (norm_wf,     unzip_mrg,  [("intnorm_output.out_file",    "in3")]),
-                (unzip_mrg,   gunzipper,  [("out",                        "in_file")]),
+                (rbvpvc,      unzip_mrg,  [("out_file",                    "in1")]),
+                (mask_wf,     unzip_mrg,  [("pvcmask_output.tissues_mask", "in2")]),
+                (norm_wf,     unzip_mrg,  [("intnorm_output.out_file",     "in3")]),
+                (unzip_mrg,   gunzipper,  [("out",                         "in_file")]),
 
                 # output
                 (coreg_pet,   pvc_output, [("coregistered_source",         "coreg_ref")]),
