@@ -17,7 +17,7 @@ from .       import configuration
 
 
 def build_crumb_workflow(wfname_attacher, data_crumb, in_out_kwargs, output_dir,
-                         cache_dir=''):
+                         cache_dir='', wf_name="main_workflow"):
     """ Returns a workflow for the give `data_crumb` with the attached workflows
     given by `attach_functions`.
 
@@ -50,7 +50,10 @@ def build_crumb_workflow(wfname_attacher, data_crumb, in_out_kwargs, output_dir,
         The working directory of the workflow.
 
     output_dir: str
-        The output folder path
+        The output folder path.
+
+    wf_name: str
+        Name of the main workflow.
     """
     if not data_crumb.exists():
         raise IOError("Expected an existing folder for `data_crumb`, got {}.".format(data_crumb))
@@ -63,8 +66,8 @@ def build_crumb_workflow(wfname_attacher, data_crumb, in_out_kwargs, output_dir,
                          "got {}.".format(wfname_attacher))
 
     if not in_out_kwargs or in_out_kwargs is None:
-        raise ValueError("Expected `in_out_kwargs` to have at least the parameters for"
-                         "`files_crumb_args`, got {}.".format(in_out_kwargs))
+        raise ValueError("Expected `in_out_kwargs` to have at the name for sets of parameters for "
+                         " `data_crumb`, got {}.".format(in_out_kwargs))
 
     # check some args
     if not cache_dir:
@@ -78,7 +81,8 @@ def build_crumb_workflow(wfname_attacher, data_crumb, in_out_kwargs, output_dir,
     main_wf = crumb_wf(work_dir=cache_dir,
                        data_crumb=data_crumb,
                        output_dir=output_dir,
-                       file_templates=in_out_kwargs)
+                       file_templates=in_out_kwargs,
+                       wf_name=wf_name)
 
     for wf_name, attach_wf in wfname_attacher.items():
         main_wf = attach_wf(main_wf=main_wf, wf_name=wf_name)

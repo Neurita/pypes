@@ -62,7 +62,7 @@ class DataCrumb(IOBase):
         if not Crumb.is_valid(crumb):
             raise ValueError('Crumb {} is not valid.'.format(crumb))
 
-        self._crumb     = crumb
+        self._crumb = crumb
 
         files_args = get_values_map_keys(templates)
         undef_args = [name for name in list(crumb.all_args()) if name not in files_args]
@@ -88,7 +88,7 @@ class DataCrumb(IOBase):
         info = dict([(k, v) for k, v in list(self.inputs.__dict__.items())
                      if k in self._infields])
 
-        # check if the crumb is not absolute and in info we have the parameter for the base directory
+        # check if the crumb is not absolute or if in info we have the parameter for the base directory
         if not self._crumb.isabs():
             first_arg_name, _ = self._crumb._first_open_arg()
             if first_arg_name not in info:
