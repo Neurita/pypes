@@ -78,7 +78,27 @@ def dcm2niix_wf(wf_name='dcm2niix'):
 
 
 def attach_dcm2niix(main_wf, wf_name="dcm2niix"):
+    """ Attach the dcm2niix workflow to the `main_wf`.
 
+    Parameters
+    ----------
+    main_wf: nipype Workflow
+
+    wf_name: str
+        Name of the dcm2niix workflow
+
+    Nipype Inputs for `main_wf`
+    ---------------------------
+    Note: The `main_wf` workflow is expected to have an `input_files` and a `datasink` nodes.
+
+    input_files.dcm_dir: input node
+
+    datasink: nipype Node
+
+    Returns
+    -------
+    main_wf: nipype Workflow
+    """
     in_files = get_input_node(main_wf)
     datasink = get_datasink  (main_wf)
 
