@@ -12,19 +12,19 @@ from pypes.run import run_wf
 from pypes.plot import plot_workflow
 
 
-def run_pype(workflow, plugin="MultiProc", n_cpus=4):
+def run_pype(workflow, **kwargs):
     try:
         # plot the graph in its working directory
         plot_workflow(workflow)
 
         # run it
-        run_wf(workflow, plugin, n_cpus)
+        run_wf(workflow, **kwargs)
     except:
-        raise
-    finally:
         import pdb, sys
         print(sys.exc_info())
         pdb.post_mortem(sys.exc_info()[2])
+    else:
+        print('Workflow finished successfully!')
 
 
 @task
