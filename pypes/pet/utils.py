@@ -72,7 +72,7 @@ def petpvc_mask(wf_name="petpvc_mask"):
 
     Nipype.Outputs
     --------------
-    pvcmask_output.merged_file: existing file
+    pvcmask_output.petpvc_mask: existing file
         A 4D volume file with these maps in order: GM, WM, CSF, background
 
     pvcmask_output.brain_mask: existing file
@@ -87,8 +87,8 @@ def petpvc_mask(wf_name="petpvc_mask"):
     # specify input and output fields
     in_fields  = ["tissues"]
 
-    out_fields = ["brain_mask",
-                  "merged_file",]
+    out_fields = ["petpvc_mask",
+                  "brain_mask",]
 
     # input
     pvcmask_input = setup_node(IdentityInterface(fields=in_fields, mandatory_inputs=True),
@@ -114,11 +114,13 @@ def petpvc_mask(wf_name="petpvc_mask"):
                                      output_names=["out_file"],
                                      imports=['from pypes.nilearn import ni2file']),
                             name='brain_mask')
-    brain_mask.inputs.out_file = "petpvc_tissue_mask.nii.gz"
+    brain_mask.inputs.out_file = "tissues_brain_mask.nii.gz"
     brain_mask.inputs.formula  = "np.abs(gm + wm + csf) > 0"
 
     ## concat the tissues images and the background for PETPVC
-    merge_tissues = setup_node(Function(function=concat_imgs, input_names=["in_files"], output_names=["out_file"],
+    merge_tissues = setup_node(Function(function=concat_imgs,
+                                        input_names=["in_files"],
+                                        output_names=["out_file"],
                                         imports=['from pypes.nilearn import ni2file']),
                                name='merge_tissues')
 
@@ -147,7 +149,7 @@ def petpvc_mask(wf_name="petpvc_mask"):
                 (merge_list,    merge_tissues,  [("out", "in_files")]),
 
                 # output
-                (merge_tissues, pvcmask_output, [("out_file", "merged_file")]),
+                (merge_tissues, pvcmask_output, [("out_file", "petpvc_mask")]),
                 (brain_mask,    pvcmask_output, [("out_file", "brain_mask")]),
               ])
 

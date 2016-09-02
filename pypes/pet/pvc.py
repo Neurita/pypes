@@ -51,9 +51,6 @@ def petpvc_workflow(wf_name="pet_pvc"):
 
     Nipype outputs
     --------------
-    pvc_output.brain_mask: existing file
-        A brain mask calculated with the tissues file.
-
     pvc_output.coreg_ref: existing file
         The coregistered reference image to PET space.
 
@@ -82,11 +79,10 @@ def petpvc_workflow(wf_name="pet_pvc"):
                   "reference_file",
                   "tissues",]
 
-    out_fields = ["brain_mask",
+    out_fields = ["coreg_ref",
                   "coreg_others",
-                  "coreg_ref",
                   "pvc_out",
-                  "pvc_mask",
+                  "petpvc_mask",
                   "gm_norm",]
 
     # input
@@ -148,12 +144,12 @@ def petpvc_workflow(wf_name="pet_pvc"):
                 (unzip_mrg,   gunzipper,  [("out",                        "in_file")]),
 
                 # output
-                (rbvpvc,      pvc_output, [("out_file",                   "pvc_out")]),
-                (mask_wf,     pvc_output, [("pvcmask_output.brain_mask",  "brain_mask")]),
-                (mask_wf,     pvc_output, [("pvcmask_output.merged_file", "pvc_mask")]),
-                (coreg_pet,   pvc_output, [("coregistered_source",        "coreg_ref")]),
-                (coreg_pet,   pvc_output, [("coregistered_files",         "coreg_others")]),
-                (norm_wf,     pvc_output, [("intnorm_output.out_file",    "gm_norm")]),
+                (coreg_pet,   pvc_output, [("coregistered_source",         "coreg_ref")]),
+                (coreg_pet,   pvc_output, [("coregistered_files",          "coreg_others")]),
+                (rbvpvc,      pvc_output, [("out_file",                    "pvc_out")]),
+                (mask_wf,     pvc_output, [("pvcmask_output.tissues_mask", "brain_mask")]),
+                (mask_wf,     pvc_output, [("pvcmask_output.petpvc_mask",  "petpvc_mask")]),
+                (norm_wf,     pvc_output, [("intnorm_output.out_file",     "gm_norm")]),
                ])
 
     return wf
@@ -228,12 +224,12 @@ def attach_petpvc_workflow(main_wf, wf_name="spm_petpvc"):
                                         ]),
 
                      (pet_wf, datasink, [
-                                         ("pvc_output.pvc_out",      "mrpet.@pvc"),
-                                         ("pvc_output.pvc_mask",     "mrpet.@pvc_mask"),
-                                         ("pvc_output.gm_norm",      "mrpet.@norm"),
                                          ("pvc_output.coreg_others", "pet.tissues"),
                                          ("pvc_output.coreg_ref",    "pet.@anat"),
+                                         ("pvc_output.pvc_out",      "mrpet.@pvc"),
+                                         ("pvc_output.petpvc_mask",  "mrpet.@petpvc_mask"),
                                          ("pvc_output.brain_mask",   "pet.@brain_mask"),
+                                         ("pvc_output.gm_norm",      "pet.@gm_norm"),
                                         ]),
                      ])
 
