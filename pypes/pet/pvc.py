@@ -203,6 +203,7 @@ def attach_petpvc_workflow(main_wf, wf_name="spm_petpvc"):
     regexp_subst = [
                      (r"/{pet}_.*_pvc.nii.gz$",       "/{pet}_pvc.nii.gz"),
                      (r"/{pet}_.*_pvc_maths.nii.gz$", "/{pet}_pvc_norm.nii.gz"),
+                     (r"/concat_img.nii$",            "/petpvc_mask.nii"),
                      (r"/rm{anat}_corrected.nii$",    "/{anat}_{pet}.nii"),
                      (r"/rc1{anat}_corrected.nii$",   "/gm_{pet}.nii"),
                      (r"/rc2{anat}_corrected.nii$",   "/wm_{pet}.nii"),
