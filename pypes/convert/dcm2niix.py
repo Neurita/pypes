@@ -2,8 +2,6 @@
 """
 DICOM to Nifti converter node based on dcm2nii.
 """
-import os.path as op
-
 import nipype.pipeline.engine as pe
 from nipype.interfaces.base    import traits
 from nipype.interfaces.utility import IdentityInterface
@@ -11,9 +9,7 @@ from nipype.interfaces.dcm2nii import Dcm2niix, Dcm2nii
 
 from ..config import setup_node
 from ..utils  import (get_datasink,
-                      get_input_node,
-                      remove_ext,
-                      get_input_file_name)
+                      get_input_node)
 
 
 def dcm2niix_wf(wf_name='dcm2niix'):
