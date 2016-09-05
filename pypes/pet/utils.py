@@ -123,6 +123,7 @@ def petpvc_mask(wf_name="petpvc_mask"):
                                         output_names=["out_file"],
                                         imports=['from pypes.nilearn import ni2file']),
                                name='merge_tissues')
+    merge_tissues.inputs.out_file = "petpvc_mask.nii.gz"
 
     # output
     pvcmask_output = setup_node(IdentityInterface(fields=out_fields), name="pvcmask_output")
