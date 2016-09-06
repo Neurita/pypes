@@ -6,14 +6,13 @@
  reading slice timing correction parameters specially from Siemens acquisitions
 """
 import os.path as op
+
 import nibabel as nib
 import numpy as np
-
 from nipype.interfaces.base import (BaseInterface,
                                     TraitedSpec,
                                     InputMultiPath,
                                     BaseInterfaceInputSpec,
-                                    isdefined,
                                     traits,)
 
 from .._utils        import check_equal, grep
@@ -112,7 +111,7 @@ def _get_time_acquisition(in_file, TR, n_slices):
 
 
 def _get_ref_slice(in_file, slice_order):
-    if not slice_order:
+    if slice_order is None:
         raise ValueError('Expected a list of integers as `slice_order`, got {}.'.format(slice_order))
 
     return slice_order[0]
@@ -301,8 +300,6 @@ class STCParameters(object):
 
         time_repetition
         """
-        # If you have used this class for more than once and this exception is raised check the following comment:
-        # TODO: decide to remove `isdefined` or change the `is not None` checks in the `set` functions
         self.in_files         = in_files
         self.num_slices       = num_slices
         self.slice_order      = slice_order

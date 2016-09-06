@@ -50,7 +50,7 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
         path to the resting-state image
 
     rest_input.anat: traits.File
-        path to the high-contrast anatomical image
+        Path to the high-contrast anatomical image
 
     rest_input.atlas_anat: traits.File
         The atlas file in anatomical space.

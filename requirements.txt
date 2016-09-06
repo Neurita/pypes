@@ -1,7 +1,7 @@
 matplotlib==1.5.2
-nibabel==2.0.2
-hansel==0.9.1
-nilearn==0.2.5
+nibabel==2.1.0
+hansel==0.9.2
+nilearn==0.2.5.1
 git+https://github.com/nipy/nipy.git@91d91f5495a63d42c3e9452ac7b7dd97f6545052#egg=nipy
 git+https://github.com/nipy/nipype.git@3f48cb77ae53ca6e69935ccd32ddc39f50287141#egg=nipype
 git+https://git@github.com/emre/kaptan.git@b64ad9b6941896cce88de02b5753df8e7e7c4498#egg=kaptan

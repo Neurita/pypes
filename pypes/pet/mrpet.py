@@ -32,7 +32,7 @@ def spm_mrpet_preprocessing(wf_name="spm_mrpet_preproc"):
     will run it too.
 
     It does:
-    - SPM12 Coregister T1 and tisusses to PET
+    - SPM12 Coregister T1 and tissues to PET
     - PVC the PET image in PET space
     - SPM12 Warp PET to MNI
 
@@ -49,8 +49,9 @@ def spm_mrpet_preprocessing(wf_name="spm_mrpet_preproc"):
     pet_input.atlas_anat: traits.File
         The atlas file in anatomical space.
 
-    pet_input.reference_file: traits.File
-        Reference file of the warp_field, i.e., the anatomical image in native space.
+    pet_input.anat: traits.File
+        Path to the high-contrast anatomical image.
+        Reference file of the warp_field, i.e., the anatomical image in its native space.
 
     pet_input.tissues: list of traits.File
         List of tissues files from the New Segment process. At least the first
@@ -91,9 +92,8 @@ def spm_mrpet_preprocessing(wf_name="spm_mrpet_preproc"):
     """
     # specify input and output fields
     in_fields  = ["in_file",
-                  "reference_file",
-                  "tissues",
-                  "atlas_anat"]
+                  "anat",
+                  "tissues",]
 
     out_fields = ["brain_mask",
                   "coreg_others",
@@ -137,9 +137,9 @@ def spm_mrpet_preprocessing(wf_name="spm_mrpet_preproc"):
     # add more nodes if to perform atlas registration
     wf.connect([
                 # inputs
-                (pet_input, petpvc,     [("in_file",        "pvc_input.in_file"),
-                                         ("reference_file", "pvc_input.reference_file"),
-                                         ("tissues",        "pvc_input.tissues")]),
+                (pet_input, petpvc,     [("in_file", "pvc_input.in_file"),
+                                         ("anat",    "pvc_input.reference_file"),
+                                         ("tissues", "pvc_input.tissues")]),
 
                 # gunzip some files for SPM Normalize
                 (petpvc,    merge_list, [("pvc_output.pvc_out",    "in1"),
@@ -150,20 +150,20 @@ def spm_mrpet_preprocessing(wf_name="spm_mrpet_preproc"):
                 (merge_list, gunzipper, [("out", "in_file")]),
 
                 # warp the PET PVCed to MNI
-                (petpvc,      warp_pet,   [("pvc_output.coreg_ref", "image_to_align")]),
-                (gunzipper,   warp_pet,   [("out_file",             "apply_to_files")]),
-                (tpm_bbox,    warp_pet,   [("bbox",                 "write_bounding_box")]),
+                (petpvc,    warp_pet,   [("pvc_output.coreg_ref", "image_to_align")]),
+                (gunzipper, warp_pet,   [("out_file",             "apply_to_files")]),
+                (tpm_bbox,  warp_pet,   [("bbox",                 "write_bounding_box")]),
 
                 # output
-                (petpvc,   pet_output, [("pvc_output.pvc_out",      "pvc_out"),
-                                        ("pvc_output.brain_mask",   "brain_mask"),
-                                        ("pvc_output.coreg_ref",    "coreg_ref"),
-                                        ("pvc_output.coreg_others", "coreg_others"),
-                                        ("pvc_output.gm_norm",      "gm_norm")]),
+                (petpvc,    pet_output, [("pvc_output.pvc_out",      "pvc_out"),
+                                         ("pvc_output.brain_mask",   "brain_mask"),
+                                         ("pvc_output.coreg_ref",    "coreg_ref"),
+                                         ("pvc_output.coreg_others", "coreg_others"),
+                                         ("pvc_output.gm_norm",      "gm_norm")]),
 
                 # output
-                (warp_pet, pet_output, [("normalized_files",        "pvc_warped"),
-                                        ("deformation_field",       "warp_field")]),
+                (warp_pet,  pet_output, [("normalized_files",  "pvc_warped"),
+                                         ("deformation_field", "warp_field")]),
                ])
 
     if do_atlas:
@@ -172,7 +172,7 @@ def spm_mrpet_preprocessing(wf_name="spm_mrpet_preproc"):
         # set the registration interpolation to nearest neighbour.
         coreg_atlas.inputs.write_interp = 0
         wf.connect([
-                    (pet_input,   coreg_atlas, [("reference_file",       "source")]),
+                    (pet_input,   coreg_atlas, [("anat",                 "source")]),
                     (petpvc,      coreg_atlas, [("pvc_output.coreg_ref", "target")]),
                     (pet_input,   coreg_atlas, [("atlas_anat",           "apply_to_files")]),
                     (coreg_atlas, pet_output,  [("coregistered_files",   "atlas_pet")]),
@@ -203,13 +203,14 @@ def spm_mrpet_grouptemplate_preprocessing(wf_name="spm_mrpet_grouptemplate_prepr
     Nipype Inputs
     -------------
     pet_input.in_file: traits.File
-        The raw NIFTI_GZ PET image file
+        The raw NIFTI_GZ PET image file.
 
     pet_input.atlas_anat: traits.File
         The atlas file in anatomical space.
 
-    pet_input.reference_file: traits.File
-        Reference file of the warp_field, i.e., the anatomical image in native space.
+    pet_input.anat: traits.File
+        Path to the high-contrast anatomical image.
+        Reference file of the warp_field, i.e., the anatomical image in its native space.
 
     pet_input.tissues: list of traits.File
         List of tissues files from the New Segment process. At least the first
@@ -221,7 +222,7 @@ def spm_mrpet_grouptemplate_preprocessing(wf_name="spm_mrpet_grouptemplate_prepr
     Nipype outputs
     --------------
     pet_output.pvc_out: existing file
-        The results of the PVC process
+        The results of the PVC process.
 
     pet_output.brain_mask: existing file
         A brain mask calculated with the tissues file.
@@ -230,7 +231,7 @@ def spm_mrpet_grouptemplate_preprocessing(wf_name="spm_mrpet_grouptemplate_prepr
         The coregistered reference image to PET space.
 
     pet_output.coreg_others: list of existing files
-        List of coregistered files from coreg_pet.apply_to_files
+        List of coregistered files from coreg_pet.apply_to_files.
 
     pet_output.pet_warped: existing file
         PET image normalized to the group template.
@@ -240,7 +241,7 @@ def spm_mrpet_grouptemplate_preprocessing(wf_name="spm_mrpet_grouptemplate_prepr
         The result of every internal pre-processing step is normalized to the group template here.
 
     pet_output.warp_field: existing files
-        Spatial normalization parameters .mat files
+        Spatial normalization parameters .mat files.
 
     pet_output.gm_norm: existing file
         The output of the grey matter intensity normalization process.
@@ -256,9 +257,8 @@ def spm_mrpet_grouptemplate_preprocessing(wf_name="spm_mrpet_grouptemplate_prepr
     """
     # specify input and output fields
     in_fields  = ["in_file",
-                  "reference_file",
+                  "anat",
                   "tissues",
-                  "atlas_anat",
                   "pet_template"]
 
     out_fields = ["brain_mask",
@@ -308,13 +308,12 @@ def spm_mrpet_grouptemplate_preprocessing(wf_name="spm_mrpet_grouptemplate_prepr
     # add more nodes if to perform atlas registration
     wf.connect([
                 # inputs
-                (pet_input,   petpvc,  [("in_file",        "pvc_input.in_file"),
-                                        ("reference_file", "pvc_input.reference_file"),
-                                        ("tissues",        "pvc_input.tissues")]),
+                (pet_input,   petpvc,  [("in_file", "pvc_input.in_file"),
+                                        ("anat",    "pvc_input.reference_file"),
+                                        ("tissues", "pvc_input.tissues")]),
 
                 # get template bounding box to apply to results
                 (pet_input, get_bbox,  [("pet_template", "in_file")]),
-
 
                 # gunzip some inputs
                 (pet_input, gunzip_pet,      [("in_file",      "in_file")]),
@@ -356,7 +355,7 @@ def spm_mrpet_grouptemplate_preprocessing(wf_name="spm_mrpet_grouptemplate_prepr
         # set the registration interpolation to nearest neighbour.
         coreg_atlas.inputs.write_interp = 0
         wf.connect([
-                    (pet_input,   coreg_atlas, [("reference_file",       "source")]),
+                    (pet_input,   coreg_atlas, [("anat",                 "source")]),
                     (petpvc,      coreg_atlas, [("pvc_output.coreg_ref", "target")]),
                     (pet_input,   coreg_atlas, [("atlas_anat",           "apply_to_files")]),
                     (coreg_atlas, pet_output,  [("coregistered_files",   "atlas_pet")]),
@@ -432,7 +431,8 @@ def attach_spm_mrpet_preprocessing(main_wf, wf_name="spm_mrpet_preproc", do_grou
                      (r"/rc2{anat}_corrected.nii$",       "/wm_{pet}.nii"),
                      (r"/rc3{anat}_corrected.nii$",       "/csf_{pet}.nii"),
                    ]
-    regexp_subst = format_pair_list(regexp_subst, pet=pet_fbasename, anat=anat_fbasename, template=template_name)
+    regexp_subst = format_pair_list(regexp_subst, pet=pet_fbasename, anat=anat_fbasename,
+                                    template=template_name)
 
     # prepare substitution for atlas_file, if any
     do_atlas, atlas_file = check_atlas_file()
@@ -453,7 +453,7 @@ def attach_spm_mrpet_preprocessing(main_wf, wf_name="spm_mrpet_preproc", do_grou
                      (in_files, pet_wf, [("pet", "pet_input.in_file")]),
 
                      # pet to anat registration
-                     (anat_wf,  pet_wf, [("new_segment.bias_corrected_images", "pet_input.reference_file"),
+                     (anat_wf,  pet_wf, [("new_segment.bias_corrected_images", "pet_input.anat"),
                                          ("new_segment.native_class_images",   "pet_input.tissues"),
                                         ]),
 

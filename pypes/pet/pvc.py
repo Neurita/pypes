@@ -52,7 +52,7 @@ def petpvc_workflow(wf_name="pet_pvc"):
     Nipype outputs
     --------------
     pvc_output.coreg_ref: existing file
-        The coregistered reference image to PET space.
+        The coregistered reference_file image to PET space.
 
     pvc_output.coreg_others: list of existing files
         List of coregistered files from coreg_pet.apply_to_files
