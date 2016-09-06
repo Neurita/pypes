@@ -31,9 +31,8 @@ def build_crumb_workflow(wfname_attacher, data_crumb, in_out_kwargs, output_dir,
     data_crumb: hansel.Crumb
         The crumb until the subject files.
         Example: Crumb('/home/hansel/cobre/raw/{subject_id}/session_1/{modality}/{image_file})
-        The last 2 crumb arguments of `data_crumb` must be '{modality}/{image}',
-        which indicates each of the subject/session files.
-        This argument will be replaced by the corresponding image name.
+        At least one crumb arguments of `data_crumb` must be open,
+        this argument will be replaced by the corresponding image name.
 
     in_out_kwargs: dict with keyword arguments
         This arguments are for the in_out_crumb_wf.
