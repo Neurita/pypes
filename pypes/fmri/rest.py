@@ -233,7 +233,7 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
                                  imports=['from pypes.nilearn import ni2file']),
                         name='average')
 
-    mean_gunzip = setup_node(Gunzip(),        name="mean_gunzip")
+    mean_gunzip = setup_node(Gunzip(), name="mean_gunzip")
 
     # co-registration nodes
     coreg     = setup_node(spm_coregister(cost_function="mi"), name="coreg_fmri")
@@ -245,8 +245,8 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
     tissue_mask.inputs.op_string = "-add %s -add %s -abs -kernel gauss 4 -dilM -ero -kernel gauss 1 -dilM -bin"
     tissue_mask.inputs.out_file = "tissue_brain_mask.nii.gz"
 
-    gm_select    = setup_node(Select(index=[0]),     name="gm_sel")
-    wmcsf_select = setup_node(Select(index=[1, 2]),  name="wmcsf_sel")
+    gm_select    = setup_node(Select(index=[0]),    name="gm_sel")
+    wmcsf_select = setup_node(Select(index=[1, 2]), name="wmcsf_sel")
 
     # noise filter
     noise_wf   = rest_noise_filter_wf()
