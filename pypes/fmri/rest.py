@@ -231,7 +231,7 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
     # average
     average = setup_node(Function(function=mean_img, input_names=["in_file"], output_names=["out_file"],
                                  imports=['from pypes.nilearn import ni2file']),
-                        name='average')
+                         name='average')
 
     mean_gunzip = setup_node(Gunzip(), name="mean_gunzip")
 

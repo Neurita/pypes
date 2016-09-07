@@ -4,6 +4,7 @@ Nipype registration nodes and workflows
 """
 import nipype.pipeline.engine    as pe
 from   nipype.interfaces.utility import IdentityInterface, Function
+from   nipype.algorithms.misc    import Gunzip
 
 import nipype.interfaces.spm  as spm
 import nipype.interfaces.afni as afni
@@ -12,6 +13,7 @@ from   nipype.interfaces.base import traits
 from ..nilearn import mean_img, concat_imgs, smooth_img
 from ..config  import setup_node, get_config_setting
 from ..utils   import spm_tpm_priors_path
+from ..preproc import get_bounding_box
 
 
 def spm_apply_deformations(in_imgs=traits.Undefined,
@@ -178,16 +180,16 @@ def afni_deoblique(in_file=traits.Undefined, out_file=traits.Undefined, out_type
     return deob
 
 
-def spm_group_template(wf_name="spm_group_template"):
+def spm_create_group_template(wf_name="spm_create_group_template"):
     """ Pick all subject files in `grptemplate_input.in_files`, calculate an average
     image and smooth it with `"{}_smooth".format(wf_name)` node (you can configure the smooth `fwhm` from
     a config file.).
 
     It does:
     - calculate a mean image (across subjects) and
-    - smooth it with 8x8x8 gaussian kernel -> this is the template.
-    - Finally, warp all PET images again to this template.
-    - If tissue data is available from MR, do PVC.
+    - smooth it with a 8x8x8mm^3 gaussian kernel -> the result of this is the template.
+    The size of the isometric smoothing gaussian kernel is given by one integer for the
+    "{}_smooth".format(wf_name) setting.
 
     Parameters
     ----------
@@ -248,6 +250,92 @@ def spm_group_template(wf_name="spm_group_template"):
 
                 # output
                 (smooth,     output,   [("out_file", "template")]),
+               ])
+
+    return wf
+
+
+def spm_register_to_template(wf_name="spm_registration_to_template"):
+    """Return a workflow that registers each reg_input.in_file to the file in reg_input.template.
+    For now this does not do atlas registration.
+
+    It does:
+    - SPM12 Warp input image to the given template
+
+    Parameters
+    ----------
+    wf_name: str
+        Name of the workflow.
+
+    Nipype Inputs
+    -------------
+    reg_input.in_file: traits.File
+        The raw NIFTI_GZ subject image file.
+
+    reg_input.template: list of traits.File
+        The template file for inter-subject registration reference.
+
+    Nipype outputs
+    --------------
+    reg_output.warped: existing file
+        Image normalized to the given template.
+
+    reg_output.warp_fields: existing files
+        Spatial normalization parameters .mat files
+
+    Returns
+    -------
+    wf: nipype Workflow
+    """
+    # specify input and output fields
+    in_fields  = ["in_file",
+                  "template",]
+
+    out_fields = ["warped",
+                  "warp_fields",]
+
+    # input
+    pet_input = setup_node(IdentityInterface(fields=in_fields, mandatory_inputs=True),
+                           name="reg_input")
+
+    # warp each subject to the group template
+    gunzip_template = setup_node(Gunzip(), name="gunzip_template",)
+    gunzip_pet      = setup_node(Gunzip(), name="gunzip_input",)
+
+    warp2template = setup_node(spm.Normalize(jobtype="estwrite", out_prefix="wgrptemplate_"),
+                               name="warp2template")
+
+    get_bbox = setup_node(Function(function=get_bounding_box,
+                                   input_names=["in_file"],
+                                   output_names=["bbox"]),
+                          name="get_bbox")
+
+    # output
+    pet_output = setup_node(IdentityInterface(fields=out_fields), name="pet_output")
+
+    # Create the workflow object
+    wf = pe.Workflow(name=wf_name)
+
+    wf.connect([
+                # get template bounding box to apply to results
+                (pet_input,     get_bbox,        [("pet_template", "in_file")]),
+
+                # gunzip some inputs
+                (pet_input,     gunzip_pet,      [("in_files",     "in_file")]),
+                (pet_input,     gunzip_template, [("pet_template", "in_file")]),
+
+                # prepare the target parameters of the warp to template
+                (gunzip_template, warp2template, [("out_file", "template")]),
+                (get_bbox,        warp2template, [("bbox",     "write_bounding_box")]),
+
+                # directly warp pet to the template
+                (gunzip_pet,      warp2template, [("out_file", "source")]),
+
+                # output
+                (warp2template, pet_output, [("normalization_parameters", "warp_field"),
+                                             ("normalized_files" ,        "pvc_warped"),
+                                             ("normalized_source",        "pet_warped"),
+                                            ]),
                ])
 
     return wf

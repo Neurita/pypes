@@ -10,7 +10,7 @@ from   nipype.algorithms.misc    import Gunzip
 from   nipype.interfaces.utility import IdentityInterface, Function
 
 from   .mrpet import attach_spm_mrpet_preprocessing
-from   ..preproc import spm_group_template, get_bounding_box
+from   ..preproc import spm_create_group_template, get_bounding_box
 from   ..config  import setup_node, get_config_setting
 from   .._utils  import format_pair_list
 from   ..utils   import (get_datasink,
@@ -91,7 +91,7 @@ def spm_pet_grouptemplate_preproc(wf_name="spm_pet_grouptemplate_preproc"):
                 (pet_input,     get_bbox,        [("pet_template", "in_file")]),
 
                 # gunzip some inputs
-                (pet_input,     gunzip_pet,      [("in_file",      "in_file")]),
+                (pet_input,     gunzip_pet,      [("in_files",     "in_file")]),
                 (pet_input,     gunzip_template, [("pet_template", "in_file")]),
 
                 # prepare the target parameters of the warp to template
@@ -229,7 +229,7 @@ def attach_spm_pet_grouptemplate(main_wf, wf_name="spm_pet_template"):
     grp_datasink.inputs.container = '{}_grouptemplate'.format(pet_fbasename)
 
     # the group template workflow
-    template_wf = spm_group_template(wf_name)
+    template_wf = spm_create_group_template(wf_name)
 
     # the list of the raw pet subjects
     warped_pets = pe.JoinNode(interface=IdentityInterface(fields=["warped_pets"]),

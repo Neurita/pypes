@@ -10,9 +10,9 @@ from .registration import (spm_apply_deformations,
                            spm_coregister,
                            spm_normalize,
                            afni_deoblique,
-                           spm_group_template,
+                           spm_create_group_template,
                            spm_tpm_priors_path,
-                          )
+                           )
 from .slicetime import (afni_slicetime,
                         spm_slicetime,
                         auto_spm_slicetime,
