@@ -2,27 +2,19 @@
 """
 Nipype registration nodes and workflows
 """
-import os.path as op
-
 import nipype.pipeline.engine    as pe
 from   nipype.interfaces.utility import IdentityInterface, Function
 from   nipype.algorithms.misc    import Gunzip
 
 import nipype.interfaces.spm  as spm
 import nipype.interfaces.afni as afni
+import nipype.interfaces.fsl as fsl
 from   nipype.interfaces.base import traits
 
+from  .spatial import get_bounding_box
 from ..nilearn import mean_img, concat_imgs, smooth_img
 from ..config  import setup_node, get_config_setting
-from ..preproc import get_bounding_box
-from .._utils  import format_pair_list
-from ..utils   import (get_datasink,
-                       extend_trait_list,
-                       get_input_node,
-                       spm_tpm_priors_path,
-                       remove_ext,
-                       get_input_file_name,
-                       extension_duplicates)
+from ..utils   import spm_tpm_priors_path
 
 
 def spm_apply_deformations(in_imgs=traits.Undefined,
@@ -237,12 +229,12 @@ def spm_create_group_template_wf(wf_name="spm_create_group_template"):
     average.inputs.out_file = 'group_average.nii.gz'
 
     # smooth
-    smooth = setup_node(Function(function=smooth_img,
-                                 input_names=["in_file", "fwhm"],
-                                 output_names=["out_file"],
-                                 imports=['from pypes.nilearn import ni2file']),
-                         name="{}_smooth".format(wf_name))
-    smooth.inputs.fwhm = get_config_setting("{}_smooth".format(wf_name), default=8)
+    #smooth = setup_node(Function(function=smooth_img,
+    #                             input_names=["in_file", "fwhm"],
+    #                             output_names=["out_file"],
+    #                             imports=['from pypes.nilearn import ni2file']),
+    #                     name="{}_smooth".format(wf_name))
+    smooth = setup_node(fsl.IsotropicSmooth(), name="{}_smooth".format(wf_name))
 
     # output
     output = setup_node(IdentityInterface(fields=["template"]), name="grptemplate_output",)
