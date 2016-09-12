@@ -9,7 +9,8 @@ from   .config  import update_config
 from   .anat    import attach_spm_anat_preprocessing
 from   .dti     import (attach_fsl_dti_preprocessing,
                         attach_camino_tractography)
-from   .fmri    import attach_rest_preprocessing
+from   .fmri    import (attach_rest_preprocessing,
+                        attach_spm_fmri_grouptemplate)
 from   .io      import build_crumb_workflow
 from   .pet     import (attach_spm_mrpet_preprocessing,
                         attach_spm_pet_preprocessing,
@@ -90,9 +91,9 @@ def _clinical_wf_setup(wf_name):
                          ('image',    'rest.nii.gz')],
               }
     """
-    attach_functions = {"spm_anat_preproc":     [("spm_anat_preproc",  attach_spm_anat_preprocessing)],
+    attach_functions = {"spm_anat_preproc":     [("spm_anat_preproc", attach_spm_anat_preprocessing)],
 
-                        "spm_pet_preproc":      [("spm_pet_preproc",   attach_spm_pet_preprocessing)],
+                        "spm_pet_preproc":      [("spm_pet_preproc", attach_spm_pet_preprocessing)],
 
                         "spm_pet_template":     [("spm_pet_preproc",       attach_spm_pet_preprocessing),
                                                  ("spm_pet_grouptemplate", attach_spm_pet_grouptemplate),
@@ -125,6 +126,24 @@ def _clinical_wf_setup(wf_name):
                                                  ("fsl_dti_preproc",   attach_fsl_dti_preprocessing),
                                                  ("camino_tract",      attach_camino_tractography),
                                                 ],
+
+                        "spm_anat_rest_tpm_preproc": [("spm_anat_preproc",       attach_spm_anat_preprocessing),
+                                                      ("spm_rest_preproc",       attach_rest_preprocessing),
+                                                      ("spm_fmri_grouptemplate", attach_spm_fmri_grouptemplate),
+                                                     ],
+
+                        "spm_anat_pet_rest_tpm_preproc": [("spm_anat_preproc",        attach_spm_anat_preprocessing),
+                                                          ("spm_rest_preproc",        attach_rest_preprocessing),
+                                                          ("spm_fmri_grouptemplate",  attach_spm_fmri_grouptemplate),
+                                                          ("spm_pet_preproc",         attach_spm_pet_preprocessing),
+                                                          ("spm_mrpet_grouptemplate", attach_spm_pet_grouptemplate),
+                                                         ],
+
+                        "spm_anat_pet_rest_preproc":    [("spm_anat_preproc",  attach_spm_anat_preprocessing),
+                                                         ("spm_rest_preproc",  attach_rest_preprocessing),
+                                                         ("spm_mrpet_preproc", attach_spm_mrpet_preprocessing),
+                                                        ],
+
                        }
 
     parameters       = {"spm_pet_template":     [('spm_pet_template.do_petpvc', False),],
