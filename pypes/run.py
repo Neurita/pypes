@@ -62,7 +62,8 @@ def run_debug(workflow, plugin="MultiProc", n_cpus=4, **plugin_kwargs):
         print(sys.exc_info())
 
         import pdb
-        pdb.post_mortem(sys.exc_info()[2])
+        post_mortem = getattr(pdb, 'xpm', 'post_mortem')
+        post_mortem(sys.exc_info()[2])
 
         raise
     else:
