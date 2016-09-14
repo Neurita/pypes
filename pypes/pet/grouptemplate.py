@@ -73,14 +73,14 @@ def attach_spm_pet_grouptemplate(main_wf, wf_name="spm_pet_template"):
                                        base_directory=base_outdir,), name="group_datasink")
     grp_datasink.inputs.container = '{}_grouptemplate'.format(pet_fbasename)
 
-    # the group template workflow
-    template_wf = spm_create_group_template_wf(wf_name)
-
     # the list of the raw pet subjects
     warped_pets = pe.JoinNode(interface=IdentityInterface(fields=["warped_pets"]),
                               joinsource="infosrc",
                               joinfield="warped_pets",
                               name="warped_pets")
+
+    # the group template workflow
+    template_wf = spm_create_group_template_wf(wf_name)
 
     # output node
     output = setup_node(IdentityInterface(fields=["pet_template"]), name="group_template")

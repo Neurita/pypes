@@ -6,7 +6,7 @@ import os.path as op
 
 import nipype.pipeline.engine    as pe
 from   nipype.algorithms.misc    import Gunzip
-from   nipype.interfaces.utility import Function, Select, IdentityInterface
+from   nipype.interfaces.utility import Function, Select, Merge, IdentityInterface
 from   nipype.interfaces         import fsl
 from   nipype.interfaces.nipy.preprocess import Trim, ComputeMask
 
@@ -19,6 +19,7 @@ from   ..preproc import (auto_spm_slicetime,
                          spm_normalize,
                          get_bounding_box,
                          spm_tpm_priors_path,
+                         spm_apply_deformations,
                          )
 
 from   ..nilearn import mean_img, smooth_img
@@ -28,6 +29,7 @@ from   ..nilearn.canica import CanICAInterface
 from   ..config import setup_node, get_config_setting, check_atlas_file
 from   .._utils import format_pair_list, flatten_list
 from   ..utils  import (remove_ext,
+                        selectindex,
                         extend_trait_list,
                         get_input_node,
                         get_datasink,
@@ -35,14 +37,25 @@ from   ..utils  import (remove_ext,
                         extension_duplicates)
 
 
-def rest_preprocessing_wf(wf_name="rest_preproc"):
+def rest_preprocessing_wf(wf_name="spm_rest_preproc"):
     """ Run the resting-state fMRI pre-processing workflow against the rest files in `data_dir`.
 
-    It does:
+    Tasks:
     - Trim first 6 volumes of the rs-fMRI file.
-    - Slice Timing Correction
-    - Atlas in anatomical space coregistration to
-    fMRI space (if atlas_file is set in config)
+    - Slice Timing correction.
+    - Motion and nuisance correction.
+    - Calculate brain mask in fMRI space.
+    - Bandpass frequency filtering for resting-state fMRI.
+    - Smoothing.
+    - Tissue maps co-registration to fMRI space.
+    - Warping to MNI.
+
+    - If do_canica is set in config:
+       - Perform subject ICA analysis.
+
+    - If atlas_file is set in config:
+       - Co-registration of atlas file in T1 space to fMRI space.
+       - Calculate connectivity matrices.
 
     Nipype Inputs
     -------------
@@ -95,6 +108,9 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
     rest_output.anat: traits.File
         The T1w image in fMRI space.
 
+    rest_output.avg_epi: traits.File
+        The average EPI image in fMRI space after slice-time and motion correction.
+
     rest_output.atlas: traits.File
         Atlas image warped to fMRI space.
         If the `atlas_file` option is an existing file and `normalize_atlas` is True.
@@ -141,6 +157,9 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
     rest_output.epi_mni_warpfield: traits.File
         The warp field to register the coregistered anatomical file into MNI space.
 
+    rest_output.avg_epi_mni: traits.File
+        The average EPI image in MNI space after slice-time and motion correction.
+
     rest_output.art_displacement_files
         One image file containing the voxel-displacement timeseries.
 
@@ -180,11 +199,13 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
                   "motion_params",
                   "tissues",
                   "anat",
+                  "avg_epi",
                   "time_filtered",
                   "smooth",
                   "time_filtered_mni",
                   "smooth_mni",
                   "tsnr_file",
+                  "avg_epi_mni",
                   "epi_brain_mask",
                   "tissues_brain_mask",
                   "motion_regressors",
@@ -230,7 +251,7 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
 
     # average
     average = setup_node(Function(function=mean_img, input_names=["in_file"], output_names=["out_file"],
-                                 imports=['from pypes.nilearn import ni2file']),
+                                  imports=['from pypes.nilearn import ni2file']),
                          name='average')
 
     mean_gunzip = setup_node(Gunzip(), name="mean_gunzip")
@@ -254,12 +275,15 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
     csf_select = setup_node(Select(index=[2]), name="csf_sel")
 
     # normalize to MNI
-    warp     = setup_node(spm_normalize(), name="warp")
-    gunzip   = setup_node(Gunzip(),        name="noise_gunzip")
-    tpm_bbox = setup_node(Function(function=get_bounding_box,
-                                   input_names=["in_file"],
-                                   output_names=["bbox"]),
-                          name="tpm_bbox")
+    merge_list = setup_node(Merge(2), name='merge_for_warp')
+
+    warp       = setup_node(spm_normalize(), name="warp")
+
+    bp_gunzip  = setup_node(Gunzip(), name="noise_gunzip")
+    tpm_bbox   = setup_node(Function(function=get_bounding_box,
+                                     input_names=["in_file"],
+                                     output_names=["bbox"]),
+                            name="tpm_bbox")
     tpm_bbox.inputs.in_file = spm_tpm_priors_path()
 
     # bandpass filtering
@@ -276,8 +300,11 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
                                  input_names=["in_file", "fwhm"],
                                  output_names=["out_file"],
                                  imports=['from pypes.nilearn import ni2file']),
-                         name="fmri_smooth_mni")
+                         name="smooth_fmri")
     smooth.inputs.fwhm = get_config_setting('fmri_smooth.fwhm', default=8)
+    smooth.inputs.out_file = "smooth_std_{}.nii.gz".format(wf_name)
+
+    avg_epi_select = setup_node(Select(index=[1]), name="avg_epi_select")
 
     # output identities
     rest_output = setup_node(IdentityInterface(fields=out_fields),
@@ -327,8 +354,10 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
 
                 # normalize to template
                 (coreg,       warp,        [("coregistered_source", "image_to_align")]),
-                (bandpass,    gunzip,      [("out_files",           "in_file")]),
-                (gunzip,      warp,        [("out_file",            "apply_to_files")]),
+                (bandpass,    bp_gunzip,   [("out_files",           "in_file")]),
+                (bp_gunzip,   merge_list,  [("out_file",            "in1")]),
+                (mean_gunzip, merge_list,  [("out_file",            "in2")]),
+                (merge_list,  warp,        [(("out", flatten_list), "apply_to_files")]),
                 (tpm_bbox,    warp,        [("bbox",                "write_bounding_box")]),
 
                 # temporal filtering
@@ -337,14 +366,14 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
                                             ("highpass_freq",              "highpass_freq"),
                                            ]),
 
-                # smoothing
-                (warp,        smooth,      [("normalized_files", "in_file")]),
+                # smoothing warped file
+                (warp,        smooth,      [(("normalized_files", selectindex, [0]), "in_file")]),
 
                 # output
-                (epi_mask,    rest_output, [("brain_mask",       "epi_brain_mask")]),
-                (tissue_mask, rest_output, [("out_file",         "tissues_brain_mask")]),
-                (realign,     rest_output, [("out_file",         "motion_corrected"),
-                                            ("par_file",         "motion_params"),
+                (epi_mask,    rest_output, [("brain_mask", "epi_brain_mask")]),
+                (tissue_mask, rest_output, [("out_file",   "tissues_brain_mask")]),
+                (realign,     rest_output, [("out_file",   "motion_corrected"),
+                                            ("par_file",   "motion_params"),
                                            ]),
                 (coreg,       rest_output, [("coregistered_files",  "tissues"),
                                             ("coregistered_source", "anat"),
@@ -361,21 +390,22 @@ def rest_preprocessing_wf(wf_name="rest_preproc"):
                                             ("rest_noise_output.art_plot_files",         "art_plot_files"),
                                             ("rest_noise_output.art_statistic_files",    "art_statistic_files"),
                                            ]),
+                (warp,     avg_epi_select, [("normalized_files",  "inlist")]),
+                (mean_gunzip, rest_output, [("out_file",          "avg_epi")]),
                 (bandpass,    rest_output, [("out_files",         "time_filtered")]),
                 (smooth,      rest_output, [("out_file",          "smooth_mni")]),
-                (warp,        rest_output, [("normalized_files",  "time_filtered_mni"),
-                                            ("deformation_field", "epi_mni_warpfield"),
+                (warp,        rest_output, [(("normalized_files", selectindex, [0]),  "time_filtered_mni"),
+                                            ("deformation_field",  "epi_mni_warpfield"),
                                            ]),
+                (avg_epi_select, rest_output, [("out",  "avg_epi_mni")]),
               ])
 
-    # apply bandpass and smoothing to the image in native space as well
-    #bandpass_func = bandpass.clone(name="bandpass_filter_func")
-    smooth_func = smooth.clone(name="fmri_smooth_func")
+    # apply smoothing to the image in native space as well
+    smooth_func = smooth.clone(name="smooth_fmri_func")
+    smooth_func.inputs.out_file = "smooth_func_{}.nii.gz".format(wf_name)
     wf.connect([
-                #(noise_wf,       bandpass_func, [("rest_noise_output.nuis_corrected", "files")]),
-                (bandpass,     smooth_func,   [("out_files",                        "in_file")]),
-                #(bandpass,     rest_output,   [("out_files",                        "time_filtered")]),
-                (smooth_func,  rest_output,   [("out_file",                         "smooth")]),
+                (bandpass,     smooth_func,   [("out_files", "in_file")]),
+                (smooth_func,  rest_output,   [("out_file",  "smooth")]),
                ])
 
     # add more nodes if to perform atlas registration
@@ -462,6 +492,8 @@ def attach_rest_preprocessing(main_wf, wf_name="rest_preproc"):
                     (r"/corr_stc{rest}_trim_filt\.nii$",                           "/time_filt.nii"),
                     (r"/corr_stc{rest}_trim_mean_mask\.\.nii$",                    "/epi_brain_mask_{rest}.nii"),
                     (r"/tissue_brain_mask\.nii$",                                  "/tissue_brain_mask_{rest}.nii"),
+                    (r"/corr_stc{rest}_trim_mean\.nii$",                           "/avg_epi.nii"),
+                    (r"/wcorr_stc{rest}_trim_mean\.nii$",                          "/avg_epi_mni.nii"),
 
                     (r"/art\..*_outliers\.txt$",                                   "/artifact_outliers.txt"),
                     (r"/global_intensity\..*\.txt$",                               "/global_intensities.txt"),
@@ -519,7 +551,9 @@ def attach_rest_preprocessing(main_wf, wf_name="rest_preproc"):
                                            #("rest_output.time_filtered",          "rest.@time_filtered"),
                                            ("rest_output.time_filtered_mni",      "rest.@time_filtered_mni"),
                                            ("rest_output.smooth",                 "rest.@smooth"),
-                                           #("rest_output.smooth_mni",             "rest.@smooth_mni"),
+                                           ("rest_output.avg_epi",                "rest.@avg_epi"),
+                                           ("rest_output.avg_epi_mni",            "rest.@avg_epi_mni"),
+                                           ("rest_output.smooth_mni",             "rest.@smooth_mni"),
                                            ("rest_output.tsnr_file",              "rest.@tsnr"),
                                            ("rest_output.epi_mni",                "rest.@epi_mni"),
                                            ("rest_output.epi_mni_warpfield",      "rest.@epi_mni_warpfield"),

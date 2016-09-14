@@ -36,7 +36,7 @@ def attach_spm_fmri_grouptemplate(main_wf, wf_name="spm_fmri_template"):
     ---------------------------
     Note: The `main_wf` workflow is expected to have an `input_files` and a `datasink` nodes.
 
-    fmri_output.warped_files: input node
+    rest_output.avg_epi_mni: input node
 
     datasink: nipype Node
 
@@ -45,25 +45,24 @@ def attach_spm_fmri_grouptemplate(main_wf, wf_name="spm_fmri_template"):
     Nipype Outputs
     --------------
     group_template.fmri_template: file
-        The path to the PET group template.
+        The path to the fMRI group template.
 
     Nipype Workflow Dependencies
     ----------------------------
     This workflow depends on:
     - spm_fmri_preproc
-    - spm_anat_preproc if `spm_fmri_template.do_fmripvc` is True.
 
     Returns
     -------
     main_wf: nipype Workflow
     """
     # Dependency workflows
-    fmri_wf = main_wf.get_node("spm_rest_preproc")
+    rest_preproc_wf = main_wf.get_node("spm_rest_preproc")
 
     in_files = get_input_node(main_wf)
     datasink = get_datasink(main_wf, name='datasink')
 
-    # The base name of the 'fmri' file for the substitutions
+    # The base name of the 'rest' file for the substitutions
     fmri_fbasename = remove_ext(op.basename(get_input_file_name(in_files, 'rest')))
 
     # the group template datasink
@@ -72,22 +71,22 @@ def attach_spm_fmri_grouptemplate(main_wf, wf_name="spm_fmri_template"):
                                        base_directory=base_outdir,), name="group_datasink")
     grp_datasink.inputs.container = '{}_grouptemplate'.format(fmri_fbasename)
 
+    # the list of the average EPIs from each subject
+    warped_epis = pe.JoinNode(interface=IdentityInterface(fields=["warped_epis"]),
+                              joinsource="infosrc",
+                              joinfield="warped_epis",
+                              name="warped_epis")
+
     # the group template workflow
     template_wf = spm_create_group_template_wf(wf_name)
-
-    # the list of the slicetime corrected fmri subjects
-    warped_fmris = pe.JoinNode(interface=IdentityInterface(fields=["warped_fmris"]),
-                               joinsource="warped_fmris",
-                               joinfield="warped_fmris",
-                               name="warped_fmris")
 
     # output node
     output = setup_node(IdentityInterface(fields=["fmri_template"]), name="group_template")
 
     # group dataSink output substitutions
     regexp_subst = [
-                     (r"/wgrptemplate{rest}_merged_mean_smooth.nii$",  "/{rest}_grouptemplate_mni.nii"),
-                     (r"/w{rest}_merged_mean_smooth.nii$",             "/{rest}_grouptemplate_mni.nii"),
+                     (r"/wgrptemplate{fmri}_merged_mean_smooth.nii$",  "/{fmri}_grouptemplate_mni.nii"),
+                     (r"/w{fmri}_merged_mean_smooth.nii$",             "/{fmri}_grouptemplate_mni.nii"),
                    ]
     regexp_subst = format_pair_list(regexp_subst, fmri=fmri_fbasename)
     regexp_subst += extension_duplicates(regexp_subst)
@@ -97,13 +96,13 @@ def attach_spm_fmri_grouptemplate(main_wf, wf_name="spm_fmri_template"):
     # Connect the nodes
     main_wf.connect([
                      # warped fmris file list input
-                     (fmri_wf,       warped_fmris, [("fmri_output.warped_files",     "warped_fmris")]),
+                     (rest_preproc_wf,  warped_epis, [("rest_output.avg_epi_mni",  "warped_epis")]),
 
                      # group template wf
-                     (warped_fmris,  template_wf, [("warped_fmris",                 "grptemplate_input.in_files")]),
+                     (warped_epis,  template_wf, [("warped_epis",                  "grptemplate_input.in_files")]),
 
                      # output node
-                     (template_wf, output,       [("grptemplate_output.template", "fmri_template")]),
+                     (template_wf, output,       [("grptemplate_output.template",  "fmri_template")]),
 
                      # template output
                      (output,      grp_datasink, [("fmri_template",                "@fmri_group_template")]),
@@ -114,10 +113,10 @@ def attach_spm_fmri_grouptemplate(main_wf, wf_name="spm_fmri_template"):
     reg_wf = spm_register_to_template_wf(wf_name="spm_fmri_register_to_grouptemplate")
     main_wf.connect([
                      (output,   reg_wf,  [("fmri_template",  "reg_input.template")]),
-                     (in_files, reg_wf,  [("fmri",           "reg_input.in_file"),]),
+                     (in_files, reg_wf,  [("rest",           "reg_input.in_file"),]),
 
-                     (reg_wf,   datasink, [("reg_output.warped",     "mrfmri.@warped"),
-                                           ("reg_output.warp_field", "mrfmri.@warp_field"),
+                     (reg_wf,   datasink, [("reg_output.warped",     "rest.@warped"),
+                                           ("reg_output.warp_field", "rest.@warp_field"),
                                           ]),
                      ])
 

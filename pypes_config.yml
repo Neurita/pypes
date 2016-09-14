@@ -111,6 +111,12 @@ stc_input.slice_mode: alt_inc
 stc_input.time_repetition: 2
 #stc_input.num_slices: 33
 
+# fMRI PREPROCESSING
+fmri_warp.voxel_sizes: [1, 1, 1]
+
+# GROUP fMRI TEMPLATE
+spm_fmri_template_smooth.fwhm: 8
+
 # GROUP PET TEMPLATE
 spm_pet_grouptemplate_smooth.fwhm: 8
 spm_pet_grouptemplate.do_petpvc: True

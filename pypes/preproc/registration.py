@@ -19,7 +19,8 @@ from ..utils   import spm_tpm_priors_path
 
 def spm_apply_deformations(in_imgs=traits.Undefined,
                            trans_field=traits.Undefined,
-                           bbox=traits.Undefined):
+                           bbox=traits.Undefined,
+                           voxel_sizes=None):
     """Return a Normalize12 interface object.
     SPM12's new Normalise routine for warping an image to a template.
     For more info:
@@ -42,6 +43,9 @@ def spm_apply_deformations(in_imgs=traits.Undefined,
         This is important to set when applying deformation fields
         to cropped images.
 
+    voxel_sizes: list of 3 ints or floats
+        Default: [1, 1, 1]
+
     Nipype Ouputs
     -------------
     deformation_field: (a list of items which are an existing file name)
@@ -55,11 +59,14 @@ def spm_apply_deformations(in_imgs=traits.Undefined,
         Normalized file that needed to be aligned
 
     """
+    if voxel_sizes is None:
+        voxel_sizes = [1, 1, 1]
+
     norm12 = spm.Normalize12(jobtype='write')
 
     norm12.inputs.deformation_file   = trans_field
     norm12.inputs.image_to_align     = in_imgs
-    norm12.inputs.write_voxel_sizes  = [1, 1, 1]
+    norm12.inputs.write_voxel_sizes  = voxel_sizes
     norm12.inputs.write_bounding_box = bbox
 
     #norm12.run()
@@ -216,7 +223,9 @@ def spm_create_group_template_wf(wf_name="spm_create_group_template"):
     input = setup_node(IdentityInterface(fields=["in_files"]), name="grptemplate_input",)
 
     # merge
-    concat = setup_node(Function(function=concat_imgs, input_names=["in_files"], output_names=["out_file"],
+    concat = setup_node(Function(function=concat_imgs,
+                                 input_names=["in_files"],
+                                 output_names=["out_file"],
                                  imports=['from pypes.nilearn import ni2file']),
                         name='merge_time')
 
@@ -234,7 +243,7 @@ def spm_create_group_template_wf(wf_name="spm_create_group_template"):
     #                             output_names=["out_file"],
     #                             imports=['from pypes.nilearn import ni2file']),
     #                     name="{}_smooth".format(wf_name))
-    smooth = setup_node(fsl.IsotropicSmooth(), name="{}_smooth".format(wf_name))
+    smooth = setup_node(fsl.IsotropicSmooth(fwhm=8), name="{}_smooth".format(wf_name))
 
     # output
     output = setup_node(IdentityInterface(fields=["template"]), name="grptemplate_output",)
@@ -323,7 +332,7 @@ def spm_register_to_template_wf(wf_name="spm_registration_to_template"):
                 (reg_input,     get_bbox,        [("template", "in_file")]),
 
                 # gunzip some inputs
-                (reg_input,     gunzip_input,    [("in_files", "in_file")]),
+                (reg_input,     gunzip_input,    [("in_file",  "in_file")]),
                 (reg_input,     gunzip_template, [("template", "in_file")]),
 
                 # prepare the target parameters of the warp to template
