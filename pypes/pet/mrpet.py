@@ -26,6 +26,7 @@ from   ..utils import (get_datasink,
 from   .._utils import format_pair_list, flatten_list
 
 
+# TODO: merge the two workflows below, maybe splitting them in two wf steps: pre-processing then registration.
 def spm_mrpet_preprocessing(wf_name="spm_mrpet_preproc"):
     """ Run the PET pre-processing workflow against the gunzip_pet.in_file files.
     It depends on the anat_preproc_workflow, so if this has not been run, this function
@@ -186,7 +187,7 @@ def spm_mrpet_grouptemplate_preprocessing(wf_name="spm_mrpet_grouptemplate_prepr
     It depends on the anat_preproc_workflow, so if this has not been run, this function
     will run it too.
 
-    This is identical to the workflow defined in `spm_mrpet_preprocessing2`, with the only
+    This is identical to the workflow defined in `spm_mrpet_preprocessing`, with the only
     difference that we now normalize all subjects agains a custom template using the spm Old Normalize
     interface.
 
@@ -216,7 +217,7 @@ def spm_mrpet_grouptemplate_preprocessing(wf_name="spm_mrpet_grouptemplate_prepr
         List of tissues files from the New Segment process. At least the first
         3 tissues must be present.
 
-    pet_input.pet_template: list of traits.File
+    pet_input.pet_template: traits.File
         The template file for inter-subject registration reference.
 
     Nipype outputs

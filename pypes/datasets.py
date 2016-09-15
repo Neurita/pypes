@@ -9,8 +9,7 @@ from   .config  import update_config
 from   .anat    import attach_spm_anat_preprocessing
 from   .dti     import (attach_fsl_dti_preprocessing,
                         attach_camino_tractography)
-from   .fmri    import (attach_rest_preprocessing,
-                        attach_spm_fmri_grouptemplate)
+from   .fmri    import attach_rest_preprocessing, attach_rest_grptemplate_preprocessing
 from   .io      import build_crumb_workflow
 from   .pet     import (attach_spm_mrpet_preprocessing,
                         attach_spm_pet_preprocessing,
@@ -128,13 +127,11 @@ def _clinical_wf_setup(wf_name):
                                                 ],
 
                         "spm_anat_rest_tpm_preproc": [("spm_anat_preproc",       attach_spm_anat_preprocessing),
-                                                      ("spm_rest_preproc",       attach_rest_preprocessing),
-                                                      ("spm_fmri_grouptemplate", attach_spm_fmri_grouptemplate),
+                                                      ("spm_rest_grouptemplate", attach_rest_grptemplate_preprocessing),
                                                      ],
 
                         "spm_anat_pet_rest_tpm_preproc": [("spm_anat_preproc",        attach_spm_anat_preprocessing),
-                                                          ("spm_rest_preproc",        attach_rest_preprocessing),
-                                                          ("spm_fmri_grouptemplate",  attach_spm_fmri_grouptemplate),
+                                                          ("spm_rest_grouptemplate",  attach_rest_grptemplate_preprocessing),
                                                           ("spm_pet_preproc",         attach_spm_pet_preprocessing),
                                                           ("spm_mrpet_grouptemplate", attach_spm_pet_grouptemplate),
                                                          ],

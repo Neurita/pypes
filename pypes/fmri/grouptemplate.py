@@ -8,8 +8,7 @@ import nipype.pipeline.engine    as pe
 from   nipype.interfaces         import io
 from   nipype.interfaces.utility import IdentityInterface
 
-from   ..preproc import (spm_create_group_template_wf,
-                         spm_register_to_template_wf)
+from   ..preproc import spm_create_group_template_wf
 from   ..config  import setup_node
 from   .._utils  import format_pair_list
 from   ..utils   import (get_datasink,
@@ -20,7 +19,7 @@ from   ..utils   import (get_datasink,
                          extension_duplicates)
 
 
-def attach_spm_fmri_grouptemplate(main_wf, wf_name="spm_fmri_template"):
+def attach_spm_fmri_grouptemplate_wf(main_wf, wf_name="spm_fmri_template"):
     """ Attach a fMRI pre-processing workflow that uses SPM12 to `main_wf`.
     This workflow picks all spm_fmri_preproc outputs 'fmri_output.warped_files' in `main_wf`
     to create a group template.
@@ -32,6 +31,12 @@ def attach_spm_fmri_grouptemplate(main_wf, wf_name="spm_fmri_template"):
     wf_name: str
         Name of the preprocessing workflow
 
+
+    Nipype Inputs
+    -------------
+    rest_input.in_file: traits.File
+        The slice time and motion corrected fMRI file.
+
     Nipype Inputs for `main_wf`
     ---------------------------
     Note: The `main_wf` workflow is expected to have an `input_files` and a `datasink` nodes.
@@ -40,7 +45,7 @@ def attach_spm_fmri_grouptemplate(main_wf, wf_name="spm_fmri_template"):
 
     datasink: nipype Node
 
-    spm_fmri_preproc: nipype Workflow
+    spm_rest_preproc_mni: nipype Workflow
 
     Nipype Outputs
     --------------
@@ -57,7 +62,7 @@ def attach_spm_fmri_grouptemplate(main_wf, wf_name="spm_fmri_template"):
     main_wf: nipype Workflow
     """
     # Dependency workflows
-    rest_preproc_wf = main_wf.get_node("spm_rest_preproc")
+    fmri_warp_wf = main_wf.get_node("spm_warp_fmri_mni")
 
     in_files = get_input_node(main_wf)
     datasink = get_datasink(main_wf, name='datasink')
@@ -96,40 +101,17 @@ def attach_spm_fmri_grouptemplate(main_wf, wf_name="spm_fmri_template"):
     # Connect the nodes
     main_wf.connect([
                      # warped fmris file list input
-                     (rest_preproc_wf,  warped_epis, [("rest_output.avg_epi_mni",  "warped_epis")]),
+                     (fmri_warp_wf,  warped_epis, [("wfmri_output.wavg_epi",        "warped_epis")]),
 
                      # group template wf
-                     (warped_epis,  template_wf, [("warped_epis",                  "grptemplate_input.in_files")]),
+                     (warped_epis,  template_wf,  [("warped_epis",                  "grptemplate_input.in_files")]),
 
                      # output node
-                     (template_wf, output,       [("grptemplate_output.template",  "fmri_template")]),
+                     (template_wf, output,        [("grptemplate_output.template",  "fmri_template")]),
 
                      # template output
-                     (output,      grp_datasink, [("fmri_template",                "@fmri_group_template")]),
+                     (output,      grp_datasink,  [("fmri_template",                "@fmri_group_template")]),
                    ])
-
-    # Now we start with the correction and registration of each subject to the group template
-    # add the fmri template to the preproc workflow
-    reg_wf = spm_register_to_template_wf(wf_name="spm_fmri_register_to_grouptemplate")
-    main_wf.connect([
-                     (output,   reg_wf,  [("fmri_template",  "reg_input.template")]),
-                     (in_files, reg_wf,  [("rest",           "reg_input.in_file"),]),
-
-                     (reg_wf,   datasink, [("reg_output.warped",     "rest.@warped"),
-                                           ("reg_output.warp_field", "rest.@warp_field"),
-                                          ]),
-                     ])
-
-    # per-subject datasink output substitutions
-    regexp_subst = [
-                     (r"/{fmri}_sn.mat$",           "/{fmri}_grptemplate_params.mat"),
-                     (r"/wgrptemplate_{fmri}.nii$", "/{fmri}_grptemplate.nii"),
-                     (r"/w{fmri}.nii",              "/{fmri}_grptemplate.nii"),
-                   ]
-    regexp_subst = format_pair_list(regexp_subst, fmri=fmri_fbasename)
-    regexp_subst += extension_duplicates(regexp_subst)
-    datasink.inputs.regexp_substitutions = extend_trait_list(datasink.inputs.regexp_substitutions,
-                                                             regexp_subst)
 
     return main_wf
 

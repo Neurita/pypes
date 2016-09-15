@@ -170,11 +170,15 @@ def update_config(value):
 
 def _set_node_inputs(node, params, overwrite=False):
     for k, v in params.items():
-        if not isdefined(getattr(node.inputs, k)):
-            setattr(node.inputs, k, v)
-        else:
-            if overwrite:
+        try:
+            if not isdefined(getattr(node.inputs, k)):
                 setattr(node.inputs, k, v)
+            else:
+                if overwrite:
+                    setattr(node.inputs, k, v)
+        except AttributeError as ate:
+            raise AttributeError('Error in configuration settings: node `{}` '
+                                 'has no attribute `{}`.'.format(node, k)) from ate
 
 
 def _get_params_for(node_name):
@@ -200,7 +204,7 @@ def get_config_setting(param_name, default=''):
     return PYPES_CFG.get(param_name, default=default)
 
 
-def setup_node(interface, name, settings=None, **kwargs):
+def setup_node(interface, name, settings=None, overwrite=True, **kwargs):
     """ Create a pe.Node from `interface` with a given name.
     Check in the global configuration if there is any value for the node name and will set it.
 
@@ -213,6 +217,10 @@ def setup_node(interface, name, settings=None, **kwargs):
     settings: dict
         Dictionary with values for the pe.Node inputs.
         These will have higher priority than the ones in the global Configuration.
+
+    overwrite: bool
+        If True will overwrite the settings of the node if they are already defined.
+        Default: True
 
     kwargs: keyword arguments
         type: str or None.
@@ -240,7 +248,7 @@ def setup_node(interface, name, settings=None, **kwargs):
     if settings is not None:
         params.update(settings)
 
-    _set_node_inputs(node, params, overwrite=False)
+    _set_node_inputs(node, params, overwrite=overwrite)
 
     return node
 
