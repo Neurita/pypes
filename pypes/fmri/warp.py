@@ -7,7 +7,7 @@ import os.path as op
 import nipype.pipeline.engine    as pe
 from   nipype.algorithms.misc    import Gunzip
 from   nipype.interfaces.utility import Function, Merge, IdentityInterface
-from   nipype.interfaces         import spm
+from   nipype.interfaces         import spm, fsl
 
 from   ..preproc import (spm_normalize,
                          get_bounding_box,
@@ -128,13 +128,15 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", do_group_template=False):
         warp_field_arg     = "deformation_field"
 
     # smooth
-    smooth = setup_node(Function(function=smooth_img,
-                                 input_names=["in_file", "fwhm"],
-                                 output_names=["out_file"],
-                                 imports=['from pypes.nilearn import ni2file']),
-                         name="smooth_fmri")
-    smooth.inputs.fwhm = get_config_setting('fmri_smooth.fwhm', default=8)
-    smooth.inputs.out_file = "smooth_{}.nii.gz".format(wf_name)
+    # smooth = setup_node(Function(function=smooth_img,
+    #                              input_names=["in_file", "fwhm"],
+    #                              output_names=["out_file"],
+    #                              imports=['from pypes.nilearn import ni2file']),
+    #                      name="smooth_fmri")
+    # smooth.inputs.fwhm = get_config_setting('fmri_smooth.fwhm', default=8)
+    # smooth.inputs.out_file = "smooth_{}.nii.gz".format(wf_name)
+    smooth = setup_node(fsl.IsotropicSmooth(fwhm=8), name="smooth_fmri")
+
 
     # output identities
     rest_output = setup_node(IdentityInterface(fields=out_fields),
