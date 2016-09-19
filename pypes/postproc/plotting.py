@@ -466,6 +466,10 @@ class SBMICAResultsPlotter(MIALABICAResultsPlotter):
         -------
         loadings_df: pandas.DataFrame
         """
+        # make sure file exists
+        if not op.exists(group_labels_file):
+            raise FileNotFoundError('The file {} has not been found.'.format(group_labels_file))
+
         # make sure this object has been .fit()
         self._update()
 
@@ -506,6 +510,10 @@ class SBMICAResultsPlotter(MIALABICAResultsPlotter):
         -------
         loadings_df: pandas.DataFrame
         """
+        # make sure file exists
+        if not op.exists(group_labels_file):
+            raise FileNotFoundError('The file {} has not been found.'.format(group_labels_file))
+
         # make sure this object has been .fit()
         self._update()
 
@@ -534,7 +542,11 @@ class SBMICAResultsPlotter(MIALABICAResultsPlotter):
         """ Plot the IC maps with the largest blobs overlaid.
         Parameters
         ----------
+        outfile: str
+            Path to output plot file.
 
+        bg_img: str
+            Path to image file.
         """
         # make sure this object has been .fit()
         self._update()
