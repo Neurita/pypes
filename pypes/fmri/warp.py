@@ -81,7 +81,7 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", do_group_template=False):
 
     # specify input and output fields
     in_fields  = ["in_file",
-                  "anat_fmri"
+                  "anat_fmri",
                   "time_filtered",
                   "avg_epi"]
 
