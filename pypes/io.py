@@ -64,9 +64,9 @@ def build_crumb_workflow(wfname_attacher, data_crumb, in_out_kwargs, output_dir,
         raise ValueError("Expected `wfname_attacher` to have at least one function, "
                          "got {}.".format(wfname_attacher))
 
-    if not in_out_kwargs or in_out_kwargs is None:
-        raise ValueError("Expected `in_out_kwargs` to have at the name for sets of parameters for "
-                         " `data_crumb`, got {}.".format(in_out_kwargs))
+    #if not in_out_kwargs or in_out_kwargs is None:
+    #    raise ValueError("Expected `in_out_kwargs` to have at least the name for sets of parameters for "
+    #                     " `data_crumb`, got {}.".format(in_out_kwargs))
 
     # check some args
     if not cache_dir:

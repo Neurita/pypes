@@ -2,21 +2,18 @@
 """
 Nipype workflows to process resting-state functional MRI.
 """
-import os.path as op
-
 import nipype.pipeline.engine    as pe
+import os.path as op
 from   nipype.algorithms.misc    import Gunzip
-from   nipype.interfaces.utility import Function, Merge, IdentityInterface
 from   nipype.interfaces         import spm, fsl
+from   nipype.interfaces.utility import Function, Merge, IdentityInterface
 
+from   .._utils  import format_pair_list, flatten_list
+from   ..config  import setup_node
 from   ..preproc import (spm_normalize,
                          get_bounding_box,
                          spm_tpm_priors_path,
                          )
-
-from   ..nilearn import smooth_img
-from   ..config  import setup_node, get_config_setting
-from   .._utils  import format_pair_list, flatten_list
 from   ..utils   import (remove_ext,
                          selectindex,
                          extend_trait_list,
@@ -95,13 +92,13 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", do_group_template=False):
 
     # input identities
     wfmri_input = setup_node(IdentityInterface(fields=in_fields, mandatory_inputs=True),
-                            name="wfmri_input")
+                             name="wfmri_input")
 
     # in file unzipper
     in_gunzip = pe.Node(Gunzip(), name="in_gunzip")
 
     # merge list for normalization input
-    merge_list = setup_node(Merge(2), name='merge_for_warp')
+    merge_list = setup_node(Merge(3), name='merge_for_warp')
     gunzipper = pe.MapNode(Gunzip(), name="gunzip", iterfield=['in_file'])
 
     # the template bounding box
@@ -131,12 +128,11 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", do_group_template=False):
     # smooth = setup_node(Function(function=smooth_img,
     #                              input_names=["in_file", "fwhm"],
     #                              output_names=["out_file"],
-    #                              imports=['from pypes.nilearn import ni2file']),
+    #                              imports=['from pypes.interfaces.nilearn import ni2file']),
     #                      name="smooth_fmri")
     # smooth.inputs.fwhm = get_config_setting('fmri_smooth.fwhm', default=8)
     # smooth.inputs.out_file = "smooth_{}.nii.gz".format(wf_name)
     smooth = setup_node(fsl.IsotropicSmooth(fwhm=8), name="smooth_fmri")
-
 
     # output identities
     rest_output = setup_node(IdentityInterface(fields=out_fields),
@@ -147,13 +143,17 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", do_group_template=False):
                 # unzip the in_file input file
                 (wfmri_input, in_gunzip,  [("avg_epi", "in_file")]),
 
+                # smooth the time filtered file
+                (wfmri_input, smooth,     [("time_filtered", "in_file")]),
+
                 # merge the other input files into a list
-                (wfmri_input, merge_list, [("in_file",           "in1"),
-                                          ("time_filtered",     "in2")
-                                         ]),
+                (wfmri_input, merge_list, [("in_file",          "in1"),
+                                           ("time_filtered",    "in2"),
+                                          ]),
+                (smooth,     merge_list, [("out_file",         "in3"), ]),
 
                 # gunzip them for SPM, just in case
-                (merge_list, gunzipper, [(("out", flatten_list), "in_file")]),
+                (merge_list, gunzipper, [("out", "in_file")]),
 
                 # bounding box
                 (tpm_bbox,  warp,       [("bbox",     "write_bounding_box")]),
@@ -167,7 +167,7 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", do_group_template=False):
                 # outputs
                 (warp, rest_output,     [(warp_field_arg,     "warp_field"),
                                          (warp_outsource_arg, "wavg_epi"),
-                                        ])
+                                        ]),
 
                ])
 
@@ -183,12 +183,12 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", do_group_template=False):
 
     wf.connect([
                 # smooth
-                (warp,   smooth,      [(("normalized_files", selectindex, [1]), "in_file")]),
+                #(warp,   smooth,      [(("normalized_files", selectindex, [1]), "in_file")]),
 
                 # output
-                (smooth, rest_output, [("out_file", "smooth")]),
                 (warp,   rest_output, [(("normalized_files", selectindex, [0]), "warped_fmri"),
                                        (("normalized_files", selectindex, [1]), "wtime_filtered"),
+                                       (("normalized_files", selectindex, [2]), "smooth"),
                                       ]),
                ])
 

@@ -7,14 +7,14 @@ import os.path as op
 import numpy as np
 import nilearn.connectome
 from   nilearn.input_data     import NiftiMapsMasker, NiftiLabelsMasker
-from   boyle.nifti.roi        import get_roilist_from_atlas
+#from   boyle.nifti.roi        import get_roilist_from_atlas
 from   nipype.interfaces.base import (BaseInterface,
                                       TraitedSpec,
                                       InputMultiPath,
                                       BaseInterfaceInputSpec,
                                       traits,)
 
-from ..utils import get_trait_value
+from ...utils import get_trait_value
 
 
 class ConnectivityCorrelationInputSpec(BaseInterfaceInputSpec):

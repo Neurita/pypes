@@ -2,28 +2,28 @@
 """
 Helper functions to plot results.
 """
-import re
-import os.path as op
 from   glob import glob
 
-import numpy              as np
-import scipy.io           as sio
-import pandas             as pd
 import nilearn.image      as niimg
+import numpy              as np
+import os.path as op
+import pandas             as pd
+import re
+import scipy.io           as sio
 from   boyle.nifti.utils  import filter_icc
 from   nilearn.image      import iter_img
-from nilearn.masking      import apply_mask
-from   pypes.nilearn.plot import (plot_all_components,
-                                  plot_canica_components,
-                                  plot_multi_slices,
-                                  plot_overlays)
+from   nilearn.masking      import apply_mask
 
-from ..utils.files import fetch_one_file
 from .ica_loadings import (filter_ics,
                            get_largest_blobs,
                            build_raw_loadings_table,
                            add_groups_to_loadings_table,
                            )
+from ..utils.files import fetch_one_file
+from ..interfaces.nilearn.plot import (plot_all_components,
+                                       plot_canica_components,
+                                       plot_multi_slices,
+                                       plot_overlays)
 
 
 def plot_connectivity_matrix(connectivity_matrix, label_names):
@@ -283,7 +283,7 @@ class MIALABICAResultsPlotter(ICAResultsPlotter):
         # process the paths to extract the patient IDs given by `patid_re`
         in_files = [f.split(',')[0] for f in subj_files]
         patid_re = re.compile(subjid_pat, re.I)
-        patids  = [patid_re.search(f).group() for f in in_files]
+        patids   = [patid_re.search(f).group() for f in in_files]
 
         return patids
 
@@ -349,12 +349,18 @@ class GIFTICAResultsPlotter(MIALABICAResultsPlotter):
         tcs = niimg.load_img(tcsf).get_data()
         return tcs
 
+
+    def _calculate_goodness_of_fit(self):
+        """ Return the goodness-of-fit values from a GIFT result."""
+        pass
+        #TODO
+
+
     def goodness_of_fit_df(self, group_labels_file, subjid_pat=r'(?P<patid>[a-z]{2}_[0-9]{6})'):
-        """ Return a pandas.DataFrame spreadsheet ready for an excel file with the subject IDs taken from
-        the file paths inside the *Subject.mat file.
-        One file is `subject_loadings.xls` which has the loadings as is, with the subjects IDs and group.
-        The other file is `subject_group_loadings.xls` which has the loading signs changed according to
-        the average correlation value of the "main" region of each of the IC spatial maps.
+        """ Return a pandas.DataFrame ready for an excel file with:
+        - the subject IDs taken from the file paths inside the *Subject.mat file,
+        - the groups taken from `group_labels_file`, and
+        - the goodness-of-fit measures for each subject and independent component.
 
         Parameters
         ----------
@@ -366,39 +372,30 @@ class GIFTICAResultsPlotter(MIALABICAResultsPlotter):
         subjid_pat: regext str
             A search regex pattern that returns one group element that
             contains the subject id.
-            This will be used to search for subject_id in the file paths
+            This will be used to *search* for subject_id in the file paths
             contained in the Subjects.mat file.
 
         Returns
         -------
-        loadings_df: pandas.DataFrame
+        gof_df: pandas.DataFrame
         """
+        # make sure file exists
+        if not op.exists(group_labels_file):
+            raise FileNotFoundError('The file {} has not been found.'.format(group_labels_file))
+
         # make sure this object has been .fit()
         self._update()
 
         # read the groups file
         groups = self._parse_groups_file(group_labels_file=group_labels_file)
-        sids   = self._get_subject_ids  (subjid_pat=subjid_pat)
+        patids = self._get_subject_ids(subjid_pat=subjid_pat)
 
-        # load the timecourses
-        tcs = self._load_timecourses()
+        # calculate the goodness of fit
+        gofs = self._calculate_goodness_of_fit(patids)
 
-        comps = self._load_components()
-
-        sids    = np.array(sids)
-        uniqids = np.unique(sids)
-        outpats = []
-        for sid in uniqids:
-            idxs = np.where(sids == sid)
-            break
-        import pdb; pdb.set_trace()
-        # TODO
-
-
-        # build the raw loadings table
-        df = build_raw_loadings_table(gof, patids)
+        # build the goodness-of-fit table
+        df = build_raw_loadings_table(gofs, patids)
         df = add_groups_to_loadings_table(df, groups)
-        #df.to_excel(op.join(ica_out_dir, rawloadings_filename))
 
         return df
 

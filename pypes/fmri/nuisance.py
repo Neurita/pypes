@@ -6,7 +6,7 @@ Resting-state fMRI specific nuisance correction filtering workflow.
 import nipype.pipeline.engine       as pe
 from   nipype.algorithms.rapidart   import ArtifactDetect
 from   nipype.interfaces.utility    import Function, IdentityInterface, Merge
-from   nipype.algorithms.misc       import TSNR
+from   nipype.algorithms.confounds  import TSNR
 from   nipype.interfaces            import fsl
 
 from   ..config  import setup_node, _get_params_for
@@ -18,7 +18,7 @@ def rapidart_artifact_detection():
     art = ArtifactDetect()
     art.inputs.use_differences      = [True, False]
     art.inputs.use_norm             = True
-    art.inputs.zintensity_threshold = 3
+    art.inputs.zintensity_threshold = 2
     art.inputs.norm_threshold       = 1
     art.inputs.mask_type            = 'file'
     art.inputs.parameter_source     = 'NiPy'
@@ -113,7 +113,6 @@ def rest_noise_filter_wf(wf_name='rest_noise_removal'):
 
     # get the settings for filters
     filters = _get_params_for('rest_filter')
-
 
     # Comute TSNR on realigned data regressing polynomial upto order 2
     tsnr = setup_node(TSNR(regress_poly=2), name='tsnr')

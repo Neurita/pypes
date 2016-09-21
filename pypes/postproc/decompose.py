@@ -8,12 +8,12 @@ from   nipype.interfaces         import io
 from   nipype.interfaces.utility import IdentityInterface, Function
 
 from   .plotting import plot_ica_results
-from   ..nilearn.canica import CanICAInterface
-from   ..nilearn.image import concat_3D_imgs
+from   .._utils import _check_list
 from   ..config  import setup_node, get_config_setting
 from   ..utils   import (get_trait_value,
                          get_datasink,)
-from   .._utils import _check_list
+from   ..interfaces import CanICAInterface
+from   ..interfaces.nilearn.image import concat_3D_imgs
 
 
 def attach_canica(main_wf, wf_name="canica", **kwargs):
@@ -60,7 +60,7 @@ def attach_canica(main_wf, wf_name="canica", **kwargs):
                             name="ica_subjs")
 
     # warp each subject to the group template
-    canica = setup_node(CanICAInterface(), name="{}_ica".format(wf_name),)
+    ica = setup_node(CanICAInterface(), name="{}_ica".format(wf_name),)
 
     # Connect the nodes
     main_wf.connect([
@@ -68,12 +68,12 @@ def attach_canica(main_wf, wf_name="canica", **kwargs):
                      (src_wf,     ica_subjs, [(srcconn_name, "ica_subjs")]),
 
                      # canica
-                     (ica_subjs,  canica,    [("ica_subjs",  "in_files")]),
+                     (ica_subjs,  ica,    [("ica_subjs",  "in_files")]),
 
                      # canica output
-                     (canica, ica_datasink,  [("components", "canica.@components")]),
-                     (canica, ica_datasink,  [("loadings",   "canica.@loadings")]),
-                     (canica, ica_datasink,  [("score",      "canica.@score")]),
+                     (ica, ica_datasink,  [("components", "canica.@components")]),
+                     (ica, ica_datasink,  [("loadings",   "canica.@loadings")]),
+                     (ica, ica_datasink,  [("score",      "canica.@score")]),
                    ])
     return main_wf
 
@@ -128,16 +128,16 @@ def attach_concat_canica(main_wf, wf_name="canica", **kwargs):
     concat = setup_node(Function(function=concat_3D_imgs,
                                  input_names=["in_files"],
                                  output_names=["out_file"],
-                                 imports=['from pypes.nilearn import ni2file']),
+                                 imports=['from pypes.interfaces.nilearn import ni2file']),
                         name="concat")
 
     # warp each subject to the group template
-    canica = setup_node(CanICAInterface(), name="{}_ica".format(wf_name),)
+    ica = setup_node(CanICAInterface(), name="{}_ica".format(wf_name),)
     algorithm = get_config_setting("{}_ica.algorithm".format(wf_name),
                                    default=get_config_setting('canica.algorithm',
                                    default=''))
     if algorithm:
-        canica.inputs.algorithm = algorithm
+        ica.inputs.algorithm = algorithm
 
     # Connect the nodes
     main_wf.connect([
@@ -148,13 +148,13 @@ def attach_concat_canica(main_wf, wf_name="canica", **kwargs):
                      (ica_subjs, concat, [("ica_subjs", "in_files")]),
 
                      # canica
-                     (concat, canica, [(("out_file", _check_list), "in_files")]),
+                     (concat, ica, [(("out_file", _check_list), "in_files")]),
 
                      # canica output
-                     (canica, ica_datasink, [("components", "@components"),
-                                             ("loadings",   "@loadings"),
-                                             ("score",      "@score"),
-                                            ]),
+                     (ica, ica_datasink, [("components", "@components"),
+                                          ("loadings",   "@loadings"),
+                                          ("score",      "@score"),
+                                         ]),
                    ])
 
     # plot the ICA results?
@@ -164,7 +164,7 @@ def attach_concat_canica(main_wf, wf_name="canica", **kwargs):
 
     # get the plot threshold from the ICA node or the config file (in that order).
     plot_thr = get_config_setting('canica_extra.plot_thr', default=0)
-    plot_thr = get_trait_value(canica.inputs, 'threshold', default=plot_thr)
+    plot_thr = get_trait_value(ica.inputs, 'threshold', default=plot_thr)
 
     # plto ica results images
     plot_ica = setup_node(Function(function=plot_ica_results,
@@ -172,13 +172,13 @@ def attach_concat_canica(main_wf, wf_name="canica", **kwargs):
                                    output_names=["all_icc_plot", "iccs_plot", "sliced_ic_plots"],),
                           name="plot_ica")
     plot_ica.inputs.zscore      = plot_thr
-    plot_ica.inputs.mask_file   = get_trait_value(canica.inputs, 'mask')
+    plot_ica.inputs.mask_file   = get_trait_value(ica.inputs, 'mask')
     plot_ica.inputs.application = 'nilearn'
 
     # Connect the plotting nodes
     main_wf.connect([
                      # canica
-                     (canica,   plot_ica,     [("components",   "ica_result")]),
+                     (ica,   plot_ica,        [("components",   "ica_result")]),
 
                      # canica output
                      (plot_ica, ica_datasink, [("all_icc_plot",     "@all_icc_plot"),

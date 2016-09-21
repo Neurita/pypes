@@ -1,4 +1,3 @@
-
 from .config import PYPES_CFG as configuration
 
 from .config import (get_config_setting,

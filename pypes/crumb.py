@@ -67,8 +67,12 @@ class DataCrumb(IOBase):
         files_args = get_values_map_keys(templates)
         undef_args = [name for name in list(crumb.all_args()) if name not in files_args]
         self._infields  = undef_args
-        self._outfields = list(templates)
-        self._templates = templates
+
+        self._outfields = []
+        self._templates = []
+        if templates:
+            self._outfields = list(templates)
+            self._templates = templates
 
         # Add the dynamic input fields
         undefined_traits = {}

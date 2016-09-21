@@ -1,15 +1,16 @@
 # -*- coding: utf-8 -*-
 """
-Nipype interfaces to perform signal decomposition.
+Nipype interfaces to canica and dictlearning in nilearn.decomposition
 """
 import os.path as op
 
 import numpy as np
+
 from nipype.interfaces.base import BaseInterface, BaseInterfaceInputSpec, TraitedSpec
 from nipype.interfaces.utility import InputMultiPath, OutputMultiPath, traits
 from nilearn.decomposition import CanICA, DictLearning
 
-from ..utils import get_trait_value
+from ...utils import get_trait_value
 
 
 class CanICAInputSpec(BaseInterfaceInputSpec):

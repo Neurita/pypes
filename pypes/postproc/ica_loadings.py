@@ -19,8 +19,8 @@ def build_raw_loadings_table(loads, patids):
         loadings.append([patid] + list(loads[p, :]))
 
     # set the column names
-    n_ics = loads.shape[1]
-    cols = ['subject_id'] + list(range(1, n_ics+1))
+    n_cols = loads.shape[1]
+    cols = ['subject_id'] + list(range(1, n_cols+1))
 
     # fill the df
     return pd.DataFrame.from_records(loadings, columns=cols)

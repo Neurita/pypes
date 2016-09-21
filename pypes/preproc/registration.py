@@ -2,19 +2,18 @@
 """
 Nipype registration nodes and workflows
 """
-import nipype.pipeline.engine    as pe
-from   nipype.interfaces.utility import IdentityInterface, Function
-from   nipype.algorithms.misc    import Gunzip
-
-import nipype.interfaces.spm  as spm
 import nipype.interfaces.afni as afni
 import nipype.interfaces.fsl as fsl
+import nipype.interfaces.spm  as spm
+import nipype.pipeline.engine    as pe
+from   nipype.algorithms.misc    import Gunzip
 from   nipype.interfaces.base import traits
+from   nipype.interfaces.utility import IdentityInterface, Function
 
-from  .spatial import get_bounding_box
-from ..nilearn import mean_img, concat_imgs, smooth_img
-from ..config  import setup_node, get_config_setting
-from ..utils   import spm_tpm_priors_path
+from ..interfaces.nilearn import mean_img, concat_imgs
+from .spatial import get_bounding_box
+from ..config import setup_node
+from ..utils import spm_tpm_priors_path
 
 
 def spm_apply_deformations(in_imgs=traits.Undefined,
@@ -226,14 +225,14 @@ def spm_create_group_template_wf(wf_name="spm_create_group_template"):
     concat = setup_node(Function(function=concat_imgs,
                                  input_names=["in_files"],
                                  output_names=["out_file"],
-                                 imports=['from pypes.nilearn import ni2file']),
+                                 imports=['from pypes.interfaces.nilearn import ni2file']),
                         name='merge_time')
 
     # average
     average = setup_node(Function(function=mean_img,
                                   input_names=["in_file", "out_file"],
                                   output_names=["out_file"],
-                                  imports=['from pypes.nilearn import ni2file']),
+                                  imports=['from pypes.interfaces.nilearn import ni2file']),
                         name='average')
     average.inputs.out_file = 'group_average.nii.gz'
 
@@ -241,7 +240,7 @@ def spm_create_group_template_wf(wf_name="spm_create_group_template"):
     #smooth = setup_node(Function(function=smooth_img,
     #                             input_names=["in_file", "fwhm"],
     #                             output_names=["out_file"],
-    #                             imports=['from pypes.nilearn import ni2file']),
+    #                             imports=['from pypes.interfaces.nilearn import ni2file']),
     #                     name="{}_smooth".format(wf_name))
     smooth = setup_node(fsl.IsotropicSmooth(fwhm=8), name="{}_smooth".format(wf_name))
 

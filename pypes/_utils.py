@@ -102,6 +102,9 @@ def get_values_map_keys(records, keyidx=0):
     -------
     keys: set[str]
     """
+    if not records or records is None:
+        return []
+
     if isinstance(records, dict):
         itemset = records.values()
     elif isinstance(records, list):
@@ -113,4 +116,5 @@ def get_values_map_keys(records, keyidx=0):
     crumb_args = set()
     for items in itemset:
         crumb_args = crumb_args.union(set([t[keyidx] for t in items]))
+
     return crumb_args
