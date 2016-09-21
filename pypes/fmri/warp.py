@@ -42,6 +42,9 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", do_group_template=False):
     wfmri_input.in_file: traits.File
         The slice time and motion corrected fMRI file.
 
+    wfmri_input.anat_fmri: traits.File
+        The anatomical image in fMRI space.
+
     wfmri_input.time_filtered: traits.File
         The bandpass time filtered fMRI file.
 
@@ -78,6 +81,7 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", do_group_template=False):
 
     # specify input and output fields
     in_fields  = ["in_file",
+                  "anat_fmri"
                   "time_filtered",
                   "avg_epi"]
 
@@ -98,7 +102,7 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", do_group_template=False):
     in_gunzip = pe.Node(Gunzip(), name="in_gunzip")
 
     # merge list for normalization input
-    merge_list = setup_node(Merge(3), name='merge_for_warp')
+    merge_list = setup_node(Merge(2), name='merge_for_warp')
     gunzipper = pe.MapNode(Gunzip(), name="gunzip", iterfield=['in_file'])
 
     # the template bounding box
@@ -158,9 +162,6 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", do_group_template=False):
                 # bounding box
                 (tpm_bbox,  warp,       [("bbox",     "write_bounding_box")]),
 
-                # warp source file
-                (in_gunzip, warp,       [("out_file",  warp_source_arg)]),
-
                 # apply to files
                 (gunzipper, warp,       [("out_file", "apply_to_files")]),
 
@@ -173,8 +174,11 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", do_group_template=False):
 
     if do_group_template:
         wf.connect([
+                    # warp source file
+                    (in_gunzip, warp,       [("out_file",  warp_source_arg)]),
+
                     # unzip and forward the template file
-                    (wfmri_input,      gunzip_template, [("epi_template", "in_file")]),
+                    (wfmri_input,     gunzip_template,  [("epi_template", "in_file")]),
                     (gunzip_template, warp,             [("out_file",     "template")]),
 
                     # get template bounding box to apply to results
@@ -182,13 +186,16 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", do_group_template=False):
         ])
 
     wf.connect([
-                # smooth
-                #(warp,   smooth,      [(("normalized_files", selectindex, [1]), "in_file")]),
+                # warp source file
+                (wfmri_input, warp,   [("anat_fmri",  warp_source_arg)]),
+
+                # smooth the final bandpassed image
+                (warp,   smooth,      [(("normalized_files", selectindex, [1]), "in_file")]),
 
                 # output
+                (smooth, rest_output, [("out_file", "smooth")]),
                 (warp,   rest_output, [(("normalized_files", selectindex, [0]), "warped_fmri"),
                                        (("normalized_files", selectindex, [1]), "wtime_filtered"),
-                                       (("normalized_files", selectindex, [2]), "smooth"),
                                       ]),
                ])
 
@@ -272,6 +279,7 @@ def attach_spm_warp_fmri_wf(main_wf, registration_wf_name="spm_warp_fmri", do_gr
     main_wf.connect([# clean_up_wf to registration_wf
                      (cleanup_wf, warp_fmri_wf, [
                                                  ("rest_output.motion_corrected", "wfmri_input.in_file"),
+                                                 ("rest_output.anat",             "wfmri_input.anat_fmri"),
                                                  ("rest_output.time_filtered",    "wfmri_input.time_filtered"),
                                                  ("rest_output.avg_epi",          "wfmri_input.avg_epi"),
                                                 ]),
