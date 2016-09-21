@@ -147,14 +147,10 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", do_group_template=False):
                 # unzip the in_file input file
                 (wfmri_input, in_gunzip,  [("avg_epi", "in_file")]),
 
-                # smooth the time filtered file
-                (wfmri_input, smooth,     [("time_filtered", "in_file")]),
-
                 # merge the other input files into a list
                 (wfmri_input, merge_list, [("in_file",          "in1"),
                                            ("time_filtered",    "in2"),
                                           ]),
-                (smooth,     merge_list, [("out_file",         "in3"), ]),
 
                 # gunzip them for SPM, just in case
                 (merge_list, gunzipper, [("out", "in_file")]),
