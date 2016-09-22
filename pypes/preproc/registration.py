@@ -8,7 +8,7 @@ import nipype.interfaces.spm  as spm
 import nipype.pipeline.engine    as pe
 from   nipype.algorithms.misc    import Gunzip
 from   nipype.interfaces.base import traits
-from   nipype.interfaces.utility import IdentityInterface, Function
+from   nipype.interfaces.utility import IdentityInterface, Function, isdefined
 
 from ..interfaces.nilearn import mean_img, concat_imgs
 from .spatial import get_bounding_box
@@ -114,7 +114,8 @@ def spm_normalize(in_imgs=traits.Undefined, template=None, **kwargs):
                              tpm=template,
                              **kwargs)
 
-    norm12.inputs.image_to_align = in_imgs
+    if isdefined(in_imgs):
+        norm12.inputs.image_to_align = in_imgs
 
     #norm12.run()
     return norm12

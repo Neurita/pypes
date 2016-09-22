@@ -56,7 +56,7 @@ def motion_regressors(motion_params, order=0, derivatives=1):
         for i in range(2, order + 1):
             out_params2 = np.hstack((out_params2, np.power(out_params, i)))
         filename = os.path.join(os.getcwd(), "motion_regressor%02d.txt" % idx)
-        np.savetxt(filename, out_params2, fmt="%.10f")
+        np.savetxt(filename, out_params2, fmt=b"%.10f")
         out_files.append(filename)
     return out_files
 
@@ -102,8 +102,8 @@ def create_regressors(motion_params, comp_norm, outliers, detrend_poly=None):
                 X = np.hstack((X, legendre(
                     i + 1)(np.linspace(-1, 1, timepoints))[:, None]))
             out_params = np.hstack((out_params, X))
-        filename = os.path.join(os.getcwd(), "filter_regressor_%02d.txt" % idx)
-        np.savetxt(filename, out_params, fmt="%.10f")
+        filename = os.path.join(os.getcwd(), "filter_regressor%02d.txt" % idx)
+        np.savetxt(filename, out_params, fmt=b"%.10f")
         out_files.append(filename)
     return out_files
 
@@ -153,5 +153,5 @@ def extract_noise_components(realigned_file, mask_file, num_components=5,
         components = np.hstack((components, regressors))
     components_file = os.path.join(os.getcwd(), 'noise_components.txt')
 
-    np.savetxt(components_file, components, fmt="%.10f")
+    np.savetxt(components_file, components, fmt=b"%.10f")
     return components_file

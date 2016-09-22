@@ -4,7 +4,7 @@ fMRI timeseries filtering helpers.
 """
 
 
-def bandpass_filter(files, lowpass_freq=0.08, highpass_freq=0.01, tr=2):
+def bandpass_filter(files, lowpass_freq=0.1, highpass_freq=0.01, tr=2):
     """Bandpass filter the input files
 
     Parameters
@@ -21,7 +21,7 @@ def bandpass_filter(files, lowpass_freq=0.08, highpass_freq=0.01, tr=2):
     tr: float
         The repetition time in seconds. The inverse of sampling rate (in Hz).
     """
-    import os.path as op
+    import os
 
     import nibabel as nb
     import numpy as np
@@ -34,7 +34,7 @@ def bandpass_filter(files, lowpass_freq=0.08, highpass_freq=0.01, tr=2):
     out_files = []
     for filename in filename_to_list(files):
         path, name, ext = split_filename(filename)
-        out_file = name + '_bandpassed' + ext
+        out_file = os.path.join(os.getcwd(), name + '_bandpassed' + ext)
 
         img = nb.load(filename)
         timepoints = img.shape[-1]
@@ -56,7 +56,6 @@ def bandpass_filter(files, lowpass_freq=0.08, highpass_freq=0.01, tr=2):
             filtered_data = np.real(np.fft.ifftn(np.fft.fftn(data) * F))
         img_out = nb.Nifti1Image(filtered_data, img.affine, img.header)
         img_out.to_filename(out_file)
-
-        out_files.append(op.abspath(out_file))
+        out_files.append(out_file)
 
     return list_to_filename(out_files)

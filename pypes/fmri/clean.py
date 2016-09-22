@@ -172,8 +172,8 @@ def fmri_cleanup_wf(wf_name="fmri_cleanup"):
     brain_sel = setup_node(Select(index=[0, 1, 2]),            name="brain_sel")
 
     # brain masks
-    epi_mask     = setup_node(ComputeMask(),         name='epi_mask')
-    tissue_mask  = setup_node(fsl.MultiImageMaths(), name='tissue_mask')
+    epi_mask    = setup_node(ComputeMask(),         name='epi_mask')
+    tissue_mask = setup_node(fsl.MultiImageMaths(), name='tissue_mask')
     tissue_mask.inputs.op_string = "-add %s -add %s -abs -kernel gauss 4 -dilM -ero -kernel gauss 1 -dilM -bin"
     tissue_mask.inputs.out_file = "tissue_brain_mask.nii.gz"
 
@@ -208,6 +208,7 @@ def fmri_cleanup_wf(wf_name="fmri_cleanup"):
                              name="rest_output")
 
     # Connect the nodes
+
     wf.connect([
                 # trim
                 (rest_input,   trim,         [("in_file", "in_file")]),
@@ -244,12 +245,12 @@ def fmri_cleanup_wf(wf_name="fmri_cleanup"):
                 (tissue_mask,   noise_wf,   [("out_file",             "rest_noise_input.brain_mask")]),
                 (wm_select,     noise_wf,   [(("out", flatten_list),  "rest_noise_input.wm_mask")]),
                 (csf_select,    noise_wf,   [(("out", flatten_list),  "rest_noise_input.csf_mask")]),
+
                 (realign,       noise_wf,   [("par_file",             "rest_noise_input.motion_params",)]),
 
-                # motion statistics
-                (noise_wf,      bandpass,   [("rest_noise_output.nuis_corrected", "files")]),
-
                 # temporal filtering
+                (noise_wf,    bandpass,    [("rest_noise_output.nuis_corrected", "files")]),
+                #(realign,     bandpass,    [("out_file", "files")]),
                 (stc_wf,      bandpass,    [("stc_output.time_repetition", "tr")]),
                 (rest_input,  bandpass,    [("lowpass_freq",               "lowpass_freq"),
                                             ("highpass_freq",              "highpass_freq"),
@@ -281,7 +282,6 @@ def fmri_cleanup_wf(wf_name="fmri_cleanup"):
                 (bandpass,    rest_output, [("out_files", "time_filtered")]),
                 (smooth,      rest_output, [("out_file",  "smooth")]),
               ])
-
     return wf
 
 

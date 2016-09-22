@@ -136,7 +136,7 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", do_group_template=False):
     #                      name="smooth_fmri")
     # smooth.inputs.fwhm = get_config_setting('fmri_smooth.fwhm', default=8)
     # smooth.inputs.out_file = "smooth_{}.nii.gz".format(wf_name)
-    smooth = setup_node(fsl.IsotropicSmooth(fwhm=8), name="smooth_fmri")
+    smooth = setup_node(fsl.IsotropicSmooth(fwhm=8, output_type='NIFTI'), name="smooth_fmri")
 
     # output identities
     rest_output = setup_node(IdentityInterface(fields=out_fields),
@@ -171,7 +171,7 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", do_group_template=False):
     if do_group_template:
         wf.connect([
                     # warp source file
-                    (in_gunzip, warp,       [("out_file",  warp_source_arg)]),
+                    (in_gunzip,       warp,             [("out_file",  warp_source_arg)]),
 
                     # unzip and forward the template file
                     (wfmri_input,     gunzip_template,  [("epi_template", "in_file")]),
@@ -180,11 +180,14 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", do_group_template=False):
                     # get template bounding box to apply to results
                     (wfmri_input,      tpm_bbox,        [("epi_template", "in_file")]),
         ])
+    else:
+        wf.connect([
+                    # warp source file
+                    (wfmri_input, warp,   [("anat_fmri",  warp_source_arg)]),
+                   ])
 
+    # smooth and sink
     wf.connect([
-                # warp source file
-                (wfmri_input, warp,   [("anat_fmri",  warp_source_arg)]),
-
                 # smooth the final bandpassed image
                 (warp,   smooth,      [(("normalized_files", selectindex, [1]), "in_file")]),
 

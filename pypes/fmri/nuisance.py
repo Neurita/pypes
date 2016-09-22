@@ -6,7 +6,7 @@ Resting-state fMRI specific nuisance correction filtering workflow.
 import nipype.pipeline.engine       as pe
 from   nipype.algorithms.rapidart   import ArtifactDetect
 from   nipype.interfaces.utility    import Function, IdentityInterface, Merge
-from   nipype.algorithms.confounds  import TSNR
+from   nipype.algorithms.confounds  import TSNR #, ACompCor
 from   nipype.interfaces            import fsl
 
 from   ..config  import setup_node, _get_params_for
@@ -114,7 +114,7 @@ def rest_noise_filter_wf(wf_name='rest_noise_removal'):
     # get the settings for filters
     filters = _get_params_for('rest_filter')
 
-    # Comute TSNR on realigned data regressing polynomial upto order 2
+    # Compute TSNR on realigned data regressing polynomial up to order 2
     tsnr = setup_node(TSNR(regress_poly=2), name='tsnr')
 
     # Use :class:`nipype.algorithms.rapidart` to determine which of the
@@ -153,6 +153,8 @@ def rest_noise_filter_wf(wf_name='rest_noise_removal'):
                                          output_names=['out_files'],
                                          function=extract_noise_components,),
                               name='compcor_pars')
+    #compcor_pars = setup_node(ACompCor(), name='compcor_pars')
+    #compcor_pars.inputs.components_file = 'noise_components.txt'
 
     compcor_filter = setup_node(fsl.GLM(out_f_name='F.nii.gz',
                                         out_pf_name='pF.nii.gz',
@@ -231,10 +233,12 @@ def rest_noise_filter_wf(wf_name='rest_noise_removal'):
                                                            (("out_res", rename, "_cleaned"),  "out_res_name"),
                                                           ]),
                     (compcor_pars,     compcor_filter,    [(("out_files", selectindex, [0]),  "design")]),
+                    #(compcor_pars,     compcor_filter,    [("components_file",  "design")]),
                     (rest_noise_input, compcor_filter,    [("brain_mask",                     "mask")]),
 
                     # output
                     (compcor_pars,     rest_noise_output, [("out_files",   "compcor_regressors")]),
+                    #(compcor_pars,     rest_noise_output, [("components_file",   "compcor_regressors")]),
                     ])
         last_filter = compcor_filter
 

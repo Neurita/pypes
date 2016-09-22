@@ -18,7 +18,6 @@
 normalize_atlas: True
 atlas_file: '' # this is being set from config.py
 
-
 # ANAT
 
 
@@ -37,7 +36,7 @@ coreg_rest.write_interp: 3
 trim.begin_index: 5
 
 # bandpass filter frequencies in Hz.
-rest_input.lowpass_freq: 0.08 # the numerical upper bound
+rest_input.lowpass_freq: 0.1 # the numerical upper bound
 rest_input.highpass_freq: 0.01 # the numerical lower bound
 
 # fwhm of smoothing kernel [mm]
@@ -45,7 +44,7 @@ smooth_fmri.fwhm: 8
 
 ## CompCor rsfMRI filters (at least compcor_csf should be True).
 rest_filter.compcor_csf: True
-rest_filter.compcor_wm: True
+rest_filter.compcor_wm: False
 rest_filter.gsr: False
 
 # filters parameters
@@ -59,7 +58,11 @@ motion_regressors.derivatives: 1
 # number of polynomials to add to detrend
 motart_parameters.detrend_poly: 2
 
+# Compute TSNR on realigned data regressing polynomials up to order 2
+tsnr.regress_poly: 2
+
 # Threshold to use to detect motion-related outliers when composite motion is being used
+detect_artifacts.use_differences: [True, False]
 detect_artifacts.parameter_source: NiPy
 detect_artifacts.mask_type: file
 detect_artifacts.use_norm: True
@@ -67,11 +70,10 @@ detect_artifacts.zintensity_threshold: 3
 detect_artifacts.norm_threshold: 1
 
 # Number of principal components to calculate when running CompCor. 5 or 6 is recommended.
-compcor_pars.num_components: 5
+compcor_pars.num_components: 6
 
 # Number of principal components to calculate when running Global Signal Regression. 1 is recommended.
 gsr_pars.num_components: 1
-
 
 # INDEPENDENT COMPONENTS ANALYSIS
 ## True to perform CanICA
@@ -112,6 +114,7 @@ stc_input.time_repetition: 2
 #stc_input.num_slices: 33
 
 # fMRI PREPROCESSING
+fmri_warp.write_voxel_sizes: [2, 2, 2]
 fmri_grptemplate_warp.write_voxel_sizes: [2, 2, 2]
 
 # GROUP fMRI TEMPLATE

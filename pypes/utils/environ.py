@@ -24,6 +24,9 @@ def spm_tpm_priors_path(spm_dir=None):
 
     Raises
     ------
+    NotADirectoryError
+        If the SPM path is not found.
+
     FileNotFoundError
         If `template` is `None` and can't find the TPM.nii file from SPM.
     """
@@ -32,6 +35,9 @@ def spm_tpm_priors_path(spm_dir=None):
 
     if spm_dir is None:
         spm_dir = op.expanduser('~/Software/matlab_tools/spm12')
+
+    if not op.exists(spm_dir):
+        raise NotADirectoryError('Could not find SPM path.')
 
     tpm_path = op.join(spm_dir, 'tpm', 'TPM.nii')
     if not op.exists(tpm_path):

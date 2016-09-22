@@ -224,8 +224,9 @@ def setup_node(interface, name, settings=None, overwrite=True, **kwargs):
 
     kwargs: keyword arguments
         type: str or None.
-            choices: 'map' or None.
+            choices: 'map', 'join, or None.
             If 'map' will return a MapNode.
+            If 'join' will return a JoinNode.
             If None will return a Node.
 
         Extra arguments to pass to nipype.Node __init__ function.
