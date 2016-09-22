@@ -208,7 +208,6 @@ def fmri_cleanup_wf(wf_name="fmri_cleanup"):
                              name="rest_output")
 
     # Connect the nodes
-
     wf.connect([
                 # trim
                 (rest_input,   trim,         [("in_file", "in_file")]),
@@ -282,6 +281,7 @@ def fmri_cleanup_wf(wf_name="fmri_cleanup"):
                 (bandpass,    rest_output, [("out_files", "time_filtered")]),
                 (smooth,      rest_output, [("out_file",  "smooth")]),
               ])
+
     return wf
 
 

@@ -102,8 +102,8 @@ def petpvc_workflow(wf_name="petpvc"):
     rbvpvc      = setup_node(petpvc_cmd(fwhm_mm=psf_fwhm,
                                         pvc_method='RBV'),       name="rbvpvc")
 
-    unzip_mrg = setup_node(Merge(3),                             name='merge_for_unzip')
-    gunzipper = pe.MapNode(Gunzip(),                             name="gunzip", iterfield=['in_file'])
+    unzip_mrg = setup_node(Merge(3), name='merge_for_unzip')
+    gunzipper = pe.MapNode(Gunzip(), name="gunzip", iterfield=['in_file'])
 
     # output
     pvc_output = setup_node(IdentityInterface(fields=out_fields), name="pvc_output")
@@ -117,44 +117,89 @@ def petpvc_workflow(wf_name="petpvc"):
     # Create the workflow object
     wf = pe.Workflow(name=wf_name)
 
-    wf.connect([
-                # inputs
-                (pet_input,   gunzip_pet,  [("in_file",            "in_file")]),
-                (pet_input,   coreg_pet,   [("reference_file",     "source")]),
-                (pet_input,   tissues_sel, [("tissues",            "inlist")]),
+    anat2pet = False
+    if anat2pet:
+        wf.connect([
+                    # inputs
+                    (pet_input,   gunzip_pet,  [("in_file",            "in_file")]),
+                    (pet_input,   coreg_pet,   [("reference_file",     "source")]),
+                    (pet_input,   tissues_sel, [("tissues",            "inlist")]),
 
-                # unzip to coregister the reference file (anatomical image) to PET space.
-                (gunzip_pet,  coreg_pet,  [("out_file",            "target")]),
-                (tissues_sel, coreg_pet,  [(("out", flatten_list), "apply_to_files")]),
+                    # unzip to coregister the reference file (anatomical image) to PET space.
+                    (gunzip_pet,  coreg_pet,  [("out_file",            "target")]),
+                    (tissues_sel, coreg_pet,  [(("out", flatten_list), "apply_to_files")]),
 
-                # the list of tissues to the mask wf and the GM for PET intensity normalization
-                (coreg_pet,   select_gm,  [("coregistered_files", "inlist")]),
-                (coreg_pet,   mask_wf,    [("coregistered_files", "pvcmask_input.tissues")]),
+                    # the list of tissues to the mask wf and the GM for PET intensity normalization
+                    (coreg_pet,   select_gm,  [("coregistered_files", "inlist")]),
+                    (coreg_pet,   mask_wf,    [("coregistered_files", "pvcmask_input.tissues")]),
 
-                # the PET in native space to PVC correction
-                (gunzip_pet,  rbvpvc,     [("out_file", "in_file")]),
+                    # the PET in native space to PVC correction
+                    (gunzip_pet,  rbvpvc,     [("out_file", "in_file")]),
 
-                # the merged file with 4 tissues to PCV correction
-                (mask_wf,     rbvpvc,     [("pvcmask_output.petpvc_mask", "mask_file")]),
+                    # the merged file with 4 tissues to PCV correction
+                    (mask_wf,     rbvpvc,     [("pvcmask_output.petpvc_mask", "mask_file")]),
 
-                # normalize voxel values of PET PVCed by demeaning it entirely by GM PET voxel values
-                (rbvpvc,      norm_wf,    [("out_file", "intnorm_input.source")]),
-                (select_gm,   norm_wf,    [("out",      "intnorm_input.mask")]),
+                    # normalize voxel values of PET PVCed by demeaning it entirely by GM PET voxel values
+                    (rbvpvc,      norm_wf,    [("out_file", "intnorm_input.source")]),
+                    (select_gm,   norm_wf,    [("out",      "intnorm_input.mask")]),
 
-                # gunzip some files for SPM Normalize12
-                (rbvpvc,      unzip_mrg,  [("out_file",                    "in1")]),
-                (mask_wf,     unzip_mrg,  [("pvcmask_output.brain_mask",   "in2")]),
-                (norm_wf,     unzip_mrg,  [("intnorm_output.out_file",     "in3")]),
-                (unzip_mrg,   gunzipper,  [("out",                         "in_file")]),
+                    # gunzip some files for SPM Normalize12
+                    (rbvpvc,      unzip_mrg,  [("out_file",                    "in1")]),
+                    (mask_wf,     unzip_mrg,  [("pvcmask_output.brain_mask",   "in2")]),
+                    (norm_wf,     unzip_mrg,  [("intnorm_output.out_file",     "in3")]),
+                    (unzip_mrg,   gunzipper,  [("out",                         "in_file")]),
 
-                # output
-                (coreg_pet,   pvc_output, [("coregistered_source",         "coreg_ref")]),
-                (coreg_pet,   pvc_output, [("coregistered_files",          "coreg_others")]),
-                (rbvpvc,      pvc_output, [("out_file",                    "pvc_out")]),
-                (mask_wf,     pvc_output, [("pvcmask_output.brain_mask",   "brain_mask")]),
-                (mask_wf,     pvc_output, [("pvcmask_output.petpvc_mask",  "petpvc_mask")]),
-                (norm_wf,     pvc_output, [("intnorm_output.out_file",     "gm_norm")]),
-               ])
+                    # output
+                    (coreg_pet,   pvc_output, [("coregistered_source",         "coreg_ref")]),
+                    (coreg_pet,   pvc_output, [("coregistered_files",          "coreg_others")]),
+                    (rbvpvc,      pvc_output, [("out_file",                    "pvc_out")]),
+                    (mask_wf,     pvc_output, [("pvcmask_output.brain_mask",   "brain_mask")]),
+                    (mask_wf,     pvc_output, [("pvcmask_output.petpvc_mask",  "petpvc_mask")]),
+                    (norm_wf,     pvc_output, [("intnorm_output.out_file",     "gm_norm")]),
+                   ])
+    else: # PET to ANAT
+        wf.connect([
+                    # inputs
+                    (pet_input,   gunzip_pet,  [("in_file",            "in_file")]),
+                    (pet_input,   coreg_pet,   [("reference_file",     "target")]),
+                    (pet_input,   tissues_sel, [("tissues",            "inlist")]),
+
+                    # unzip PET image and set as a source to register it to anatomical space.
+                    (gunzip_pet,  coreg_pet,  [("out_file",            "source")]),
+                    #(tissues_sel, coreg_pet,  [(("out", flatten_list), "apply_to_files")]),
+
+                    # the list of tissues to the mask wf and the GM for PET intensity normalization
+                    #(coreg_pet,   select_gm,  [("coregistered_files", "inlist")]),
+                    #(coreg_pet,   mask_wf,    [("coregistered_files", "pvcmask_input.tissues")]),
+                    (tissues_sel, select_gm,  [("out", "inlist")]),
+                    (tissues_sel, mask_wf,    [("out", "pvcmask_input.tissues")]),
+
+                    # the PET in ANAT space to PVC correction
+                    #(gunzip_pet,  rbvpvc,     [("out_file", "in_file")]),
+                    (coreg_pet,    rbvpvc,     [("coregistered_source", "in_file")]),
+
+                    # the merged file with 4 tissues to PCV correction
+                    (mask_wf,     rbvpvc,     [("pvcmask_output.petpvc_mask", "mask_file")]),
+
+                    # normalize voxel values of PET PVCed by demeaning it entirely by GM PET voxel values
+                    (rbvpvc,      norm_wf,    [("out_file", "intnorm_input.source")]),
+                    (select_gm,   norm_wf,    [("out",      "intnorm_input.mask")]),
+
+                    # gunzip some files for SPM Normalize12
+                    (rbvpvc,      unzip_mrg,  [("out_file",                    "in1")]),
+                    (mask_wf,     unzip_mrg,  [("pvcmask_output.brain_mask",   "in2")]),
+                    (norm_wf,     unzip_mrg,  [("intnorm_output.out_file",     "in3")]),
+                    (unzip_mrg,   gunzipper,  [("out",                         "in_file")]),
+
+                    # output
+                    # TODO: coreg_ref should have a different name in this case
+                    (coreg_pet,   pvc_output, [("coregistered_source",         "coreg_ref")]),
+                    (coreg_pet,   pvc_output, [("coregistered_files",          "coreg_others")]),
+                    (rbvpvc,      pvc_output, [("out_file",                    "pvc_out")]),
+                    (mask_wf,     pvc_output, [("pvcmask_output.brain_mask",   "brain_mask")]),
+                    (mask_wf,     pvc_output, [("pvcmask_output.petpvc_mask",  "petpvc_mask")]),
+                    (norm_wf,     pvc_output, [("intnorm_output.out_file",     "gm_norm")]),
+                   ])
 
     return wf
 

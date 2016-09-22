@@ -21,8 +21,6 @@ from   ..utils  import (get_datasink,
 
 def spm_pet_preproc(wf_name="spm_pet_preproc"):
     """ Run a PET-only pre-processing workflow against the gunzip_pet.in_file files.
-    It depends on the anat_preproc_workflow, so if this has not been run, this function
-    will run it too.
 
     It does:
     - Warp each individual PET image to the default (SPM) PET template (H2O),

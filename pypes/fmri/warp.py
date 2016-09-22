@@ -13,6 +13,7 @@ from   ..config  import setup_node
 from   ..preproc import (spm_normalize,
                          get_bounding_box,
                          spm_tpm_priors_path,
+                         spm_coregister,
                          )
 from   ..utils   import (remove_ext,
                          selectindex,
@@ -42,8 +43,14 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", do_group_template=False):
     wfmri_input.in_file: traits.File
         The slice time and motion corrected fMRI file.
 
+    pvc_input.reference_file: traits.File
+        The anatomical image in its native space. For registration reference.
+
     wfmri_input.anat_fmri: traits.File
         The anatomical image in fMRI space.
+
+    wfmri_input.anat_to_mni_warp: traits.File
+        The warp field from the transformation of the anatomical image to the standard MNI space.
 
     wfmri_input.time_filtered: traits.File
         The bandpass time filtered fMRI file.
@@ -82,6 +89,7 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", do_group_template=False):
     # specify input and output fields
     in_fields  = ["in_file",
                   "anat_fmri",
+                  "anat_to_mni_warp"
                   "time_filtered",
                   "avg_epi"]
 
@@ -142,31 +150,70 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", do_group_template=False):
     rest_output = setup_node(IdentityInterface(fields=out_fields),
                              name="wfmri_output")
 
-    # prepare the inputs
-    wf.connect([
-                # unzip the in_file input file
-                (wfmri_input, in_gunzip,  [("avg_epi", "in_file")]),
+    anat2fmri = False
+    if anat2fmri or do_group_template:
+        # prepare the inputs
+        wf.connect([
+                    # unzip the in_file input file
+                    (wfmri_input, in_gunzip,  [("avg_epi", "in_file")]),
 
-                # merge the other input files into a list
-                (wfmri_input, merge_list, [("in_file",          "in1"),
-                                           ("time_filtered",    "in2"),
-                                          ]),
+                    # merge the other input files into a list
+                    (wfmri_input, merge_list, [("in_file",          "in1"),
+                                               ("time_filtered",    "in2"),
+                                              ]),
 
-                # gunzip them for SPM, just in case
-                (merge_list, gunzipper, [("out", "in_file")]),
+                    # gunzip them for SPM, just in case
+                    (merge_list, gunzipper, [("out", "in_file")]),
 
-                # bounding box
-                (tpm_bbox,  warp,       [("bbox",     "write_bounding_box")]),
+                    # bounding box
+                    (tpm_bbox,  warp,       [("bbox",     "write_bounding_box")]),
 
-                # apply to files
-                (gunzipper, warp,       [("out_file", "apply_to_files")]),
+                    # apply to files
+                    (gunzipper, warp,       [("out_file", "apply_to_files")]),
 
-                # outputs
-                (warp, rest_output,     [(warp_field_arg,     "warp_field"),
-                                         (warp_outsource_arg, "wavg_epi"),
-                                        ]),
+                    # outputs
+                    (warp, rest_output,     [(warp_field_arg,     "warp_field"),
+                                             (warp_outsource_arg, "wavg_epi"),
+                                            ]),
 
-               ])
+                   ])
+
+        if not do_group_template:
+            wf.connect([
+                        # warp source file
+                        (wfmri_input, warp,   [("anat_fmri",  warp_source_arg)]),
+                       ])
+    else: # FMRI to ANAT
+        coreg = setup_node(spm_coregister(cost_function="mi"), name="coreg_fmri")
+
+        wf.connect([
+                    (wfmri_input, coreg,     [("reference_file", "target")]),
+
+                    # unzip the in_file input file
+                    (wfmri_input, in_gunzip,  [("avg_epi", "in_file")]),
+
+                    # merge the other input files into a list
+                    (wfmri_input, merge_list, [("in_file",          "in1"),
+                                               ("time_filtered",    "in2"),
+                                              ]),
+
+                    # gunzip them for SPM, just in case
+                    (merge_list, gunzipper, [("out", "in_file")]),
+
+                    # bounding box
+                    (tpm_bbox,  warp,       [("bbox",     "write_bounding_box")]),
+
+                    # apply to files
+                    (gunzipper, warp,       [("out_file", "apply_to_files")]),
+
+                    # outputs
+                    (warp, rest_output,     [(warp_field_arg,     "warp_field"),
+                                             (warp_outsource_arg, "wavg_epi"),
+                                            ]),
+
+                    (coreg, rest_output, [("coregistered_source", "coreg_src")]),
+                    (coreg, rest_output, [("coregistered_files",  "coreg_others")]),
+                   ])
 
     if do_group_template:
         wf.connect([
@@ -180,11 +227,7 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", do_group_template=False):
                     # get template bounding box to apply to results
                     (wfmri_input,      tpm_bbox,        [("epi_template", "in_file")]),
         ])
-    else:
-        wf.connect([
-                    # warp source file
-                    (wfmri_input, warp,   [("anat_fmri",  warp_source_arg)]),
-                   ])
+
 
     # smooth and sink
     wf.connect([
@@ -226,6 +269,8 @@ def attach_spm_warp_fmri_wf(main_wf, registration_wf_name="spm_warp_fmri", do_gr
     ---------------------
     fmri_cleanup
 
+    spm_anat_preproc, for the anatomical to MNI space transformation
+
     spm_fmri_template, if do_group_template is True
 
     Returns
@@ -233,6 +278,7 @@ def attach_spm_warp_fmri_wf(main_wf, registration_wf_name="spm_warp_fmri", do_gr
     main_wf: nipype Workflow
     """
     # Dependency workflows
+    anat_wf    = main_wf.get_node("spm_anat_preproc")
     cleanup_wf = main_wf.get_node("fmri_cleanup")
 
     in_files = get_input_node(main_wf)
@@ -292,5 +338,12 @@ def attach_spm_warp_fmri_wf(main_wf, registration_wf_name="spm_warp_fmri", do_gr
                                                 ("wfmri_output.warp_field",      "rest.@warp_field_{}".format(template_name)),
                                                ]),
                     ])
+
+    if not do_group_template:
+        main_wf.connect([
+                         (anat_wf, warp_fmri_wf, [("new_segment.bias_corrected_images",     "wfmri_input.reference_file"),
+                                                  ("new_segment.forward_deformation_field", "wfmri_input.anat_to_mni_warp"),
+                                                 ]),
+                        ])
 
     return main_wf

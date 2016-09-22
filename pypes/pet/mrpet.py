@@ -13,6 +13,7 @@ from   .pvc      import petpvc_workflow
 from   ..config  import setup_node, check_atlas_file
 from   ..preproc import (spm_normalize,
                          spm_coregister,
+                         spm_apply_deformations,
                          get_bounding_box)
 
 from   ..utils import (get_datasink,
@@ -47,12 +48,15 @@ def spm_mrpet_preprocessing(wf_name="spm_mrpet_preproc"):
     pet_input.in_file: traits.File
         The raw NIFTI_GZ PET image file
 
-    pet_input.atlas_anat: traits.File
-        The atlas file in anatomical space.
-
     pet_input.anat: traits.File
         Path to the high-contrast anatomical image.
         Reference file of the warp_field, i.e., the anatomical image in its native space.
+
+    pet_input.anat_to_mni_warp: traits.File
+        The warp field from the transformation of the anatomical image to the standard MNI space.
+
+    pet_input.atlas_anat: traits.File
+        The atlas file in anatomical space.
 
     pet_input.tissues: list of traits.File
         List of tissues files from the New Segment process. At least the first
@@ -94,6 +98,7 @@ def spm_mrpet_preprocessing(wf_name="spm_mrpet_preproc"):
     # specify input and output fields
     in_fields  = ["in_file",
                   "anat",
+                  "anat_to_mni_warp",
                   "tissues",]
 
     out_fields = ["brain_mask",
@@ -118,8 +123,26 @@ def spm_mrpet_preprocessing(wf_name="spm_mrpet_preproc"):
     # workflow to perform partial volume correction
     petpvc    = petpvc_workflow(wf_name="petpvc")
 
-    merge_list = setup_node(Merge(3), name='merge_for_unzip')
+    merge_list = setup_node(Merge(4), name='merge_for_unzip')
     gunzipper = pe.MapNode(Gunzip(), name="gunzip", iterfield=['in_file'])
+
+    #
+    # # do template
+    # if do_group_template:
+    #     gunzip_template = setup_node(Gunzip(), name="gunzip_template",)
+    #     warp = setup_node(spm.Normalize(jobtype="estwrite", out_prefix="wgrptmpl_"),
+    #                       name="fmri_grptemplate_warp",)
+    #     warp_source_arg    = "source"
+    #     warp_outsource_arg = "normalized_source"
+    #     warp_field_arg     = "normalization_parameters"
+    #
+    # else:
+    #     # do MNI
+    #     warp = setup_node(spm_normalize(), name="fmri_warp")
+    #     tpm_bbox.inputs.in_file = spm_tpm_priors_path()
+    #     warp_source_arg    = "image_to_align"
+    #     warp_outsource_arg = "normalized_image"
+    #     warp_field_arg     = "deformation_field"
 
     warp_pet = setup_node(spm_normalize(), name="warp_pet")
 
@@ -135,37 +158,77 @@ def spm_mrpet_preprocessing(wf_name="spm_mrpet_preproc"):
     # Create the workflow object
     wf = pe.Workflow(name=wf_name)
 
-    # add more nodes if to perform atlas registration
-    wf.connect([
-                # inputs
-                (pet_input, petpvc,     [("in_file", "pvc_input.in_file"),
-                                         ("anat",    "pvc_input.reference_file"),
-                                         ("tissues", "pvc_input.tissues")]),
+    anat2pet = False
+    if anat2pet:
+        wf.connect([
+                    # inputs
+                    (pet_input, petpvc,     [("in_file", "pvc_input.in_file"),
+                                             ("anat",    "pvc_input.reference_file"),
+                                             ("tissues", "pvc_input.tissues")]),
 
-                # gunzip some files for SPM Normalize
-                (petpvc,    merge_list, [("pvc_output.pvc_out",    "in1"),
-                                         ("pvc_output.brain_mask", "in2"),
-                                         ("pvc_output.gm_norm",    "in3")]),
-                (pet_input, merge_list, [("in_file",               "in4")]),
+                    # gunzip some files for SPM Normalize
+                    (petpvc,    merge_list, [("pvc_output.pvc_out",    "in1"),
+                                             ("pvc_output.brain_mask", "in2"),
+                                             ("pvc_output.gm_norm",    "in3")]),
+                    (pet_input, merge_list, [("in_file",               "in4")]),
 
-                (merge_list, gunzipper, [("out", "in_file")]),
+                    (merge_list, gunzipper, [("out", "in_file")]),
 
-                # warp the PET PVCed to MNI
-                (petpvc,    warp_pet,   [("pvc_output.coreg_ref", "image_to_align")]),
-                (gunzipper, warp_pet,   [("out_file",             "apply_to_files")]),
-                (tpm_bbox,  warp_pet,   [("bbox",                 "write_bounding_box")]),
+                    # warp the PET PVCed to MNI
+                    (petpvc,    warp_pet,   [("pvc_output.coreg_ref", "image_to_align")]),
+                    (gunzipper, warp_pet,   [("out_file",             "apply_to_files")]),
+                    (tpm_bbox,  warp_pet,   [("bbox",                 "write_bounding_box")]),
 
-                # output
-                (petpvc,    pet_output, [("pvc_output.pvc_out",      "pvc_out"),
-                                         ("pvc_output.brain_mask",   "brain_mask"),
-                                         ("pvc_output.coreg_ref",    "coreg_ref"),
-                                         ("pvc_output.coreg_others", "coreg_others"),
-                                         ("pvc_output.gm_norm",      "gm_norm")]),
+                    # output
+                    (petpvc,    pet_output, [("pvc_output.pvc_out",      "pvc_out"),
+                                             ("pvc_output.brain_mask",   "brain_mask"),
+                                             ("pvc_output.coreg_ref",    "coreg_ref"),
+                                             ("pvc_output.coreg_others", "coreg_others"),
+                                             ("pvc_output.gm_norm",      "gm_norm")]),
 
-                # output
-                (warp_pet,  pet_output, [("normalized_files",  "pvc_warped"),
-                                         ("deformation_field", "warp_field")]),
-               ])
+                    # output
+                    (warp_pet,  pet_output, [("normalized_files",  "pvc_warped"),
+                                             ("deformation_field", "warp_field")]),
+                   ])
+    else: # PET 2 ANAT
+        collector  = setup_node(Merge(2), name='merge_for_warp')
+        apply_warp = setup_node(spm_apply_deformations(), name="warp_pet")
+
+        wf.connect([
+                    # inputs
+                    (pet_input, petpvc,     [("in_file", "pvc_input.in_file"),
+                                             ("anat",    "pvc_input.reference_file"),
+                                             ("tissues", "pvc_input.tissues")]),
+
+                    # gunzip some files for SPM Normalize
+                    (petpvc,    merge_list, [("pvc_output.pvc_out",    "in1"),
+                                             ("pvc_output.brain_mask", "in2"),
+                                             ("pvc_output.gm_norm",    "in3")]),
+                    (pet_input, merge_list, [("in_file",               "in4")]),
+
+                    (merge_list, gunzipper, [("out",                   "in_file")]),
+
+                    # warp the PET PVCed to MNI
+                    (gunzipper,   collector,   [("out_file",             "in1")]),
+                    (petpvc,      collector,   [("pvc_output.coreg_ref", "in2")]),
+
+                    (pet_input,   apply_warp,  [("anat_to_mni_warp", "deformation_file")]),
+                    (collector,   apply_warp,  [("out",              "apply_to_files")]),
+                    (tpm_bbox,    apply_warp,  [("bbox",             "write_bounding_box")]),
+
+                    # output
+                    (petpvc,    pet_output, [("pvc_output.pvc_out",      "pvc_out"),
+                                             ("pvc_output.brain_mask",   "brain_mask"),
+                                             ("pvc_output.petpvc_mask",  "petpvc_mask"),
+                                             ("pvc_output.coreg_ref",    "coreg_ref"),
+                                             ("pvc_output.coreg_others", "coreg_others"),
+                                             ("pvc_output.gm_norm",      "gm_norm")]),
+
+                    # output
+                    (apply_warp,  pet_output, [("normalized_files",  "pvc_warped"),
+                                               ("deformation_field", "warp_field")]),
+                   ])
+
 
     if do_atlas:
         coreg_atlas = setup_node(spm_coregister(cost_function="mi"), name="coreg_atlas")
@@ -284,7 +347,7 @@ def spm_mrpet_grouptemplate_preprocessing(wf_name="spm_mrpet_grouptemplate_prepr
     # workflow to perform partial volume correction
     petpvc    = petpvc_workflow(wf_name="petpvc")
 
-    unzip_mrg = setup_node(Merge(3), name='merge_for_unzip')
+    unzip_mrg = setup_node(Merge(4), name='merge_for_unzip')
     gunzipper = pe.MapNode(Gunzip(), name="gunzip", iterfield=['in_file'])
 
     # warp each subject to the group template
@@ -306,7 +369,6 @@ def spm_mrpet_grouptemplate_preprocessing(wf_name="spm_mrpet_grouptemplate_prepr
     # Create the workflow object
     wf = pe.Workflow(name=wf_name)
 
-    # add more nodes if to perform atlas registration
     wf.connect([
                 # inputs
                 (pet_input,   petpvc,  [("in_file", "pvc_input.in_file"),
@@ -324,6 +386,7 @@ def spm_mrpet_grouptemplate_preprocessing(wf_name="spm_mrpet_grouptemplate_prepr
                 (petpvc,    unzip_mrg, [("pvc_output.pvc_out",    "in1"),
                                         ("pvc_output.brain_mask", "in2"),
                                         ("pvc_output.gm_norm",    "in3")]),
+                (pet_input, unzip_mrg, [("in_file",               "in4")]),
 
                 (unzip_mrg, gunzipper, [("out", "in_file")]),
 
@@ -426,6 +489,10 @@ def attach_spm_mrpet_preprocessing(main_wf, wf_name="spm_mrpet_preproc", do_grou
                      (r"/w.*{pet}_.*_pvc_maths.nii$",     "/{pet}_pvc_norm_{template}.nii"),
                      (r"/w.*{pet}_.*_pvc_intnormed.nii$", "/{pet}_pvc_norm_{template}.nii"),
                      (r"/w.*brain_mask.nii",              "/brain_mask_{template}.nii"),
+                     (r"/r.*{pet}.nii",                   "/{pet}_anat.nii"),
+                     (r"/r.*{pet}_.*_pvc.nii$",           "/{pet}_pvc_anat.nii"),
+                     (r"/r.*{pet}_.*_pvc_maths.nii$",     "/{pet}_pvc_norm_anat.nii"),
+                     (r"/r.*{pet}_.*_pvc_intnormed.nii$", "/{pet}_pvc_norm_anat.nii"),
                      (r"/y_rm{anat}_corrected.nii",       "/{anat}_{pet}_warpfield.nii"),
                      (r"/rm{anat}_corrected.nii$",        "/{anat}_{pet}.nii"),
                      (r"/rc1{anat}_corrected.nii$",       "/gm_{pet}.nii"),
@@ -454,8 +521,8 @@ def attach_spm_mrpet_preprocessing(main_wf, wf_name="spm_mrpet_preproc", do_grou
                      (in_files, pet_wf, [("pet", "pet_input.in_file")]),
 
                      # pet to anat registration
-                     (anat_wf,  pet_wf, [("new_segment.bias_corrected_images", "pet_input.anat"),
-                                         ("new_segment.native_class_images",   "pet_input.tissues"),
+                     (anat_wf,  pet_wf, [("new_segment.bias_corrected_images",     "pet_input.anat"),
+                                         ("new_segment.native_class_images",       "pet_input.tissues"),
                                         ]),
 
                      (pet_wf, datasink, [
@@ -470,6 +537,14 @@ def attach_spm_mrpet_preprocessing(main_wf, wf_name="spm_mrpet_preproc", do_grou
                                          ("pet_output.pet_warped",   "mrpet.@pet_warped"),
                                         ]),
                      ])
+
+    if not do_group_template:
+        # Connect the nodes
+        main_wf.connect([
+                         # pet to anat registration
+                         (anat_wf,  pet_wf, [("new_segment.forward_deformation_field", "pet_input.anat_to_mni_warp"),]),
+                         ])
+
 
     if do_atlas:
             main_wf.connect([(anat_wf,  pet_wf,   [("anat_output.atlas_anat", "pet_input.atlas_anat")]),
