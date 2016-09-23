@@ -166,13 +166,13 @@ def petpvc_workflow(wf_name="petpvc"):
 
                     # unzip PET image and set as a source to register it to anatomical space.
                     (gunzip_pet,  coreg_pet,  [("out_file",            "source")]),
-                    #(tissues_sel, coreg_pet,  [(("out", flatten_list), "apply_to_files")]),
+                    (tissues_sel, coreg_pet,  [(("out", flatten_list), "apply_to_files")]),
 
                     # the list of tissues to the mask wf and the GM for PET intensity normalization
-                    #(coreg_pet,   select_gm,  [("coregistered_files", "inlist")]),
-                    #(coreg_pet,   mask_wf,    [("coregistered_files", "pvcmask_input.tissues")]),
-                    (tissues_sel, select_gm,  [("out", "inlist")]),
-                    (tissues_sel, mask_wf,    [("out", "pvcmask_input.tissues")]),
+                    (coreg_pet,   select_gm,  [("coregistered_files", "inlist")]),
+                    (coreg_pet,   mask_wf,    [("coregistered_files", "pvcmask_input.tissues")]),
+                    #(tissues_sel, select_gm,  [("out", "inlist")]),
+                    #(tissues_sel, mask_wf,    [("out", "pvcmask_input.tissues")]),
 
                     # the PET in ANAT space to PVC correction
                     #(gunzip_pet,  rbvpvc,     [("out_file", "in_file")]),

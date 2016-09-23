@@ -33,10 +33,15 @@ def spm_mrpet_preprocessing(wf_name="spm_mrpet_preproc"):
     It depends on the anat_preproc_workflow, so if this has not been run, this function
     will run it too.
 
-    It does:
+    # TODO: organize the anat2pet hack/condition somehow:
+    If anat2pet:
     - SPM12 Coregister T1 and tissues to PET
     - PVC the PET image in PET space
     - SPM12 Warp PET to MNI
+    else:
+    - SPM12 Coregister PET to T1
+    - PVC the PET image in anatomical space
+    - SPM12 Warp PET in anatomical space to MNI through the `anat_to_mni_warp`.
 
     Parameters
     ----------

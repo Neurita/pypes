@@ -14,6 +14,7 @@ from   ..preproc import (spm_normalize,
                          get_bounding_box,
                          spm_tpm_priors_path,
                          spm_coregister,
+                         spm_apply_deformations,
                          )
 from   ..utils   import (remove_ext,
                          selectindex,
@@ -24,7 +25,7 @@ from   ..utils   import (remove_ext,
                          extension_duplicates)
 
 
-def spm_warp_fmri_wf(wf_name="spm_warp_fmri", do_group_template=False):
+def spm_warp_fmri_wf(wf_name="spm_warp_fmri", register_to_grptemplate=False):
     """ Run SPM to warp resting-state fMRI pre-processed data to MNI or a given template.
 
     Tasks:
@@ -34,7 +35,7 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", do_group_template=False):
     ----------
     wf_name: str
 
-    do_group_template: bool
+    register_to_grptemplate: bool
         If True will expect the wfmri_input.epi_template input and use it as a group template
         for inter-subject registratio.
 
@@ -89,17 +90,20 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", do_group_template=False):
     # specify input and output fields
     in_fields  = ["in_file",
                   "anat_fmri",
-                  "anat_to_mni_warp"
+                  "anat_to_mni_warp",
+                  "reference_file",
                   "time_filtered",
-                  "avg_epi"]
+                  "avg_epi",]
 
     out_fields = ["warped_fmri",
                   "wtime_filtered",
                   "smooth",
                   "wavg_epi",
-                  "warp_field",]
+                  "warp_field",
+                  "coreg_src",
+                  "coreg_others"]
 
-    if do_group_template:
+    if register_to_grptemplate:
         in_fields += ['epi_template']
 
     # input identities
@@ -110,7 +114,7 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", do_group_template=False):
     in_gunzip = pe.Node(Gunzip(), name="in_gunzip")
 
     # merge list for normalization input
-    merge_list = setup_node(Merge(2), name='merge_for_warp')
+    merge_list = pe.Node(Merge(2), name='merge_for_warp')
     gunzipper = pe.MapNode(Gunzip(), name="gunzip", iterfield=['in_file'])
 
     # the template bounding box
@@ -120,7 +124,7 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", do_group_template=False):
                           name="tpm_bbox")
 
     # do template
-    if do_group_template:
+    if register_to_grptemplate:
         gunzip_template = setup_node(Gunzip(), name="gunzip_template",)
         warp = setup_node(spm.Normalize(jobtype="estwrite", out_prefix="wgrptmpl_"),
                           name="fmri_grptemplate_warp",)
@@ -151,7 +155,7 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", do_group_template=False):
                              name="wfmri_output")
 
     anat2fmri = False
-    if anat2fmri or do_group_template:
+    if anat2fmri or register_to_grptemplate:
         # prepare the inputs
         wf.connect([
                     # unzip the in_file input file
@@ -162,7 +166,7 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", do_group_template=False):
                                                ("time_filtered",    "in2"),
                                               ]),
 
-                    # gunzip them for SPM, just in case
+                    # gunzip them for SPM
                     (merge_list, gunzipper, [("out", "in_file")]),
 
                     # bounding box
@@ -178,44 +182,57 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", do_group_template=False):
 
                    ])
 
-        if not do_group_template:
+        if not register_to_grptemplate:
             wf.connect([
                         # warp source file
                         (wfmri_input, warp,   [("anat_fmri",  warp_source_arg)]),
                        ])
+
     else: # FMRI to ANAT
-        coreg = setup_node(spm_coregister(cost_function="mi"), name="coreg_fmri")
+        coreg       = setup_node(spm_coregister(cost_function="mi"), name="coreg_fmri")
+        apply_warp  = setup_node(spm_apply_deformations(), name="warp_fmri")
+        coreg_files = pe.Node(Merge(2), name='merge_for_coreg')
+        warp_files  = pe.Node(Merge(2), name='merge_for_warp')
 
         wf.connect([
-                    (wfmri_input, coreg,     [("reference_file", "target")]),
+                    (wfmri_input, coreg,      [("reference_file", "target")]),
 
                     # unzip the in_file input file
                     (wfmri_input, in_gunzip,  [("avg_epi", "in_file")]),
+                    (in_gunzip,   coreg,      [("out_file", "source")]),
 
                     # merge the other input files into a list
-                    (wfmri_input, merge_list, [("in_file",          "in1"),
+                    (wfmri_input, coreg_files, [("in_file",         "in1"),
                                                ("time_filtered",    "in2"),
                                               ]),
 
-                    # gunzip them for SPM, just in case
-                    (merge_list, gunzipper, [("out", "in_file")]),
+                    # gunzip them for SPM
+                    (coreg_files, gunzipper, [("out", "in_file")]),
+
+                    # coregister fmri to anat
+                    (gunzipper, coreg,     [("out_file", "apply_to_files")]),
+
+                    # anat to mni warp field
+                    (wfmri_input, apply_warp, [("anat_to_mni_warp", "deformation_file")]),
 
                     # bounding box
-                    (tpm_bbox,  warp,       [("bbox",     "write_bounding_box")]),
+                    (tpm_bbox,  apply_warp, [("bbox",     "write_bounding_box")]),
 
                     # apply to files
-                    (gunzipper, warp,       [("out_file", "apply_to_files")]),
+                    (coreg, warp_files, [("coregistered_source", "in1")]),
+                    (coreg, warp_files, [("coregistered_files", "in2")]),
+
+                    (warp_files, apply_warp, [("out", "apply_to_files")]),
 
                     # outputs
-                    (warp, rest_output,     [(warp_field_arg,     "warp_field"),
-                                             (warp_outsource_arg, "wavg_epi"),
-                                            ]),
+                    (apply_warp, rest_output,  [("normalized_files",  "warped_files"),]),
+                    (apply_warp, rest_output,  [(("normalized_files", selectindex, [0]), "wavg_epi"),]),
 
                     (coreg, rest_output, [("coregistered_source", "coreg_src")]),
                     (coreg, rest_output, [("coregistered_files",  "coreg_others")]),
                    ])
 
-    if do_group_template:
+    if register_to_grptemplate:
         wf.connect([
                     # warp source file
                     (in_gunzip,       warp,             [("out_file",  warp_source_arg)]),
@@ -290,7 +307,7 @@ def attach_spm_warp_fmri_wf(main_wf, registration_wf_name="spm_warp_fmri", do_gr
         template_name = 'mni'
 
     warp_wf_name = "{}_{}".format(registration_wf_name, template_name)
-    warp_fmri_wf = spm_warp_fmri_wf(warp_wf_name, do_group_template=do_group_template)
+    warp_fmri_wf = spm_warp_fmri_wf(warp_wf_name, register_to_grptemplate=do_group_template)
 
     # dataSink output substitutions
     # The base name of the 'rest' file for the substitutions
@@ -344,6 +361,11 @@ def attach_spm_warp_fmri_wf(main_wf, registration_wf_name="spm_warp_fmri", do_gr
                          (anat_wf, warp_fmri_wf, [("new_segment.bias_corrected_images",     "wfmri_input.reference_file"),
                                                   ("new_segment.forward_deformation_field", "wfmri_input.anat_to_mni_warp"),
                                                  ]),
+                        # output
+                        (warp_fmri_wf,  datasink,  [
+                                                    ("wfmri_output.coreg_src",     "rest.@coreg_fmri_anat"),
+                                                    ("wfmri_output.coreg_others",  "rest.@coreg_others"),
+                                                   ]),
                         ])
 
     return main_wf
