@@ -240,8 +240,8 @@ class MIALABICAResultsPlotter(ICAResultsPlotter):
             groups = pd.read_csv(group_labels_file)
             if not 'subject_id' in groups.columns or \
                not 'group' in groups.columns:
-                raise AttributeError("Please add columns names 'subject_id' and 'group' to the"
-                                     "group labels file.")
+                raise AttributeError("Please add columns names 'subject_id' "
+                                     "and 'group' to the group labels file.")
         return groups
 
     def _load_components(self):

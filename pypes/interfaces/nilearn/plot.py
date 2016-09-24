@@ -145,7 +145,8 @@ def plot_stat_overlay(stat_img, contour_img, bg_img, **kwargs):
     return display
 
 
-def plot_overlays(stat_imgs, contour_imgs, bg_img, figsize=(2.5, 3), title='', **kwargs):
+def plot_overlays(stat_imgs, contour_imgs, bg_img=None,
+                  figsize=(2.5, 3), title='', **kwargs):
     """Plots each contour_imgs as an overlay of its corresponding `stat_imgs`.
     `contour_imgs` and `stat_imgs` must have the same length."""
 
@@ -177,5 +178,3 @@ def plot_overlays(stat_imgs, contour_imgs, bg_img, figsize=(2.5, 3), title='', *
         p.close()
 
     return fig
-
-
