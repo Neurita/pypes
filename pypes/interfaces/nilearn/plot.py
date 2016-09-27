@@ -17,7 +17,7 @@ def plot_all_components(components_img, **kwargs):
     return fig
 
 
-def plot_canica_components(components_img, **kwargs):
+def plot_ica_components(components_img, **kwargs):
     """ Plot the components IC spatial maps in a grid."""
     import math
     from nilearn.image import iter_img
@@ -110,8 +110,12 @@ def plot_multi_slices(img, cut_dir="z", n_cuts=20, n_cols=4, figsize=(2.5, 3),
     gs  = gridspec.GridSpec(n_rows, 1)
 
     if title:
-        fig.suptitle(title, fontsize=title_fontsize)
+        fig.suptitle(title, fontsize=title_fontsize, color='gray')
 
+    # for the superior plot
+    put_colorbar = True
+
+    # make the plots
     plots = []
     for i, cut_chunks in enumerate(grouper(cuts, n_cols)):
         ax = plt.subplot(gs[i])
@@ -122,13 +126,14 @@ def plot_multi_slices(img, cut_dir="z", n_cuts=20, n_cols=4, figsize=(2.5, 3),
             p = plot_func(_img,
                           display_mode=cut_dir,
                           cut_coords=cut_chunks,
-                          colorbar=True,
+                          colorbar=put_colorbar,
                           figure=fig,
                           axes=ax,
                           **kwargs)
         except IndexError:
             logging.warning('Could not plot for coords {}.'.format(cut_chunks))
         finally:
+            put_colorbar = False
             plots.append(p)
 
     for p in plots:

@@ -21,7 +21,7 @@ from .ica_loadings import (filter_ics,
                            )
 from ..utils.files import fetch_one_file
 from ..interfaces.nilearn.plot import (plot_all_components,
-                                       plot_canica_components,
+                                       plot_ica_components,
                                        plot_multi_slices,
                                        plot_overlays)
 
@@ -46,14 +46,38 @@ def plot_connectivity_matrix(connectivity_matrix, label_names):
     return fig
 
 
-def plot_ica_results(ica_result, application, mask_file='', zscore=2., mode='+', bg_img=''):
-    """  Use nilearn to plot results from different ICA analysis tools, given the ICA result folder path."""
+def plot_ica_results(ica_result_dir, application, mask_file='', zscore=2., mode='+', bg_img=''):
+    """  Use nilearn to plot results from different ICA analysis tools, given the ICA result folder path.
+
+    Parameters
+    ----------
+    ica_result_dir: str
+        Path to the ICA output folder or the ICA components volume file.
+
+    application: str
+        Choicese: ('nilearn', 'sbm', 'gift')
+
+    mask_file: str
+        Path to the brain mask file to be used for thresholding.
+
+    mode: str
+        Choices: '+' for positive threshold,
+                 '+-' for positive and negative threshold and
+                 '-' for negative threshold.
+
+    zscore: int
+        Value of the Z-score thresholding.
+
+    bg_img: str
+        Path to a background image.
+        If empty will use the SPM canonical brain image at 2mm.
+    """
     if application == 'sbm': # SBM ICA (3D sources)
-        plotter = SBMICAResultsPlotter(ica_result)
+        plotter = SBMICAResultsPlotter(ica_result_dir)
     elif application == 'gift': # group GIFT ICA (4D sources)
-        plotter = GIFTICAResultsPlotter(ica_result)
+        plotter = GIFTICAResultsPlotter(ica_result_dir)
     elif application == 'canica': # group ICA (4D sources)
-        plotter = CanICAResultsPlotter(ica_result)
+        plotter = CanICAResultsPlotter(ica_result_dir)
     else:
         raise NotImplementedError('Got no ICAResultsPlotter for application {}.'.format(application))
 
@@ -164,11 +188,11 @@ class ICAResultsPlotter(object):
         icc_multi_slice = op.join(self.ica_dir, 'ic_map_{}_zscore_{}.{}')
 
         # make the plots
-        fig1 = plot_canica_components(self._icc_imgs, **kwargs)
-        fig1.savefig(iccs_plot_f, facecolor=fig1.get_facecolor(), edgecolor='none')
+        #fig1 = plot_ica_components(self._icc_imgs, **kwargs)
+        #fig1.savefig(iccs_plot_f, facecolor=fig1.get_facecolor(), edgecolor='none')
 
-        fig2 = plot_all_components(self._icc_imgs, **kwargs)
-        fig2.savefig(all_icc_plot_f, facecolor=fig2.get_facecolor(), edgecolor='none')
+        #fig2 = plot_all_components(self._icc_imgs, **kwargs)
+        #fig2.savefig(all_icc_plot_f, facecolor=fig2.get_facecolor(), edgecolor='none')
 
         # make the multi sliced IC plots
         sliced_ic_plots = []
@@ -177,10 +201,12 @@ class ICAResultsPlotter(object):
                                      cut_dir="z",
                                      n_cuts=24,
                                      n_cols=4,
-                                     title="IC map {} (z-score {})".format(i+1, self.zscore),
+                                     title="IC {}\n(z-score {})".format(i+1, self.zscore),
                                      title_fontsize=32,
                                      plot_func=None,
                                      **kwargs)
+
+            # prepare the output file name/path
             out_f = icc_multi_slice.format(i+1, self.zscore, outtype)
             fig3.savefig(out_f, facecolor=fig3.get_facecolor(), edgecolor='none')
             sliced_ic_plots.append(out_f)
@@ -257,9 +283,11 @@ class MIALABICAResultsPlotter(ICAResultsPlotter):
         """ Load the .mat file with subjects lists, mainly to get the order in
         which subjects are introduced in the other matrices.
         """
-        subjsf   = glob(op.join(self.ica_dir, self._subjects_fname))[0]
-        in_files = list(sio.loadmat(subjsf)['files'][0][0][0])
-        return in_files
+        from itertools import chain
+
+        subjsf   = fetch_one_file(self.ica_dir, self._subjects_fname)
+        mat_file = sio.loadmat(subjsf)['files']
+        return [f.strip() for f in list(chain.from_iterable(chain.from_iterable(chain.from_iterable(mat_file))))]
 
     def _get_subject_ids(self, subjid_pat):
         """ Return the list of subject ids parsed from the file paths present in the Subjects.mat file.
@@ -337,10 +365,10 @@ class GIFTICAResultsPlotter(MIALABICAResultsPlotter):
                                                                         comps_img.get_data().shape))
 
         # check shapes
-        if n_timepoints != tcs_img.shape[0]:
-            raise AttributeError('Shape mismatch between list of subjects {} '
-                                 'and timecourses data shape {}.'.format(n_timepoints,
-                                                                         tcs_img.shape))
+        #if n_timepoints != tcs_img.shape[0]:
+        #    raise AttributeError('Shape mismatch between list of subjects {} '
+        #                         'and timecourses data shape {}.'.format(n_timepoints,
+        #                                                                 tcs_img.shape))
 
     def _load_timecourses(self):
         """ Return the timecourses image file and checks if the shape is correct."""
