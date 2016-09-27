@@ -188,11 +188,11 @@ class ICAResultsPlotter(object):
         icc_multi_slice = op.join(self.ica_dir, 'ic_map_{}_zscore_{}.{}')
 
         # make the plots
-        #fig1 = plot_ica_components(self._icc_imgs, **kwargs)
-        #fig1.savefig(iccs_plot_f, facecolor=fig1.get_facecolor(), edgecolor='none')
+        fig1 = plot_ica_components(self._icc_imgs, **kwargs)
+        fig1.savefig(iccs_plot_f, facecolor=fig1.get_facecolor(), edgecolor='none')
 
-        #fig2 = plot_all_components(self._icc_imgs, **kwargs)
-        #fig2.savefig(all_icc_plot_f, facecolor=fig2.get_facecolor(), edgecolor='none')
+        fig2 = plot_all_components(self._icc_imgs, **kwargs)
+        fig2.savefig(all_icc_plot_f, facecolor=fig2.get_facecolor(), edgecolor='none')
 
         # make the multi sliced IC plots
         sliced_ic_plots = []
