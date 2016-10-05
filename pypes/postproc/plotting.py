@@ -12,7 +12,7 @@ import re
 import scipy.io           as sio
 from   boyle.nifti.utils  import filter_icc
 from   nilearn.image      import iter_img
-from   nilearn.masking      import apply_mask
+from   nilearn.masking    import apply_mask
 
 from .ica_loadings import (filter_ics,
                            get_largest_blobs,

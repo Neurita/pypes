@@ -183,3 +183,11 @@ def fetch_one_file(dirpath, file_pattern, extra_prefix=None):
             return fetch_one_file(dirpath, extra_prefix + file_pattern)
 
     return files[0]
+
+
+def save_object(obj, filename):
+    """ Save `obj` in `filename` as a pickle."""
+    import pickle
+
+    with open(filename, 'wb') as output:
+        pickle.dump(obj, output, pickle.HIGHEST_PROTOCOL)
