@@ -166,7 +166,15 @@ def spatial_maps_correlations(rsn_imgs, ic_imgs, mask_file):
             dist = pairwise_distances(rsn_masked.reshape(1, -1),
                                        ic_masked.reshape(1, -1),
                                       'correlation')
-            corrs[rsn_idx, ic_idx] = 1 - dist
+
+            # since this is a scalar value
+            dist = dist[0][0]
+
+            # since this is a distance based on correlation, not a correlation value
+            corr = 1 - dist
+
+            # store it
+            corrs[rsn_idx, ic_idx] = corr
 
     return corrs
 
