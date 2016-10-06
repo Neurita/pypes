@@ -189,6 +189,64 @@ def afni_deoblique(in_file=traits.Undefined, out_file=traits.Undefined, out_type
     return deob
 
 
+def spm_warp_to_mni(wf_name="spm_warp_to_mni"):
+    """ Run Gunzip and SPM Normalize12 to the list of files input and outputs the list of warped files.
+
+    It does:
+    - Warp each individual input image to the standard SPM template
+
+    Parameters
+    ----------
+    wf_name: str
+        Name of the workflow.
+
+    Nipype Inputs
+    -------------
+    warp_input.in_files: list of traits.File
+        The raw NIFTI_GZ image files
+
+    Nipype outputs
+    --------------
+    warp_output.warped_files: list of existing file
+        The warped files.
+
+    Returns
+    -------
+    wf: nipype Workflow
+    """
+    # input
+    # check if spm_pet_preproc.do_petpvc is True
+    in_fields  = ["in_files"]
+    out_fields = ["warped_files"]
+
+    input = setup_node(IdentityInterface(fields=in_fields, mandatory_inputs=True),
+                       name="warp_input",)
+
+    gunzip = pe.MapNode(Gunzip(), name="gunzip", iterfield=['in_file'])
+
+    warp = setup_node(spm.Normalize12(jobtype='estwrite',
+                                      affine_regularization_type='mni'),
+                      name="normalize12")
+
+    # output
+    output = setup_node(IdentityInterface(fields=out_fields),
+                        name="warp_output")
+
+    # Create the workflow object
+    wf = pe.Workflow(name=wf_name)
+
+    wf.connect([
+                # inputs
+                (input,   gunzip, [("in_files", "in_file")]),
+                (gunzip,  warp,   [("out_file", "image_to_align")]),
+
+                # output
+                (warp,    output, [("normalized_image", "warped_files")]),
+               ])
+
+    return wf
+
+
 def spm_create_group_template_wf(wf_name="spm_create_group_template"):
     """ Pick all subject files in `grptemplate_input.in_files`, calculate an average
     image and smooth it with `"{}_smooth".format(wf_name)` node (you can configure the smooth `fwhm` from

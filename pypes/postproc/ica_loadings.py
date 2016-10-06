@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Helper class to run MIALAB gift in batch mode and process its results.
+Helper functions to read, threshold, and build IC loadings results.
 """
 import pandas               as pd
 import nilearn.image        as niimg
