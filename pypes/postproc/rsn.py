@@ -128,9 +128,11 @@ class RestingStateNetworks:
         return len(self.network_names)
 
 
-def spatial_maps_correlations(rsn_imgs, ic_imgs, mask_file):
-    """ Correlation values of each RSN to each IC map in `ic_imgs`
-    masked by `mask_file`.
+def spatial_maps_pairwise_similarity(rsn_imgs, ic_imgs, mask_file, distance='correlation'):
+    """ Similarity values of each RSN to each IC map in `ic_imgs` masked by `mask_file`.
+    These values are based on distance metrics, specified by `distance` argument.
+    The resulting similarity value is the complementary value of the distance,
+    i.e., '1 - <distance value>'.
 
     Parameters
     ----------
@@ -139,6 +141,15 @@ def spatial_maps_correlations(rsn_imgs, ic_imgs, mask_file):
     ic_imgs: list of niimg-like or 4D niimg-like
 
     mask_file: niimg-like
+
+    distance: str
+        Valid values for metric are:
+        From scikit-learn: ['cityblock', 'cosine', 'euclidean', 'l1', 'l2', 'manhattan'].
+        From scipy.spatial.distance: ['braycurtis', 'canberra', 'chebyshev', 'correlation', 'dice', 'hamming',
+                                      'jaccard', 'kulsinski', 'mahalanobis', 'matching', 'minkowski',
+                                      'rogerstanimoto', 'russellrao', 'seuclidean', 'sokalmichener', 'sokalsneath',
+                                      'sqeuclidean', 'yule']
+                                      See the documentation for scipy.spatial.distance for details on these metrics.
 
     Returns
     -------
@@ -165,7 +176,7 @@ def spatial_maps_correlations(rsn_imgs, ic_imgs, mask_file):
             ic_masked = nimask.apply_mask(ic, mask_trnsf)
             dist = pairwise_distances(rsn_masked.reshape(1, -1),
                                        ic_masked.reshape(1, -1),
-                                      'correlation')
+                                      metric=distance)
 
             # since this is a scalar value
             dist = dist[0][0]
