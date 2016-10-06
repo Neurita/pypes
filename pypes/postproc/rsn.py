@@ -162,8 +162,10 @@ def spatial_maps_correlations(rsn_imgs, ic_imgs, mask_file):
         rsn_masked = nimask.apply_mask(rsn_transf, mask_trnsf)
 
         for ic_idx, ic in enumerate(niimg.iter_img(ic_img)):
-            ic_masked  = nimask.apply_mask(ic, mask_trnsf)
-            dist = pairwise_distances(rsn_masked, ic_masked, 'correlation')
+            ic_masked = nimask.apply_mask(ic, mask_trnsf)
+            dist = pairwise_distances(rsn_masked.reshape(1, -1),
+                                       ic_masked.reshape(1, -1),
+                                      'correlation')
             corrs[rsn_idx, ic_idx] = 1 - dist
 
     return corrs
@@ -174,7 +176,9 @@ def spatial_maps_goodness_of_fit(rsn_imgs, ic_imgs, mask_file, rsn_thr=4.0):
 
     Parameters
     ----------
-    ic_imgs: list of niimg-like
+    rsn_imgs: list of niimg-like or 4D niimg-like
+
+    ic_imgs: list of niimg-like or 4D niimg-like
 
     mask_file: niimg-like
 
@@ -182,7 +186,9 @@ def spatial_maps_goodness_of_fit(rsn_imgs, ic_imgs, mask_file, rsn_thr=4.0):
 
     Returns
     -------
-    gof_df: pandas.DataFrame
+    gof_df: np.ndarray
+        A matrix of shape MxN, where M is len(rsn_imgs) and N is len(ic_imgs).
+        It contains the goodness-of-fit values.
 
     Notes
     -----
@@ -220,17 +226,18 @@ def spatial_maps_goodness_of_fit(rsn_imgs, ic_imgs, mask_file, rsn_thr=4.0):
         rsn_brain_mask = niimg.resample_to_img(mask_file, rsn,
                                                interpolation='nearest')
 
-        rsn_vol = np.zeros_like(rsn.shape, dtype=int)
+        ref_vol = rsn.get_data()
+        rsn_vol = np.zeros(rsn.shape, dtype=int)
         #rsn_in  = niimg.math_img('np.abs(img) > 0', img=rsn)
         rsn_in = rsn_vol.copy()
-        rsn_in[np.abs(rsn) > 0] = 1
+        rsn_in[np.abs(ref_vol) > 0] = 1
 
         #rsn_out = niimg.math_img('img == 0', img=rsn)
         rsn_out = rsn_vol.copy()
-        rsn_out[rsn == 0] = 1
+        rsn_out[ref_vol == 0] = 1
 
         #rsn_out = niimg.math_img('mask * img', mask=rsn_brain_mask, img=rsn_out)
-        rsn_out = rsn_brain_mask.get_data() * rns_out
+        rsn_out = rsn_brain_mask.get_data() * rsn_out
 
         # convert the mask arrays to image in order to resample
         rsn_in  = niimg.new_img_like(rsn, rsn_in)
@@ -272,7 +279,7 @@ def spatial_maps_goodness_of_fit(rsn_imgs, ic_imgs, mask_file, rsn_thr=4.0):
     return gofs
 
 
-def label_pairwise_measure(values, axis0_labels, axis1_labels):
+def label_pairwise_measure(values, axis0_labels, axis1_labels, **kwargs):
     """ Return a pandas.DataFrame with the content of `values`.
     This DataFrame will have each row labeled by `axis0_labels`, and
     each column by `axis1_labels`.
@@ -290,6 +297,10 @@ def label_pairwise_measure(values, axis0_labels, axis1_labels):
     axis1_labels: array or any type
         This will be used as column in the DataFrame construction.
 
+    kwargs: keyword arguments
+        Additional columns to be added to the resulting DataFrame.
+        The argument names are the column name and the values must be sequences of length M.
+
     Returns
     -------
     labeled_measure: pandas.DataFrame
@@ -299,7 +310,15 @@ def label_pairwise_measure(values, axis0_labels, axis1_labels):
     My previous solution was more complex and I had this function
     prepared before realizing this was ridiculously simple.
     """
-    return pd.DataFrame(values, index=axis0_labels, columns=axis1_labels)
+    df = pd.DataFrame(values, index=axis0_labels, columns=axis1_labels)
+
+    for k, v in kwargs.items():
+        if len(v) != len(axis0_labels):
+            raise AttributeError('The value for argument {} should have length {} but has '
+                                 'length {}.'.format(k, len(axis0_labels), len(v)))
+        df[k] = v
+
+    return df
 
 
 def nd_vector_correlations(data, vector, n=4):
