@@ -8,7 +8,7 @@ from   nipype.algorithms.misc    import Gunzip
 from   nipype.interfaces         import spm, fsl
 from   nipype.interfaces.utility import Function, Merge, IdentityInterface
 
-from   .._utils  import format_pair_list, flatten_list
+from   .._utils  import format_pair_list
 from   ..config  import setup_node
 from   ..preproc import (spm_normalize,
                          get_bounding_box,
@@ -123,23 +123,6 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", register_to_grptemplate=False):
                                    output_names=["bbox"]),
                           name="tpm_bbox")
 
-    # do template
-    if register_to_grptemplate:
-        gunzip_template = setup_node(Gunzip(), name="gunzip_template",)
-        warp = setup_node(spm.Normalize(jobtype="estwrite", out_prefix="wgrptmpl_"),
-                          name="fmri_grptemplate_warp",)
-        warp_source_arg    = "source"
-        warp_outsource_arg = "normalized_source"
-        warp_field_arg     = "normalization_parameters"
-
-    else:
-        # do MNI
-        warp = setup_node(spm_normalize(), name="fmri_warp")
-        tpm_bbox.inputs.in_file = spm_tpm_priors_path()
-        warp_source_arg    = "image_to_align"
-        warp_outsource_arg = "normalized_image"
-        warp_field_arg     = "deformation_field"
-
     # smooth
     # smooth = setup_node(Function(function=smooth_img,
     #                              input_names=["in_file", "fwhm"],
@@ -154,7 +137,43 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", register_to_grptemplate=False):
     rest_output = setup_node(IdentityInterface(fields=out_fields),
                              name="wfmri_output")
 
+    # register to group template
+    if register_to_grptemplate:
+        gunzip_template = setup_node(Gunzip(), name="gunzip_template",)
+        warp = setup_node(spm.Normalize(jobtype="estwrite", out_prefix="wgrptmpl_"),
+                          name="fmri_grptemplate_warp",)
+        warp_source_arg    = "source"
+        warp_outsource_arg = "normalized_source"
+        warp_field_arg     = "normalization_parameters"
+
+        wf.connect([
+                    # warp source file
+                    (in_gunzip,       warp,             [("out_file",  warp_source_arg)]),
+
+                    # unzip and forward the template file
+                    (wfmri_input,     gunzip_template,  [("epi_template", "in_file")]),
+                    (gunzip_template, warp,             [("out_file",     "template")]),
+
+                    # get template bounding box to apply to results
+                    (wfmri_input,      tpm_bbox,        [("epi_template", "in_file")]),
+        ])
+
+    else:
+        # register to standard template
+        warp = setup_node(spm_normalize(), name="fmri_warp")
+        tpm_bbox.inputs.in_file = spm_tpm_priors_path()
+        warp_source_arg    = "image_to_align"
+        warp_outsource_arg = "normalized_image"
+        warp_field_arg     = "deformation_field"
+
+
     anat2fmri = False
+    if anat2fmri:
+        wf.connect([
+                    # warp source file
+                    (wfmri_input, warp,   [("anat_fmri",  warp_source_arg)]),
+                   ])
+
     if anat2fmri or register_to_grptemplate:
         # prepare the inputs
         wf.connect([
@@ -181,12 +200,6 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", register_to_grptemplate=False):
                                             ]),
 
                    ])
-
-        if not register_to_grptemplate:
-            wf.connect([
-                        # warp source file
-                        (wfmri_input, warp,   [("anat_fmri",  warp_source_arg)]),
-                       ])
 
     else: # FMRI to ANAT
         coreg       = setup_node(spm_coregister(cost_function="mi"), name="coreg_fmri")
@@ -231,19 +244,6 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", register_to_grptemplate=False):
                     (coreg, rest_output, [("coregistered_source", "coreg_src")]),
                     (coreg, rest_output, [("coregistered_files",  "coreg_others")]),
                    ])
-
-    if register_to_grptemplate:
-        wf.connect([
-                    # warp source file
-                    (in_gunzip,       warp,             [("out_file",  warp_source_arg)]),
-
-                    # unzip and forward the template file
-                    (wfmri_input,     gunzip_template,  [("epi_template", "in_file")]),
-                    (gunzip_template, warp,             [("out_file",     "template")]),
-
-                    # get template bounding box to apply to results
-                    (wfmri_input,      tpm_bbox,        [("epi_template", "in_file")]),
-        ])
 
 
     # smooth and sink

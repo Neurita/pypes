@@ -2,8 +2,7 @@
 """
 Resting state networks post-hoc analysis functions.
 """
-import os.path as op
-from collections import OrderedDict, defaultdict
+from collections import OrderedDict
 import itertools
 
 import numpy as np
@@ -11,27 +10,13 @@ import pandas as pd
 import nilearn.plotting as niplot
 import nilearn.masking as nimask
 import nilearn.image as niimg
-from sklearn.metrics.pairwise import pairwise_distances
+from   sklearn.metrics.pairwise import pairwise_distances
+from   boyle.nifti.utils import spatial_map
 
-from boyle.more_collections import DefaultOrderedDict
-
-<<<<<<< HEAD
 
 class RestingStateNetworks:
     """ A container class to parse and return useful values/images
     from RSN templates.
-=======
-from collections import OrderedDict, defaultdict
-from boyle.more_collections import DefaultOrderedDict
-
-from scipy.stats import pearsonr
-import nilearn.image as niimg
-import pandas as pd
-
-
-class RestingNetworksTemplates:
-    """ A class to parse and return useful values from RSN templates.
->>>>>>> f3a7f7e370c255489c5e096b3f15a90269aa8c73
 
     Parameters
     ----------
@@ -51,12 +36,7 @@ class RestingNetworksTemplates:
         Default-Mode, 50, 53, 25, 68
         Attentional, 34, 60, 52, 72, 71, 55
         Frontal, 42, 20, 47, 49
-<<<<<<< HEAD
 
-=======
-        
-      
->>>>>>> f3a7f7e370c255489c5e096b3f15a90269aa8c73
     start_from_one: bool
         If True it means that the `txt_file` volume indices start from 1.
         From 0 otherwise. Be careful, the default is True!
@@ -69,7 +49,6 @@ class RestingNetworksTemplates:
         self.network_names = self._network_names()
         self._img          = niimg.load_img(self._img_file)
         self._self_check()
-<<<<<<< HEAD
 
     def iter_networks(self):
         """Yield idx (what is in the text_file) and
@@ -86,40 +65,27 @@ class RestingNetworksTemplates:
 
     def _get_img(self, network_index):
         """ Return one RSN given the index in the labels file."""
-        img_idx = self._get_img_index(network_index)
+        img_idx = self._img_index(network_index)
         return niimg.index_img(self._img, img_idx)
 
-    def _get_img_index(self, network_index):
+    def _img_index(self, network_index):
         """Return the correspoding image index for the given network index."""
         if self._start_from_one:
             return network_index - 1
 
         return network_index
 
-=======
-    
-    def iter_rsns(self):
-        """ Yield name and image of each RSN volume from the text file."""
-        for idx, name in self.network_names.items():
-            yield name, niimg.index_img(self.img, idx)
-    
-    def _network_names(self):
-        names_idx = self._updt_networks_blob_idx()
-        return OrderedDict([(idx, name) for name, idxs in names_idx.items() for idx in idxs])
-      
->>>>>>> f3a7f7e370c255489c5e096b3f15a90269aa8c73
     def _self_check(self):
         """Simple content check."""
         n_labels = len(self.network_names)
-        n_images = self.img.shape[3]
+        n_images = self._img.shape[-1]
 
         if n_labels == n_images:
             return
 
-<<<<<<< HEAD
         if n_labels > n_images:
             raise ValueError('The number of labels is larger than the number '
-                             'of images. Got {} and {}.'.format())
+                             'of images. Got {} and {}.'.format(n_labels, n_images))
 
         # print('The number of volumes in the image is different from the number '
         #       'of labels in the text file.\n I am going to use only the ones '
@@ -129,14 +95,7 @@ class RestingNetworksTemplates:
         """ Read the text file and return a dict[str->List[int]] with network
         names and blob indices.
         """
-=======
-        print('The number of volumes in the image is different from the number of labels in the text file.\n'
-              'I am going to use only the ones in the text file.')
-    
-    def _updt_networks_blob_idx(self):
-        """ Read the text file and return a dict[str->List[int]] with network names and blob indices."""
->>>>>>> f3a7f7e370c255489c5e096b3f15a90269aa8c73
-        lines = [l.strip() for l in open(self._txt_file).readlines()]
+        lines = [l.rstrip('\n') for l in open(self._txt_file).readlines()]
         
         netblobs = OrderedDict()
         for l in lines:
@@ -148,7 +107,6 @@ class RestingNetworksTemplates:
         return netblobs
 
     def plot_all(self):
-<<<<<<< HEAD
         names = self.network_names
         for idx, rsn in enumerate(niimg.iter_img(self._img)):
             disp = niplot.plot_roi(rsn, title=names.get(idx, None))
@@ -193,7 +151,7 @@ def spatial_maps_correlations(rsn_imgs, ic_imgs, mask_file):
 
     n_rsns = rsn_img.shape[-1]
     n_ics  =  ic_img.shape[-1]
-    corrs = np.zeros((n_rsns, n_ics), type=float)
+    corrs = np.zeros((n_rsns, n_ics), dtype=float)
 
     mask_trnsf = niimg.resample_to_img(mask_file, niimg.index_img(ic_img, 0),
                                        interpolation='nearest',
@@ -205,8 +163,8 @@ def spatial_maps_correlations(rsn_imgs, ic_imgs, mask_file):
 
         for ic_idx, ic in enumerate(niimg.iter_img(ic_img)):
             ic_masked  = nimask.apply_mask(ic, mask_trnsf)
-            r, p = pearsonr(rsn_masked, ic_masked)
-            corrs[rsn_idx, ic_idx] = r
+            dist = pairwise_distances(rsn_masked, ic_masked, 'correlation')
+            corrs[rsn_idx, ic_idx] = 1 - dist
 
     return corrs
 
@@ -244,7 +202,7 @@ def spatial_maps_goodness_of_fit(rsn_imgs, ic_imgs, mask_file, rsn_thr=4.0):
 
     n_rsns = rsn_img.shape[-1]
     n_ics  =  ic_img.shape[-1]
-    gofs   = np.zeros((n_rsns, n_ics), type=float)
+    gofs   = np.zeros((n_rsns, n_ics), dtype=float)
 
     # threshold the RSN templates
     if rsn_thr > 0:
@@ -254,8 +212,8 @@ def spatial_maps_goodness_of_fit(rsn_imgs, ic_imgs, mask_file, rsn_thr=4.0):
         thr_rsns = rsn_img
 
     # for each RSN template and IC image
-    iter_rsn_ic = itertools.product(enumerate(niimg.iter_img(rsn_img)),
-                                    enumerate(niimg.iter_img( ic_img)))
+    iter_rsn_ic = itertools.product(enumerate(niimg.iter_img(thr_rsns)),
+                                    enumerate(niimg.iter_img( ic_img )))
 
     for (rsn_idx, rsn), (ic_idx, ic) in iter_rsn_ic:
         # prepare the RSN masks
@@ -386,137 +344,7 @@ def nd_vector_correlations(data, vector, n=4):
 #     corrs = _4d_vector_correlations(img.get_data(), ic)
 #
 #     return niimg.new_img_like(img, corrs)
-=======
-        names = rsns.network_names
-        for idx, rsn in enumerate(niimg.iter_img(rsns.img)):
-            disp = niplot.plot_roi(rsn, title=names.get(idx, None))     
- 
-    def _joined_rsn_blobs(self, indices):
-        """ Return a NiftiImage containing a merge of the RSN blobs indexed by `indices`."""
-        rsn_img = niimg.load_img(self._img_file)
-        oimg = niimg.index_img(rsn_img, indices[0])
-        for idx in indices[1:]:
-            oimg = niimg.math_img('oimg + next', oimg=oimg, next=niimg.index_img(rsn_img, idx))
-      
-        return niimg.math_img('oimg.astype(bool)', oimg=oimg)
 
-    def correlations(self, ic_imgs, mask_file):
-        """ Correlation values of each RSN to each IC map in `ic_imgs` masked by `mask_file`.
-        
-        Parameters
-        ----------
-        ic_imgs: list of niimg-like
-        
-        mask_file: niimg-like
-        
-        Returns
-        -------
-        corrs_df: pandas.DataFrame
-        """
-        correlations = DefaultOrderedDict(dict)
 
-        n_ics = ic_imgs.shape[-1]
-        mask_trnsf = niimg.resample_to_img(mask_file, niimg.index_img(ic_imgs, 0), interpolation='nearest',
-                                           copy=True)
-
-        for rsn_idx, (name, rsn) in enumerate(self.iter_rsns()):
-            rsn_transf = niimg.resample_to_img(rsn, niimg.index_img(ic_imgs, 0), copy=True)
-            rsn_masked = nimask.apply_mask(rsn_transf, mask_trnsf)
-
-            for ic_idx, ic in enumerate(niimg.iter_img(ic_imgs)):
-                ic_masked  = nimask.apply_mask(ic, mask_trnsf)
-                r, p = pearsonr(rsn_masked, ic_masked)
-                correlations[ic_idx+1][rsn_idx] = r
-
-        corrs_df = pd.DataFrame.from_dict(correlations)
-
-        corrs_df['IC']  = allens.network_names.keys()
-        corrs_df['IC']  = corrs_df['IC'] + 1
-
-        corrs_df['RSN'] = allens.network_names.values()      
-        
-        return corrs_df
-    
-    def goodness_of_fit(self, ic_imgs, mask_file, rsn_thr=4.0):
-        """ Goodness-of-fit values described as in Zhou et al., 2010, Brain.
-        
-        Parameters
-        ----------
-        ic_imgs: list of niimg-like
-        
-        mask_file: niimg-like
-        
-        rsn_thr: float
-        
-        Returns
-        -------
-        gof_df: pandas.DataFrame
-
-        Notes
-        -----
-        These ICN templates were thresholded at a z-score 4.0 to be visually comparable to the
-        consistent ICNs published by Damoiseaux et al. (2006). A minor modification of previous
-        goodness-of-fit methods (Seeley et al., 2007b, 2009) was included here for template 
-        matching, with goodness-of-fit scores calculated by multiplying 
-        (i) the average z-score difference between voxels falling within the template and
-        voxels falling outside the template; and 
-        (ii) the difference in the percentage of positive z-score voxels inside and outside the template.
-        
-        This goodness-of-fit algorithm proves less vulnerable to inter-subject variability in shape, 
-        size, location and strength of each ICN.
-        """
-        gofs = DefaultOrderedDict(dict)
-
-        # threshold the RSN templates
-        if rsn_thr > 0:
-            thr_rsns = [(name, spatial_map(rsn, thr=rsn_thr, mode='+-')) for name, rsn in self.iter_rsns()]       
-        else:
-            thr_rsns = self.iter_rsns()
-        
-        # for each RSN template
-        for rsn_idx, (name, rsn) in enumerate(thr_rsns):          
-           
-            # for each IC map
-            for ic_idx, ic in enumerate(niimg.iter_img(ic_imgs)):
-
-                subj_ic = filter_icc(ic, thr=rsn_thr, mask=mask_file)
-
-                # prepare the RSN masks
-                rsn_brain_mask = niimg.resample_to_img(mask_file, rsn, interpolation='nearest')
-                rsn_in  = niimg.math_img('np.abs(img) > 0', img=rsn)
-                rsn_out = niimg.math_img('img == 0',        img=rsn)
-
-                rsn_out = niimg.math_img('mask * img', mask=rsn_brain_mask, img=rsn_out)
-
-                rsn_in  = niimg.resample_to_img(rsn_in,  subj_ic, interpolation='nearest')
-                rsn_out = niimg.resample_to_img(rsn_out, subj_ic, interpolation='nearest')
-
-                # apply the mask
-                zscore_in  = niimg.math_img('mask * img', mask=rsn_in,  img=subj_ic).get_data()
-                zscore_out = niimg.math_img('mask * img', mask=rsn_out, img=subj_ic).get_data()
-
-                #gof_term1
-                # calculate the the average z-score difference between voxels falling 
-                # within the template and voxels falling outside the template
-                gof_term1  = zscore_in.mean() - zscore_out.mean()
-
-                #gof_term2
-                # the difference in the percentage of positive z-score voxels inside and outside the template.
-                n_pos_zscore_in  = np.sum(zscore_in  > 0)
-                n_pos_zscore_out = np.sum(zscore_out > 0)
-                n_pos_zscore_tot = n_pos_zscore_in + n_pos_zscore_out
-                
-                if n_pos_zscore_tot != 0:
-                    n_pos_zscore_pcnt = 100 / n_pos_zscore_tot
-                    gof_term2 = (n_pos_zscore_in - n_pos_zscore_out) * n_pos_zscore_pcnt
-                else:
-                    gof_term2 = 0
-                
-                # global gof
-                gof = gof_term1 * gof_term2
-
-                # add the result
-                gofs[ic_idx+1][rsn_idx] = gof
-        
-        return gofs
->>>>>>> f3a7f7e370c255489c5e096b3f15a90269aa8c73
+# corrs_df = label_pairwise_measure(correlations, allens.network_names.keys(),
+#                                   allens.network_names.values())
