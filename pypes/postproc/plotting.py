@@ -234,8 +234,8 @@ class MIALABICAResultsPlotter(ICAResultsPlotter):
         Path to the ICA output folder or the ICA components volume file.
     """
     # define the input file patterns
-    _comps_fname     = '*_component_ica*.nii'
-    _loadings_fname  = '*_loading_coeff*nii'
+    _comps_fname     = '*_component_ica*'
+    _loadings_fname  = '*_loading_coeff*'
     _subjects_fname  = '*Subject.mat'
     _mask_fname      = '*Mask.hdr'
 
@@ -272,12 +272,15 @@ class MIALABICAResultsPlotter(ICAResultsPlotter):
 
     def _load_components(self):
         """ Return components image file and check shape match."""
-        compsf = fetch_one_file(self.ica_dir, self._comps_fname, extra_prefix='*tmap')
+        compsf = self._fetch_components_file()
         comps_img = niimg.load_img(compsf)
         return comps_img
 
     def _fetch_components_file(self):
-        return fetch_one_file(self.ica_dir, self._comps_fname, extra_prefix='*tmap')
+        return fetch_one_file(self.ica_dir, self._comps_fname,
+                              file_extension='.nii',
+                              extra_prefix='*mean',
+                              extra_suffix='_s_all*')
 
     def _get_subject_files(self):
         """ Load the .mat file with subjects lists, mainly to get the order in
@@ -437,7 +440,7 @@ class SBMICAResultsPlotter(MIALABICAResultsPlotter):
         Path to the ICA output folder or the ICA components volume file.
     """
     def _load_loadings(self):
-        loadf = fetch_one_file(self.ica_dir, self._loadings_fname)
+        loadf = fetch_one_file(self.ica_dir, self._loadings_fname, file_extension='.nii')
         loads = niimg.load_img(loadf).get_data()
         return loads
 
