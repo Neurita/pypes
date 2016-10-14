@@ -9,40 +9,74 @@ from docstamp.commands import call_command
 
 template_file = 'rsn_multiple_regressions_template.m'
 
-rsn_atlas_file = '/home/alexandre/data/std_brains/resting_state/allen/baseline/ALL_HC_unthresholded_tmaps_resampled.nii'
+# rsn_atlas_file = '/home/alexandre/data/std_brains/resting_state/allen/baseline/ALL_HC_unthresholded_tmaps_resampled.nii'
+# allen_rsn_idx = \
+# [['Basal_Ganglia_21', 21],
+#  ['Auditory_17',      17],
+#  ['Sensorimotor_7',    7],
+#  ['Sensorimotor_23',  23],
+#  ['Sensorimotor_24',  24],
+#  ['Sensorimotor_38',  38],
+#  ['Sensorimotor_56',  56],
+#  ['Sensorimotor_29',  29],
+#  ['Visual_46',        46],
+#  ['Visual_64',        64],
+#  ['Visual_67',        67],
+#  ['Visual_48',        48],
+#  ['Visual_39',        39],
+#  ['Visual_59',        59],
+#  ['Default_Mode_50',  50],
+#  ['Default_Mode_53',  53],
+#  ['Default_Mode_25',  25],
+#  ['Default_Mode_68',  68],
+#  ['Attentional_34',   34],
+#  ['Attentional_60',   60],
+#  ['Attentional_52',   52],
+#  ['Attentional_72',   72],
+#  ['Attentional_71',   71],
+#  ['Attentional_55',   55],
+#  ['Frontal_42',       42],
+#  ['Frontal_20',       20],
+#  ['Frontal_47',       47],
+#  ['Frontal_49',       49]]
+
+rsn_atlas_file = '/home/alexandre/data/thomas/ica_out/8mm/fmri_no-grptemplate_noWMcor_30ICs/_mean_component_ica_s_all_.nii'
 allen_rsn_idx = \
-[['Basal_Ganglia_21', 21],
- ['Auditory_17',      17],
- ['Sensorimotor_7',    7],
- ['Sensorimotor_23',  23],
- ['Sensorimotor_24',  24],
- ['Sensorimotor_38',  38],
- ['Sensorimotor_56',  56],
- ['Sensorimotor_29',  29],
- ['Visual_46',        46],
- ['Visual_64',        64],
- ['Visual_67',        67],
- ['Visual_48',        48],
- ['Visual_39',        39],
- ['Visual_59',        59],
- ['Default_Mode_50',  50],
- ['Default_Mode_53',  53],
- ['Default_Mode_25',  25],
- ['Default_Mode_68',  68],
- ['Attentional_34',   34],
- ['Attentional_60',   60],
- ['Attentional_52',   52],
- ['Attentional_72',   72],
- ['Attentional_71',   71],
- ['Attentional_55',   55],
- ['Frontal_42',       42],
- ['Frontal_20',       20],
- ['Frontal_47',       47],
- ['Frontal_49',       49]]
+[["IC_1", 1],
+["IC_2", 2],
+["IC_3", 3],
+["IC_4", 4],
+["IC_5", 5],
+["IC_6", 6],
+["IC_7", 7],
+["IC_8", 8],
+["IC_9", 9],
+["IC_10", 10],
+["IC_11", 11],
+["IC_12", 12],
+["IC_13", 13],
+["IC_14", 14],
+["IC_15", 15],
+["IC_16", 16],
+["IC_17", 17],
+["IC_18", 18],
+["IC_19", 19],
+["IC_20", 20],
+["IC_21", 21],
+["IC_22", 22],
+["IC_23", 23],
+["IC_24", 24],
+["IC_25", 25],
+["IC_26", 26],
+["IC_27", 27],
+["IC_28", 28],
+["IC_29", 29],
+["IC_30", 30],]
+
 
 output_dir     = '/home/alexandre/data/thomas/ica_out/8mm/fmri_no-grptemplate_noWMcor_30ICs/'
 ica_param_file = '/home/alexandre/data/thomas/ica_out/8mm/fmri_no-grptemplate_noWMcor_30ICs/_ica_parameter_info.mat'
-zscore_thr     = 2
+zscore_thr     = 1
 
 n_cpus = 2
 

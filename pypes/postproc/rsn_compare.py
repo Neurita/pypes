@@ -24,10 +24,10 @@ class RestingStateNetworks:
 
     txt_file: str
         Path to a text file with the labels for `img_file`.
-        The expected structure of each line of 
+        The expected structure of each line of
         this file is  <name of the RSN>, <list of indices>.
         For example:
-        
+
         Basal Ganglia, 21
         Auditory, 17
         Sensorimotor, 7, 23, 24, 38, 56, 29
@@ -44,7 +44,7 @@ class RestingStateNetworks:
         self._img_file       = img_file
         self._txt_file       = txt_file
         self._start_from_one = start_from_one
-        
+
         self.network_names = self._network_names()
         self._img          = niimg.load_img(self._img_file)
         self._self_check()
@@ -101,7 +101,7 @@ class RestingStateNetworks:
         names and blob indices.
         """
         lines = [l.rstrip('\n') for l in open(self._txt_file).readlines()]
-        
+
         netblobs = OrderedDict()
         for l in lines:
             pcs = l.split(',')
@@ -148,7 +148,7 @@ def spatial_maps_pairwise_similarity(rsn_imgs, ic_imgs, mask_file, distance='cor
     mask_file: niimg-like
 
     distance: str
-        Valid values for metric are:
+        Valid values for `distance` are:
         From scikit-learn: ['cityblock', 'cosine', 'euclidean', 'l1', 'l2', 'manhattan'].
         From scipy.spatial.distance: ['braycurtis', 'canberra', 'chebyshev', 'correlation', 'dice', 'hamming',
                                       'jaccard', 'kulsinski', 'mahalanobis', 'matching', 'minkowski',
@@ -216,7 +216,7 @@ def spatial_maps_goodness_of_fit(rsn_imgs, ic_imgs, mask_file, rsn_thr=4.0):
 
     Notes
     -----
-    These ICN templates were thresholded at a z-score 4.0 to be visually comparable to the
+    "These ICN templates were thresholded at a z-score 4.0 to be visually comparable to the
     consistent ICNs published by Damoiseaux et al. (2006). A minor modification of previous
     goodness-of-fit methods (Seeley et al., 2007b, 2009) was included here for template
     matching, with goodness-of-fit scores calculated by multiplying
@@ -225,7 +225,10 @@ def spatial_maps_goodness_of_fit(rsn_imgs, ic_imgs, mask_file, rsn_thr=4.0):
     (ii) the difference in the percentage of positive z-score voxels inside and outside the template.
 
     This goodness-of-fit algorithm proves less vulnerable to inter-subject variability in shape,
-    size, location and strength of each ICN.
+    size, location and strength of each ICN", than the one published in Seeley et al., 2007b.
+    This latter method only uses the value in (i).
+
+    Extracted from Zhou et al., 2010, Brain.
     """
     rsn_img = niimg.load_img(rsn_imgs)
     ic_img  = niimg.load_img( ic_imgs)
@@ -335,6 +338,133 @@ def nd_vector_correlations(data, vector, n=4):
     corrs[np.isnan(corrs)] = 0
 
     return corrs.reshape(trid_shape)
+
+
+
+def spatial_maps_pairwise_regression(rsn_imgs, ic_imgs, mask_file, method_num=0):
+    """ TODO!!
+
+    Multiple Regression values of each RSN to each IC map in `ic_imgs` masked by `mask_file`.
+
+
+    These values are based on distance metrics, specified by `distance` argument.
+    The resulting similarity value is the complementary value of the distance,
+    i.e., '1 - <distance value>'.
+
+    Parameters
+    ----------
+    rsn_imgs: list of niimg-like or 4D niimg-like
+
+    ic_imgs: list of niimg-like or 4D niimg-like
+
+    mask_file: niimg-like
+
+    method_name: str
+        Valid values for method_name are:
+        From scikit-learn: ['cityblock', 'cosine', 'euclidean', 'l1', 'l2', 'manhattan'].
+        From scipy.spatial.distance: ['braycurtis', 'canberra', 'chebyshev', 'correlation', 'dice', 'hamming',
+                                      'jaccard', 'kulsinski', 'mahalanobis', 'matching', 'minkowski',
+                                      'rogerstanimoto', 'russellrao', 'seuclidean', 'sokalmichener', 'sokalsneath',
+                                      'sqeuclidean', 'yule']
+                                      See the documentation for scipy.spatial.distance for details on these metrics.
+
+    Returns
+    -------
+    corrs: np.ndarray
+        A matrix of shape MxN, where M is len(rsn_imgs) and N is len(ic_imgs).
+        It contains the correlation values.
+    """
+    rsn_img = niimg.load_img(rsn_imgs)
+    ic_img  = niimg.load_img( ic_imgs)
+
+    n_rsns = rsn_img.shape[-1]
+    n_ics  =  ic_img.shape[-1]
+    corrs = np.zeros((n_rsns, n_ics), dtype=float)
+
+    mask_trnsf = niimg.resample_to_img(mask_file, niimg.index_img(ic_img, 0),
+                                       interpolation='nearest',
+                                       copy=True)
+
+    for rsn_idx, rsn in enumerate(niimg.iter_img(rsn_img)):
+        rsn_transf = niimg.resample_to_img(rsn, niimg.index_img(ic_img, 0), copy=True)
+        rsn_masked = nimask.apply_mask(rsn_transf, mask_trnsf)
+
+        for ic_idx, ic in enumerate(niimg.iter_img(ic_img)):
+            ic_masked = nimask.apply_mask(ic, mask_trnsf)
+            # dist = pairwise_distances(rsn_masked.reshape(1, -1),
+            #                            ic_masked.reshape(1, -1),
+            #                           metric=distance)
+
+            # -----------------------------------------------------------------------------------------------------
+            # CODE TO MODIFY
+
+            # http://stackoverflow.com/questions/17679140/multiple-linear-regression-with-python
+            # http://scikit-learn.org/stable/modules/linear_model.html#ordinary-least-squares
+            import pandas as pd
+            import numpy as np
+
+            path = 'DB2.csv'
+            data = pd.read_csv(path, header=None, delimiter=";")
+
+            data.insert(0, 'Ones', 1)
+            cols = data.shape[1]
+
+            X = data.iloc[:,0:cols-1]
+            y = data.iloc[:,cols-1:cols]
+
+            IdentitySize = X.shape[1]
+            IdentityMatrix= np.zeros((IdentitySize, IdentitySize))
+            np.fill_diagonal(IdentityMatrix, 1)
+
+            #For least squares method you use Numpy's numpy.linalg.lstsq. Here is Pyhton code
+            lamb = 1
+            th = np.linalg.lstsq(X.T.dot(X) + lamb * IdentityMatrix, X.T.dot(y))[0]
+
+            # Also you can use np.linalg.solve tool of numpy:
+            lamb = 1
+            XtX_lamb = X.T.dot(X) + lamb * IdentityMatrix
+            XtY = X.T.dot(y)
+            x = np.linalg.solve(XtX_lamb, XtY);
+
+            # For normal equation method use:
+            lamb = 1
+            xTx = X.T.dot(X) + lamb * IdentityMatrix
+            XtX = np.linalg.inv(xTx)
+            XtX_xT = XtX.dot(X.T)
+            theta = XtX_xT.dot(y)
+
+            # OLS
+            # >>> from sklearn import linear_model
+            # >>> reg = linear_model.LinearRegression()
+            # >>> reg.fit ([[0, 0], [1, 1], [2, 2]], [0, 1, 2])
+            # LinearRegression(copy_X=True, fit_intercept=True, n_jobs=1, normalize=False)
+            # >>> reg.coef_
+            # array([ 0.5,  0.5])
+
+            # Ridge Regression
+            # >>> from sklearn import linear_model
+            # >>> reg = linear_model.Ridge (alpha = .5)
+            # >>> reg.fit ([[0, 0], [0, 0], [1, 1]], [0, .1, 1])
+            # Ridge(alpha=0.5, copy_X=True, fit_intercept=True, max_iter=None,
+            #       normalize=False, random_state=None, solver='auto', tol=0.001)
+            # >>> reg.coef_
+            # array([ 0.34545455,  0.34545455])
+            # >>> reg.intercept_
+            # 0.13636...
+
+            # CODE TO MODIFY
+            # -----------------------------------------------------------------------------------------------------
+
+            # since this is a scalar value
+            dist = dist[0][0]
+
+            # since this is a distance based on correlation, not a correlation value
+            corr = 1 - dist
+
+            # store it
+            corrs[rsn_idx, ic_idx] = corr
+
+    return corrs
 
 
 # def subj_ic_spatial_map(fourd_img, ic):
