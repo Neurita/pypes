@@ -11,11 +11,13 @@ from   nipype.interfaces.ants    import N4BiasFieldCorrection
 from   nipype.interfaces.base    import traits
 from   nipype.interfaces.utility import IdentityInterface, Function
 
+from   .interfaces.nilearn import math_img
 from   .config  import setup_node, check_atlas_file
 from   .preproc import (spm_apply_deformations,
                         get_bounding_box,)
 from   ._utils  import format_pair_list
 from   .utils   import (remove_ext,
+                        selectindex,
                         spm_tpm_priors_path,
                         extend_trait_list,
                         get_input_node,
@@ -131,6 +133,11 @@ def spm_anat_preprocessing(wf_name="spm_anat_preproc"):
         The atlas file warped to anatomical space,
         if do_atlas and the atlas file is set in configuration.
 
+    anat_output.brain_mask: traits.File
+        A brain mask file in anatomical space.
+        This is calculated by summing up the maps of segmented tissues
+        (CSF, WM, GM) and then binarised.
+
     Returns
     -------
     wf: nipype Workflow
@@ -147,6 +154,7 @@ def spm_anat_preprocessing(wf_name="spm_anat_preproc"):
                   "warp_forward",
                   "warp_inverse",
                   "anat_biascorr",
+                  "brain_mask",
                  ]
 
     do_atlas, atlas_file = check_atlas_file()
@@ -173,6 +181,18 @@ def spm_anat_preprocessing(wf_name="spm_anat_preproc"):
                           name="tpm_bbox")
     tpm_bbox.inputs.in_file = spm_tpm_priors_path()
 
+    # calculate brain mask from tissue maps
+    tissues = setup_node(IdentityInterface(fields=["gm", "wm", "csf"], mandatory_inputs=True),
+                         name="tissues")
+
+    brain_mask = setup_node(Function(function=math_img,
+                                     input_names=["formula", "out_file", "gm", "wm", "csf"],
+                                     output_names=["out_file"],
+                                     imports=['from pypes.interfaces.nilearn import ni2file']),
+                            name='brain_mask')
+    brain_mask.inputs.out_file = "tissues_brain_mask.nii.gz"
+    brain_mask.inputs.formula  = "np.abs(gm + wm + csf) > 0"
+
     # output node
     anat_output = setup_node(IdentityInterface(fields=out_fields),
                              name="anat_output")
@@ -190,6 +210,14 @@ def spm_anat_preprocessing(wf_name="spm_anat_preproc"):
                 (segment,   warp_anat,  [("bias_corrected_images",     "apply_to_files")]),
                 (tpm_bbox,  warp_anat,  [("bbox",                      "write_bounding_box")]),
 
+                # brain mask from tissues
+                (segment, tissues,  [(("native_class_images", selectindex, [0]), "gm"),
+                                     (("native_class_images", selectindex, [1]), "wm"),
+                                     (("native_class_images", selectindex, [2]), "csf"),
+                                    ]),
+
+                (tissues,   brain_mask,  [("gm", "gm"), ("wm", "wm"), ("csf", "csf"),]),
+
                 # output
                 (warp_anat, anat_output, [("normalized_files",           "anat_mni")]),
                 (segment,   anat_output, [("modulated_class_images",     "tissues_warped"),
@@ -198,6 +226,7 @@ def spm_anat_preprocessing(wf_name="spm_anat_preproc"):
                                           ("forward_deformation_field",  "warp_forward"),
                                           ("inverse_deformation_field",  "warp_inverse"),
                                           ("bias_corrected_images",      "anat_biascorr")]),
+                (brain_mask, anat_output, [("out_file",                  "brain_mask")]),
               ])
 
     # atlas warping nodes
@@ -290,12 +319,13 @@ def attach_spm_anat_preprocessing(main_wf, wf_name="spm_anat_preproc"):
 
     main_wf.connect([(in_files, anat_wf,  [("anat",                         "anat_input.in_file")]),
                      (anat_wf,  datasink, [("anat_output.anat_mni",         "anat.@mni")],),
-                     (anat_wf,  datasink, [("anat_output.tissues_warped",   "anat.tissues.@warped"),
-                                           ("anat_output.tissues_native",   "anat.tissues.@native"),
+                     (anat_wf,  datasink, [("anat_output.tissues_warped",   "anat.tissues.warped"),
+                                           ("anat_output.tissues_native",   "anat.tissues.native"),
                                            ("anat_output.affine_transform", "anat.transform.@linear"),
                                            ("anat_output.warp_forward",     "anat.transform.@forward"),
                                            ("anat_output.warp_inverse",     "anat.transform.@inverse"),
                                            ("anat_output.anat_biascorr",    "anat.@biascor"),
+                                           ("anat_output.brain_mask",       "anat.@brain_mask"),
                                           ]),
                     ])
 
