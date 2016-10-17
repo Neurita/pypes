@@ -106,9 +106,6 @@ def petpvc_workflow(wf_name="petpvc"):
     rbvpvc      = setup_node(petpvc_cmd(fwhm_mm=psf_fwhm,
                                         pvc_method='RBV'),       name="rbvpvc")
 
-    #unzip_mrg = setup_node(Merge(3), name='merge_for_unzip')
-    #gunzipper = pe.MapNode(Gunzip(), name="gunzip", iterfield=['in_file'])
-
     # output
     pvc_output = setup_node(IdentityInterface(fields=out_fields), name="pvc_output")
 
@@ -154,12 +151,6 @@ def petpvc_workflow(wf_name="petpvc"):
                     (rbvpvc,      norm_wf,    [("out_file", "intnorm_input.source")]),
                     (select_gm,   norm_wf,    [("out",      "intnorm_input.mask")]),
 
-                    # # gunzip some files for SPM Normalize12
-                    # (rbvpvc,      unzip_mrg,  [("out_file",                  "in1")]),
-                    # (mask_wf,     unzip_mrg,  [("pvcmask_output.brain_mask", "in2")]),
-                    # (norm_wf,     unzip_mrg,  [("intnorm_output.out_file",   "in3")]),
-                    # (unzip_mrg,   gunzipper,  [("out",                       "in_file")]),
-
                     # output
                     (coreg_pet,   pvc_output, [("coregistered_source",        "coreg_ref")]),
                     (coreg_pet,   pvc_output, [("coregistered_files",         "coreg_others")]),
@@ -182,11 +173,8 @@ def petpvc_workflow(wf_name="petpvc"):
                     # the list of tissues to the mask wf and the GM for PET intensity normalization
                     (tissues_sel, select_gm,  [("out", "inlist")]),
                     (flat_list,   mask_wf,    [("out", "pvcmask_input.tissues")]),
-                    #(tissues_sel, select_gm,  [("out", "inlist")]),
-                    #(tissues_sel, mask_wf,    [("out", "pvcmask_input.tissues")]),
 
                     # the PET in ANAT space to PVC correction
-                    #(gunzip_pet,  rbvpvc,     [("out_file", "in_file")]),
                     (coreg_pet,    rbvpvc,     [("coregistered_source", "in_file")]),
 
                     # the merged file with 4 tissues to PCV correction
@@ -195,12 +183,6 @@ def petpvc_workflow(wf_name="petpvc"):
                     # normalize voxel values of PET PVCed by demeaning it entirely by GM PET voxel values
                     (rbvpvc,      norm_wf,    [("out_file", "intnorm_input.source")]),
                     (select_gm,   norm_wf,    [("out",      "intnorm_input.mask")]),
-
-                    # gunzip some files for SPM Normalize12
-                    # (rbvpvc,      unzip_mrg,  [("out_file",                    "in1")]),
-                    # (mask_wf,     unzip_mrg,  [("pvcmask_output.brain_mask",   "in2")]),
-                    # (norm_wf,     unzip_mrg,  [("intnorm_output.out_file",     "in3")]),
-                    # (unzip_mrg,   gunzipper,  [("out",                         "in_file")]),
 
                     # output
                     # TODO: coreg_ref should have a different name in this case
