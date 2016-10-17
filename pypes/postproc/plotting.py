@@ -2,8 +2,6 @@
 """
 Helper functions to plot results.
 """
-from   glob import glob
-
 import nilearn.image      as niimg
 import numpy              as np
 import os.path as op

@@ -12,7 +12,7 @@ from   .mrpet import attach_spm_mrpet_preprocessing
 from   ..preproc import (spm_create_group_template_wf,
                          spm_register_to_template_wf,)
 from   ..config  import setup_node, get_config_setting
-from   .._utils  import format_pair_list
+from   .._utils  import format_pair_list, flatten_list
 from   ..utils   import (get_datasink,
                          extend_trait_list,
                          get_input_node,
@@ -98,10 +98,10 @@ def attach_spm_pet_grouptemplate(main_wf, wf_name="spm_pet_template"):
     # Connect the nodes
     main_wf.connect([
                      # warped pets file list input
-                     (pet_wf,       warped_pets, [("pet_output.warped_files",     "warped_pets")]),
+                     (pet_wf,       warped_pets, [("warp_output.warped_files",    "warped_pets")]),
 
                      # group template wf
-                     (warped_pets,  template_wf, [("warped_pets",                 "grptemplate_input.in_files")]),
+                     (warped_pets,  template_wf, [(("warped_pets", flatten_list), "grptemplate_input.in_files")]),
 
                      # output node
                      (template_wf, output,       [("grptemplate_output.template", "pet_template")]),

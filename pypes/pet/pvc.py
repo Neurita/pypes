@@ -6,12 +6,12 @@ import os.path as op
 
 import nipype.pipeline.engine    as pe
 from   nipype.algorithms.misc    import Gunzip
-from   nipype.interfaces.utility import Select, Merge, IdentityInterface
+from   nipype.interfaces.utility import Select, IdentityInterface, Function
 
 from  .utils     import (petpvc_cmd,
                          petpvc_mask,
                          intensity_norm)
-from   ..config  import setup_node
+from   ..config  import setup_node, get_config_setting
 from   ..preproc import spm_coregister
 from   ..utils   import (get_datasink,
                          extend_trait_list,
@@ -93,6 +93,10 @@ def petpvc_workflow(wf_name="petpvc"):
     pet_input = setup_node(IdentityInterface(fields=in_fields, mandatory_inputs=True),
                            name="pvc_input")
 
+    flat_list = pe.Node(Function(input_names=['list_of_lists'], output_names=['out'],
+                                 function=flatten_list),
+                        name='flatten_tissue_list')
+
     # coreg pet
     gunzip_pet  = setup_node(Gunzip(),                           name="gunzip_pet")
     coreg_pet   = setup_node(spm_coregister(cost_function="mi"), name="coreg_pet")
@@ -102,8 +106,8 @@ def petpvc_workflow(wf_name="petpvc"):
     rbvpvc      = setup_node(petpvc_cmd(fwhm_mm=psf_fwhm,
                                         pvc_method='RBV'),       name="rbvpvc")
 
-    unzip_mrg = setup_node(Merge(3), name='merge_for_unzip')
-    gunzipper = pe.MapNode(Gunzip(), name="gunzip", iterfield=['in_file'])
+    #unzip_mrg = setup_node(Merge(3), name='merge_for_unzip')
+    #gunzipper = pe.MapNode(Gunzip(), name="gunzip", iterfield=['in_file'])
 
     # output
     pvc_output = setup_node(IdentityInterface(fields=out_fields), name="pvc_output")
@@ -117,17 +121,24 @@ def petpvc_workflow(wf_name="petpvc"):
     # Create the workflow object
     wf = pe.Workflow(name=wf_name)
 
-    anat2pet = False
+    wf.connect([
+                # inputs
+                (pet_input,   gunzip_pet,  [("in_file",  "in_file")]),
+                (pet_input,   tissues_sel, [("tissues",  "inlist")]),
+               ])
+
+    # check how to perform the registration, to decide how to build the pipeline
+    anat2pet = get_config_setting('registration.anat2pet', False)
     if anat2pet:
         wf.connect([
                     # inputs
-                    (pet_input,   gunzip_pet,  [("in_file",            "in_file")]),
                     (pet_input,   coreg_pet,   [("reference_file",     "source")]),
-                    (pet_input,   tissues_sel, [("tissues",            "inlist")]),
 
                     # unzip to coregister the reference file (anatomical image) to PET space.
                     (gunzip_pet,  coreg_pet,  [("out_file",            "target")]),
-                    (tissues_sel, coreg_pet,  [(("out", flatten_list), "apply_to_files")]),
+
+                    (tissues_sel, flat_list,  [("out", "list_of_lists")]),
+                    (flat_list,   coreg_pet,  [("out", "apply_to_files")]),
 
                     # the list of tissues to the mask wf and the GM for PET intensity normalization
                     (coreg_pet,   select_gm,  [("coregistered_files", "inlist")]),
@@ -143,34 +154,34 @@ def petpvc_workflow(wf_name="petpvc"):
                     (rbvpvc,      norm_wf,    [("out_file", "intnorm_input.source")]),
                     (select_gm,   norm_wf,    [("out",      "intnorm_input.mask")]),
 
-                    # gunzip some files for SPM Normalize12
-                    (rbvpvc,      unzip_mrg,  [("out_file",                    "in1")]),
-                    (mask_wf,     unzip_mrg,  [("pvcmask_output.brain_mask",   "in2")]),
-                    (norm_wf,     unzip_mrg,  [("intnorm_output.out_file",     "in3")]),
-                    (unzip_mrg,   gunzipper,  [("out",                         "in_file")]),
+                    # # gunzip some files for SPM Normalize12
+                    # (rbvpvc,      unzip_mrg,  [("out_file",                  "in1")]),
+                    # (mask_wf,     unzip_mrg,  [("pvcmask_output.brain_mask", "in2")]),
+                    # (norm_wf,     unzip_mrg,  [("intnorm_output.out_file",   "in3")]),
+                    # (unzip_mrg,   gunzipper,  [("out",                       "in_file")]),
 
                     # output
-                    (coreg_pet,   pvc_output, [("coregistered_source",         "coreg_ref")]),
-                    (coreg_pet,   pvc_output, [("coregistered_files",          "coreg_others")]),
-                    (rbvpvc,      pvc_output, [("out_file",                    "pvc_out")]),
-                    (mask_wf,     pvc_output, [("pvcmask_output.brain_mask",   "brain_mask")]),
-                    (mask_wf,     pvc_output, [("pvcmask_output.petpvc_mask",  "petpvc_mask")]),
-                    (norm_wf,     pvc_output, [("intnorm_output.out_file",     "gm_norm")]),
+                    (coreg_pet,   pvc_output, [("coregistered_source",        "coreg_ref")]),
+                    (coreg_pet,   pvc_output, [("coregistered_files",         "coreg_others")]),
+                    (rbvpvc,      pvc_output, [("out_file",                   "pvc_out")]),
+                    (mask_wf,     pvc_output, [("pvcmask_output.brain_mask",  "brain_mask")]),
+                    (mask_wf,     pvc_output, [("pvcmask_output.petpvc_mask", "petpvc_mask")]),
+                    (norm_wf,     pvc_output, [("intnorm_output.out_file",    "gm_norm")]),
                    ])
     else: # PET to ANAT
         wf.connect([
                     # inputs
-                    (pet_input,   gunzip_pet,  [("in_file",            "in_file")]),
                     (pet_input,   coreg_pet,   [("reference_file",     "target")]),
-                    (pet_input,   tissues_sel, [("tissues",            "inlist")]),
 
                     # unzip PET image and set as a source to register it to anatomical space.
                     (gunzip_pet,  coreg_pet,  [("out_file",            "source")]),
-                    (tissues_sel, coreg_pet,  [(("out", flatten_list), "apply_to_files")]),
+
+                    (tissues_sel, flat_list,  [("out", "list_of_lists")]),
+                    (flat_list,   coreg_pet,  [("out", "apply_to_files")]),
 
                     # the list of tissues to the mask wf and the GM for PET intensity normalization
-                    (coreg_pet,   select_gm,  [("coregistered_files", "inlist")]),
-                    (coreg_pet,   mask_wf,    [("coregistered_files", "pvcmask_input.tissues")]),
+                    (tissues_sel, select_gm,  [("out", "inlist")]),
+                    (flat_list,   mask_wf,    [("out", "pvcmask_input.tissues")]),
                     #(tissues_sel, select_gm,  [("out", "inlist")]),
                     #(tissues_sel, mask_wf,    [("out", "pvcmask_input.tissues")]),
 
@@ -186,10 +197,10 @@ def petpvc_workflow(wf_name="petpvc"):
                     (select_gm,   norm_wf,    [("out",      "intnorm_input.mask")]),
 
                     # gunzip some files for SPM Normalize12
-                    (rbvpvc,      unzip_mrg,  [("out_file",                    "in1")]),
-                    (mask_wf,     unzip_mrg,  [("pvcmask_output.brain_mask",   "in2")]),
-                    (norm_wf,     unzip_mrg,  [("intnorm_output.out_file",     "in3")]),
-                    (unzip_mrg,   gunzipper,  [("out",                         "in_file")]),
+                    # (rbvpvc,      unzip_mrg,  [("out_file",                    "in1")]),
+                    # (mask_wf,     unzip_mrg,  [("pvcmask_output.brain_mask",   "in2")]),
+                    # (norm_wf,     unzip_mrg,  [("intnorm_output.out_file",     "in3")]),
+                    # (unzip_mrg,   gunzipper,  [("out",                         "in_file")]),
 
                     # output
                     # TODO: coreg_ref should have a different name in this case
@@ -256,6 +267,7 @@ def attach_petpvc_workflow(main_wf, wf_name="spm_petpvc"):
                      (r"/rc1{anat}_corrected.nii$",   "/gm_{pet}.nii"),
                      (r"/rc2{anat}_corrected.nii$",   "/wm_{pet}.nii"),
                      (r"/rc3{anat}_corrected.nii$",   "/csf_{pet}.nii"),
+                     (r"/tissues_brain_mask.nii$",    "/brain_mask_anat.nii.gz"),
                    ]
     regexp_subst = format_pair_list(regexp_subst, pet=pet_fbasename, anat=anat_fbasename)
     regexp_subst += extension_duplicates(regexp_subst)
@@ -273,12 +285,12 @@ def attach_petpvc_workflow(main_wf, wf_name="spm_petpvc"):
                                         ]),
 
                      (pet_wf, datasink, [
-                                         ("pvc_output.coreg_others", "pet.tissues"),
-                                         ("pvc_output.coreg_ref",    "pet.@anat"),
+                                         ("pvc_output.coreg_others", "mrpet.tissues"),
+                                         ("pvc_output.coreg_ref",    "mrpet.@anat"),
                                          ("pvc_output.pvc_out",      "mrpet.@pvc"),
                                          ("pvc_output.petpvc_mask",  "mrpet.@petpvc_mask"),
-                                         ("pvc_output.brain_mask",   "pet.@brain_mask"),
-                                         ("pvc_output.gm_norm",      "pet.@gm_norm"),
+                                         ("pvc_output.brain_mask",   "mrpet.@brain_mask"),
+                                         ("pvc_output.gm_norm",      "mrpet.@gm_norm"),
                                         ]),
                      ])
 

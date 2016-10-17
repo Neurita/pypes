@@ -9,7 +9,7 @@ from   nipype.interfaces         import spm, fsl
 from   nipype.interfaces.utility import Function, Merge, IdentityInterface
 
 from   .._utils  import format_pair_list
-from   ..config  import setup_node
+from   ..config  import setup_node, get_config_setting
 from   ..preproc import (spm_normalize,
                          get_bounding_box,
                          spm_tpm_priors_path,
@@ -167,7 +167,8 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", register_to_grptemplate=False):
         warp_field_arg     = "deformation_field"
 
 
-    anat2fmri = False
+    # check how to perform the registration, to decide how to build the pipeline
+    anat2fmri = get_config_setting('registration.anat2fmri', False)
     if anat2fmri:
         wf.connect([
                     # warp source file
@@ -348,11 +349,11 @@ def attach_spm_warp_fmri_wf(main_wf, registration_wf_name="spm_warp_fmri", do_gr
 
                     # output
                     (warp_fmri_wf,  datasink,  [
-                                                ("wfmri_output.warped_fmri",     "rest.@warped_fmri_{}".format(template_name)),
-                                                ("wfmri_output.wtime_filtered",  "rest.@time_filtered_{}".format(template_name)),
-                                                ("wfmri_output.smooth",          "rest.@smooth_{}".format(template_name)),
-                                                ("wfmri_output.wavg_epi",        "rest.@avg_epi_{}".format(template_name)),
-                                                ("wfmri_output.warp_field",      "rest.@warp_field_{}".format(template_name)),
+                                                ("wfmri_output.warped_fmri",     "rest.{}.@warped_fmri".format(template_name)),
+                                                ("wfmri_output.wtime_filtered",  "rest.{}.@time_filtered".format(template_name)),
+                                                ("wfmri_output.smooth",          "rest.{}.@smooth".format(template_name)),
+                                                ("wfmri_output.wavg_epi",        "rest.{}.@avg_epi".format(template_name)),
+                                                ("wfmri_output.warp_field",      "rest.{}.@warp_field".format(template_name)),
                                                ]),
                     ])
 

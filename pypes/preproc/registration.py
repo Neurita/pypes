@@ -16,9 +16,7 @@ from ..config import setup_node
 from ..utils import spm_tpm_priors_path
 
 
-def spm_apply_deformations(in_imgs=traits.Undefined,
-                           trans_field=traits.Undefined,
-                           bbox=traits.Undefined,
+def spm_apply_deformations(in_file=traits.Undefined, trans_field=traits.Undefined, bbox=traits.Undefined,
                            voxel_sizes=None):
     """Return a Normalize12 interface object.
     SPM12's new Normalise routine for warping an image to a template.
@@ -27,7 +25,7 @@ def spm_apply_deformations(in_imgs=traits.Undefined,
 
     Parameters
     ----------
-    in_imgs: iterable of str
+    in_file: file
 
     trans_field: file
         file y_*.nii containing 3 deformation fields for the deformation in
@@ -64,7 +62,7 @@ def spm_apply_deformations(in_imgs=traits.Undefined,
     norm12 = spm.Normalize12(jobtype='write')
 
     norm12.inputs.deformation_file   = trans_field
-    norm12.inputs.image_to_align     = in_imgs
+    norm12.inputs.image_to_align     = in_file
     norm12.inputs.write_voxel_sizes  = voxel_sizes
     norm12.inputs.write_bounding_box = bbox
 
@@ -72,15 +70,15 @@ def spm_apply_deformations(in_imgs=traits.Undefined,
     return norm12
 
 
-def spm_normalize(in_imgs=traits.Undefined, template=None, **kwargs):
+def spm_normalize(in_file=traits.Undefined, template=None, **kwargs):
     """Return a Normalize12 interface object.
     SPM12's new Normalise routine for warping an image to a template.
 
     Parameters
     ----------
-    in_imgs: iterable of str
+    in_file: file
 
-    template: str
+    template: file
         Template in form of tissue probablitiy maps to normalize to
         mutually_exclusive: deformation_file.
         Default: the SPM TPM file.
@@ -114,8 +112,8 @@ def spm_normalize(in_imgs=traits.Undefined, template=None, **kwargs):
                              tpm=template,
                              **kwargs)
 
-    if isdefined(in_imgs):
-        norm12.inputs.image_to_align = in_imgs
+    if isdefined(in_file):
+        norm12.inputs.image_to_align = in_file
 
     #norm12.run()
     return norm12
@@ -179,7 +177,6 @@ def afni_deoblique(in_file=traits.Undefined, out_file=traits.Undefined, out_type
     -------
     deob: nipype.interfaces.afni.Warp
     """
-
     deob = afni.Warp()
     deob.inputs.in_file = in_file
     deob.inputs.deoblique = True
@@ -224,9 +221,8 @@ def spm_warp_to_mni(wf_name="spm_warp_to_mni"):
 
     gunzip = pe.MapNode(Gunzip(), name="gunzip", iterfield=['in_file'])
 
-    warp = setup_node(spm.Normalize12(jobtype='estwrite',
-                                      affine_regularization_type='mni'),
-                      name="normalize12")
+    warp = setup_node(spm.Normalize12(jobtype='estwrite', affine_regularization_type='mni'),
+                      name="normalize12", type="map", iterfield=['image_to_align'])
 
     # output
     output = setup_node(IdentityInterface(fields=out_fields),

@@ -18,6 +18,32 @@
 normalize_atlas: True
 atlas_file: '' # this is being set from config.py
 
+# If anat2pet is True: the registration process will be:
+# 1) anatomical to PET space,
+# 2) PET PVC in PET space,
+# 3) anatomical image in PET space to MNI (or group template), and
+# 4) apply the transformation from 3 to PET data.
+# Else, if anat2pet is False, the registration process will be:
+# 1) PET to anatomical space,
+# 2) PET PVC in anatomical space,
+# 3) pick the anatomical image to MNI transformation from the anatomical pipeline,
+# 4) apply the transformation from 3 to PET data in anatomical space.
+registration.anat2pet: False
+
+
+# If anat2fmri is True: the registration process will be:
+# 1) anatomical to fMRI space,
+# 2) all the cleaning and resting-state processes in fMRI space,
+# 3) anatomical image in fMRI space to MNI (or group template), and
+# 4) apply the transformation from 3 to fMRI data.
+# Else, if anat2fmri is False, the registration process will be:
+# 1) avg. fMRI to anatomical space,
+# 2) all the cleaning and resting-state processes in fMRI space,
+# 3) pick the anatomical image to MNI transformation from the anatomical pipeline,
+# 4) directly normalize fMRI to MNI using an EPI template (or group template). # TODO: check this
+registration.anat2fmri: False
+
+
 # ANAT
 
 

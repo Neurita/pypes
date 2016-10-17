@@ -103,7 +103,7 @@ def _clinical_wf_setup(wf_name):
                                                  ("spm_mrpet_grouptemplate", attach_spm_pet_grouptemplate),
                                                 ],
 
-                        "spm_anat_pet_preproc": [("spm_anat_preproc",  attach_spm_anat_preprocessing),
+                        "spm_anat_pet_pvc":     [("spm_anat_preproc",  attach_spm_anat_preprocessing),
                                                  ("spm_mrpet_preproc", attach_spm_mrpet_preprocessing),
                                                 ],
 

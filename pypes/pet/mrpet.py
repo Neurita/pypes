@@ -10,7 +10,7 @@ from   nipype.interfaces         import spm
 from   nipype.interfaces.utility import Merge, IdentityInterface, Function
 
 from   .pvc      import petpvc_workflow
-from   ..config  import setup_node, check_atlas_file
+from   ..config  import setup_node, check_atlas_file, get_config_setting
 from   ..preproc import (spm_normalize,
                          spm_coregister,
                          spm_apply_deformations,
@@ -163,7 +163,8 @@ def spm_mrpet_preprocessing(wf_name="spm_mrpet_preproc"):
     # Create the workflow object
     wf = pe.Workflow(name=wf_name)
 
-    anat2pet = False
+    # check how to perform the registration, to decide how to build the pipeline
+    anat2pet = get_config_setting('registration.anat2pet', False)
     if anat2pet:
         wf.connect([
                     # inputs
@@ -480,15 +481,18 @@ def attach_spm_mrpet_preprocessing(main_wf, wf_name="spm_mrpet_preproc", do_grou
     if do_group_template:
         pet_wf = spm_mrpet_grouptemplate_preprocessing(wf_name=wf_name)
         template_name = 'grptemplate'
+        output_subfolder = 'grp_template'
     else:
         pet_wf = spm_mrpet_preprocessing(wf_name=wf_name)
         template_name = 'mni'
+        output_subfolder = 'std_template'
 
     # dataSink output substitutions
     regexp_subst = [
                      (r"/{pet}_.*_pvc.nii.gz$",           "/{pet}_pvc.nii.gz"),
                      (r"/{pet}_.*_pvc_maths.nii.gz$",     "/{pet}_pvc_norm.nii.gz"),
                      (r"/{pet}_.*_pvc_intnormed.nii.gz$", "/{pet}_pvc_norm.nii.gz"),
+                     (r"/tissues_brain_mask.nii$",        "/brain_mask_anat.nii"),
                      (r"/w.*{pet}.nii",                   "/{pet}_{template}.nii"),
                      (r"/w.*{pet}_.*_pvc.nii$",           "/{pet}_pvc_{template}.nii"),
                      (r"/w.*{pet}_.*_pvc_maths.nii$",     "/{pet}_pvc_norm_{template}.nii"),
@@ -531,15 +535,15 @@ def attach_spm_mrpet_preprocessing(main_wf, wf_name="spm_mrpet_preproc", do_grou
                                         ]),
 
                      (pet_wf, datasink, [
-                                         ("pet_output.pvc_out",      "mrpet.@pvc"),
-                                         ("pet_output.pvc_mask",     "mrpet.@pvc_mask"),
-                                         ("pet_output.brain_mask",   "mrpet.@brain_mask"),
                                          ("pet_output.gm_norm",      "mrpet.@norm"),
-                                         ("pet_output.pvc_warped",   "mrpet.@pvc_warped"),
                                          ("pet_output.coreg_others", "mrpet.tissues"),
                                          ("pet_output.coreg_ref",    "mrpet.@anat"),
-                                         ("pet_output.warp_field",   "mrpet.@warp_field"),
-                                         ("pet_output.pet_warped",   "mrpet.@pet_warped"),
+                                         ("pet_output.pvc_mask",     "mrpet.@pvc_mask"),
+                                         ("pet_output.pvc_out",      "mrpet.@pvc"),
+                                         ("pet_output.brain_mask",   "mrpet.@brain_mask"),
+                                         ("pet_output.pvc_warped",   "mrpet.{}.@pvc".format(output_subfolder)),
+                                         ("pet_output.warp_field",   "mrpet.{}.@warp_field".format(output_subfolder)),
+                                         ("pet_output.pet_warped",   "mrpet.{}.@pet_warped".format(output_subfolder)),
                                         ]),
                      ])
 

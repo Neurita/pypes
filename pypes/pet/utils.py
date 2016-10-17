@@ -5,8 +5,8 @@ PET image preprocessing utilities nipype function helpers.
 from   nipype.interfaces.base    import traits
 from   nipype.interfaces.utility import Merge, Function, IdentityInterface
 from   nipype.pipeline import Workflow
-from   pypes.interfaces.nilearn import math_img, concat_imgs
 
+from   ..interfaces.nilearn import math_img, concat_imgs
 from   ..config  import setup_node
 from   ..preproc import PETPVC
 from   ..utils   import selectindex, rename
