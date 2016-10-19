@@ -131,24 +131,6 @@ def spm_mrpet_preprocessing(wf_name="spm_mrpet_preproc"):
     merge_list = setup_node(Merge(4), name='merge_for_unzip')
     gunzipper = pe.MapNode(Gunzip(), name="gunzip", iterfield=['in_file'])
 
-    #
-    # # do template
-    # if do_group_template:
-    #     gunzip_template = setup_node(Gunzip(), name="gunzip_template",)
-    #     warp = setup_node(spm.Normalize(jobtype="estwrite", out_prefix="wgrptmpl_"),
-    #                       name="fmri_grptemplate_warp",)
-    #     warp_source_arg    = "source"
-    #     warp_outsource_arg = "normalized_source"
-    #     warp_field_arg     = "normalization_parameters"
-    #
-    # else:
-    #     # do MNI
-    #     warp = setup_node(spm_normalize(), name="fmri_warp")
-    #     tpm_bbox.inputs.in_file = spm_tpm_priors_path()
-    #     warp_source_arg    = "image_to_align"
-    #     warp_outsource_arg = "normalized_image"
-    #     warp_field_arg     = "deformation_field"
-
     warp_pet = setup_node(spm_normalize(), name="warp_pet")
 
     tpm_bbox = setup_node(Function(function=get_bounding_box,
