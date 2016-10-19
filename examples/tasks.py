@@ -28,7 +28,7 @@ def run_pype(workflow, **kwargs):
 
 
 @task
-def michael_pype(wf_name="camino_dti_tract_and_pet", base_dir="", cache_dir="", output_dir="",
+def michael_pype(ctx, wf_name="camino_dti_tract_and_pet", base_dir="", cache_dir="", output_dir="",
                  plugin="MultiProc", n_cpus=4):
     """ Run the
 
@@ -65,7 +65,7 @@ def michael_pype(wf_name="camino_dti_tract_and_pet", base_dir="", cache_dir="", 
 
 
 @task
-def tum_pype(wf_name="spm_anat_preproc", base_dir="", cache_dir="", output_dir="", plugin="MultiProc", n_cpus=4):
+def tum_pype(ctx, wf_name="spm_anat_preproc", base_dir="", cache_dir="", output_dir="", plugin="MultiProc", n_cpus=4):
     """ Run the
 
     ParametersA
@@ -101,7 +101,7 @@ def tum_pype(wf_name="spm_anat_preproc", base_dir="", cache_dir="", output_dir="
 
 
 @task
-def cobre_pype(wf_name="spm_anat_preproc", base_dir="", cache_dir="", output_dir="", plugin="MultiProc", n_cpus=4):
+def cobre_pype(ctx, wf_name="spm_anat_preproc", base_dir="", cache_dir="", output_dir="", plugin="MultiProc", n_cpus=4):
     """ Run the
 
     ParametersA
