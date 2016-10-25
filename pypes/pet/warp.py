@@ -5,13 +5,13 @@ PET-only image registration nipype workflow.
 import os.path as op
 
 from   ..preproc import spm_warp_to_mni
-from   .._utils import format_pair_list
-from   ..utils  import (get_datasink,
-                        extend_trait_list,
-                        get_input_node,
-                        remove_ext,
-                        get_input_file_name,
-                        extension_duplicates)
+from   .._utils  import format_pair_list
+from   ..utils   import (get_datasink,
+                         extend_trait_list,
+                         get_input_node,
+                         remove_ext,
+                         get_input_file_name,
+                         extension_duplicates)
 
 
 def attach_spm_pet_preprocessing(main_wf, wf_name='spm_pet_preproc'):

@@ -90,57 +90,69 @@ def _clinical_wf_setup(wf_name):
                          ('image',    'rest.nii.gz')],
               }
     """
+                        # MPRAGE bias-field correction, normalization to MNI, and tissue segmentation
     attach_functions = {"spm_anat_preproc":     [("spm_anat_preproc", attach_spm_anat_preprocessing)],
 
+                        # PET normalization to MNI
                         "spm_pet_preproc":      [("spm_pet_preproc", attach_spm_pet_preprocessing)],
 
+                        # will create a PET group template
                         "spm_pet_template":     [("spm_pet_preproc",       attach_spm_pet_preprocessing),
                                                  ("spm_pet_grouptemplate", attach_spm_pet_grouptemplate),
                                                 ],
 
+                        # MPRAGE preprocessing, PET MNI group template, PET PVC, and PET normalization to group template
                         "spm_anat_pet_tpm_pvc": [("spm_anat_preproc",        attach_spm_anat_preprocessing),
                                                  ("spm_pet_preproc",         attach_spm_pet_preprocessing),
                                                  ("spm_mrpet_grouptemplate", attach_spm_pet_grouptemplate),
                                                 ],
 
+                        # MPRAGE preprocessing, PET PVC, and PET normalization to MNI
                         "spm_anat_pet_pvc":     [("spm_anat_preproc",  attach_spm_anat_preprocessing),
                                                  ("spm_mrpet_preproc", attach_spm_mrpet_preprocessing),
                                                 ],
 
+                        # MPRAGE preprocessing, rs-fMRI preprocessing and normalization to MNI
                         "spm_anat_rest_preproc":[("spm_anat_preproc",  attach_spm_anat_preprocessing),
                                                  ("spm_rest_preproc",  attach_rest_preprocessing),
                                                 ],
 
+                        # MPRAGE preprocessing, DTI preprocessing with FSL
                         "fsl_dti_preproc":      [("spm_anat_preproc",  attach_spm_anat_preprocessing),
                                                  ("fsl_dti_preproc",   attach_fsl_dti_preprocessing),
                                                 ],
 
+                        # MPRAGE preprocessing, DTI preprocessing with FSL, and tractography with Camino
                         "anat_dti_camino":      [("spm_anat_preproc",  attach_spm_anat_preprocessing),
                                                  ("fsl_dti_preproc",   attach_fsl_dti_preprocessing),
                                                  ("camino_tract" ,     attach_camino_tractography),
                                                 ],
 
+                        # MPRAGE and PET preprocessing, DTI preprocessing with FSL, and tractography with Camino
                         "anat_pet_dti_camino":  [("spm_anat_preproc",  attach_spm_anat_preprocessing),
                                                  ("spm_mrpet_preproc", attach_spm_mrpet_preprocessing),
                                                  ("fsl_dti_preproc",   attach_fsl_dti_preprocessing),
                                                  ("camino_tract",      attach_camino_tractography),
                                                 ],
 
+                        # MPRAGE preprocessing, and EPI group template
                         "spm_anat_rest_tpm_preproc": [("spm_anat_preproc",       attach_spm_anat_preprocessing),
                                                       ("spm_rest_grouptemplate", attach_rest_grptemplate_preprocessing),
                                                      ],
 
+                        # MPRAGE preprocessing, EPI and PET group template, and PET and rs-fMRI preprocessing and
+                        # normalization to group template
                         "spm_anat_pet_rest_tpm_preproc": [("spm_anat_preproc",        attach_spm_anat_preprocessing),
                                                           ("spm_rest_grouptemplate",  attach_rest_grptemplate_preprocessing),
                                                           ("spm_pet_preproc",         attach_spm_pet_preprocessing),
                                                           ("spm_mrpet_grouptemplate", attach_spm_pet_grouptemplate),
                                                          ],
 
+                        # MPRAGE preprocessing, EPI group template, and rs-fMRI preprocessing and normalization to MNI
                         "spm_anat_pet_rest_preproc":    [("spm_anat_preproc",  attach_spm_anat_preprocessing),
                                                          ("spm_rest_preproc",  attach_rest_preprocessing),
                                                          ("spm_mrpet_preproc", attach_spm_mrpet_preprocessing),
                                                         ],
-
                        }
 
     parameters       = {"spm_pet_template":     [('spm_pet_template.do_petpvc', False),],

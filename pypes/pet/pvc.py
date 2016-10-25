@@ -241,7 +241,6 @@ def attach_petpvc_workflow(main_wf, wf_name="spm_petpvc"):
     pet_wf = petpvc_workflow(wf_name=wf_name)
 
     # dataSink output substitutions
-    # dataSink output substitutions
     regexp_subst = [
                      (r"/{pet}_.*_pvc.nii.gz$",       "/{pet}_pvc.nii.gz"),
                      (r"/{pet}_.*_pvc_maths.nii.gz$", "/{pet}_pvc_norm.nii.gz"),

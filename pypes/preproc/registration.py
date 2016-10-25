@@ -288,7 +288,7 @@ def spm_create_group_template_wf(wf_name="spm_create_group_template"):
                                   input_names=["in_file", "out_file"],
                                   output_names=["out_file"],
                                   imports=['from pypes.interfaces.nilearn import ni2file']),
-                        name='average')
+                        name='group_average')
     average.inputs.out_file = 'group_average.nii.gz'
 
     # smooth

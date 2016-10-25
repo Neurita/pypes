@@ -33,17 +33,16 @@ def _attach_rest_preprocessing(main_wf, registration_wf_name="spm_warp_fmri", do
     -------
     main_wf: nipype Workflow
     """
-    if do_group_template:
-        registration_wf_name = "spm_warp_fmri"
-
     main_wf = attach_fmri_cleanup_wf(main_wf)
     main_wf = attach_spm_warp_fmri_wf(main_wf,
                                       registration_wf_name=registration_wf_name,
                                       do_group_template=False)
 
     if do_group_template:
-        main_wf = attach_spm_fmri_grouptemplate_wf(main_wf, wf_name="spm_fmri_template")
-        main_wf = attach_spm_warp_fmri_wf(main_wf, registration_wf_name=registration_wf_name, do_group_template=True)
+        main_wf = attach_spm_fmri_grouptemplate_wf(main_wf, wf_name="spm_fmri_grptemplate")
+        main_wf = attach_spm_warp_fmri_wf(main_wf,
+                                          registration_wf_name=registration_wf_name,
+                                          do_group_template=True)
 
         reg_wf       = main_wf.get_node("{}_{}".format(registration_wf_name, 'grptemplate'))
         grp_template = main_wf.get_node("group_template")

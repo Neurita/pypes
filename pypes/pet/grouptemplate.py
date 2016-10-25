@@ -70,7 +70,8 @@ def attach_spm_pet_grouptemplate(main_wf, wf_name="spm_pet_template"):
     # the group template datasink
     base_outdir  = datasink.inputs.base_directory
     grp_datasink = pe.Node(io.DataSink(parameterization=False,
-                                       base_directory=base_outdir,), name="group_datasink")
+                                       base_directory=base_outdir,),
+                                       name='{}_grouptemplate_datasink'.format(pet_fbasename))
     grp_datasink.inputs.container = '{}_grouptemplate'.format(pet_fbasename)
 
     # the list of the raw pet subjects
