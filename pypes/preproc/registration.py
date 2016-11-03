@@ -2,6 +2,8 @@
 """
 Nipype registration nodes and workflows
 """
+import os.path as path
+
 import nipype.interfaces.afni as afni
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.spm  as spm
@@ -12,7 +14,7 @@ from   nipype.interfaces.utility import IdentityInterface, Function, isdefined
 
 from ..interfaces.nilearn import mean_img, concat_imgs
 from .spatial import get_bounding_box
-from ..config import setup_node
+from ..config import setup_node, get_config_setting
 from ..utils import spm_tpm_priors_path
 
 
@@ -252,7 +254,11 @@ def spm_create_group_template_wf(wf_name="spm_create_group_template"):
     - calculate a mean image (across subjects) and
     - smooth it with a 8x8x8mm^3 gaussian kernel -> the result of this is the template.
     The size of the isometric smoothing gaussian kernel is given by one integer for the
-    "{}_smooth".format(wf_name) setting.
+    "{}_smooth.fwhm".format(wf_name) setting.
+
+    You can also avoid calculating the mean image across subjects and setting a specific group template file by
+    setting the configuration "{}.template_file".format(wf_name) to the path of the file you want.
+    This image will be smoothed and used as a common template for the further pipeline steps.
 
     Parameters
     ----------
@@ -276,21 +282,27 @@ def spm_create_group_template_wf(wf_name="spm_create_group_template"):
     # input
     input = setup_node(IdentityInterface(fields=["in_files"]), name="grptemplate_input",)
 
-    # merge
-    concat = setup_node(Function(function=concat_imgs,
-                                 input_names=["in_files"],
-                                 output_names=["out_file"],
-                                 imports=['from pypes.interfaces.nilearn import ni2file']),
-                        name='merge_time')
+    # checking if a template file has been set already
+    template_file = get_config_setting("{}.template_file".format(wf_name))
 
-    # average
-    average = setup_node(Function(function=mean_img,
-                                  input_names=["in_file", "out_file"],
-                                  output_names=["out_file"],
-                                  imports=['from pypes.interfaces.nilearn import ni2file']),
-                        name='group_average')
-    average.inputs.out_file = 'group_average.nii.gz'
+    use_common_template = path.exists(template_file)
+    if not use_common_template:
+        # merge
+        concat = setup_node(Function(function=concat_imgs,
+                                     input_names=["in_files"],
+                                     output_names=["out_file"],
+                                     imports=['from pypes.interfaces.nilearn import ni2file']),
+                            name='merge_time')
 
+        # average
+        average = setup_node(Function(function=mean_img,
+                                      input_names=["in_file", "out_file"],
+                                      output_names=["out_file"],
+                                      imports=['from pypes.interfaces.nilearn import ni2file']),
+                            name='group_average')
+        average.inputs.out_file = 'group_average.nii.gz'
+
+    #TODO: check what is the difference between nilearn.image.smooth_img and FSL IsotropicSmooth
     # smooth
     #smooth = setup_node(Function(function=smooth_img,
     #                             input_names=["in_file", "fwhm"],
@@ -305,17 +317,26 @@ def spm_create_group_template_wf(wf_name="spm_create_group_template"):
     # Create the workflow object
     wf = pe.Workflow(name=wf_name)
 
-    wf.connect([
-                # input
-                (input,       concat,  [("in_files", "in_files")]),
+    # if I have to create the group template
+    if not use_common_template:
+        wf.connect([
+                    # input
+                    (input,       concat,  [("in_files", "in_files")]),
 
-                # merge, average and smooth
-                (concat,      average, [("out_file", "in_file")]),
-                (average,     smooth,  [("out_file", "in_file")]),
+                    # merge, average and smooth
+                    (concat,      average, [("out_file", "in_file")]),
+                    (average,     smooth,  [("out_file", "in_file")]),
 
-                # output
-                (smooth,     output,   [("out_file", "template")]),
-               ])
+                    # output
+                    (smooth,     output,   [("out_file", "template")]),
+                   ])
+    else: # if the template has been specified in the configuration file
+        smooth.inputs.in_file = template_file
+
+        wf.connect([
+                    # output
+                    (smooth,     output,   [("out_file", "template")]),
+                   ])
 
     return wf
 
