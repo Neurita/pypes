@@ -7,6 +7,8 @@ from os import path as op
 
 from nipype.interfaces import spm as spm
 
+from ..config import get_config_setting
+
 
 def spm_tpm_priors_path(spm_dir=None):
     """ Return the path to the TPM.nii file from SPM.
@@ -30,14 +32,21 @@ def spm_tpm_priors_path(spm_dir=None):
     FileNotFoundError
         If `template` is `None` and can't find the TPM.nii file from SPM.
     """
-    if spm_dir is None:
-        spm_dir = spm.Info.version().get('path', None)
+    spm_version = spm.Info.version()
+    if spm_version is None:
+        raise RuntimeError("Nipype could not find a valid Matlab or SPM configuration.")
 
     if spm_dir is None:
-        spm_dir = op.expanduser('~/Software/matlab_tools/spm12')
+        spm_dir = spm_version.get('path', None)
+
+    if spm_dir is None:
+        spm_dir = op.expanduser(get_config_setting('spm_dir'))
+
+    if not spm_dir:
+        raise NotADirectoryError('Could not find SPM path.')
 
     if not op.exists(spm_dir):
-        raise NotADirectoryError('Could not find SPM path.')
+        raise NotADirectoryError('The specified SPM path ({}) does not exist.'.format(spm_dir))
 
     tpm_path = op.join(spm_dir, 'tpm', 'TPM.nii')
     if not op.exists(tpm_path):
