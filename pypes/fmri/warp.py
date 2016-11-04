@@ -44,7 +44,7 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", register_to_grptemplate=False):
     wfmri_input.in_file: traits.File
         The slice time and motion corrected fMRI file.
 
-    pvc_input.reference_file: traits.File
+    wfmri_input.reference_file: traits.File
         The anatomical image in its native space. For registration reference.
 
     wfmri_input.anat_fmri: traits.File
@@ -63,6 +63,9 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", register_to_grptemplate=False):
         Reference EPI template file for inter subject registration.
         If `do_group_template` is True you must specify this input.
 
+    wfmri_input.brain_mask: traits.File
+        Brain mask in fMRI space.
+
     Nipype Outputs
     --------------
     wfmri_output.warped_fmri: traits.File
@@ -80,6 +83,13 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", register_to_grptemplate=False):
     wfmri_output.warp_field: traits.File
         The fMRI to template warp field.
 
+    wfmri_output.coreg_avg_epi: traits.File
+        The average EPI image in anatomical space.
+        Only if registration.anat2fmri is false
+
+    wfmri_output.wbrain_mask: traits.File
+        Brain mask in fMRI space warped to MNI.
+
     Returns
     -------
     wf: nipype Workflow
@@ -91,6 +101,7 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", register_to_grptemplate=False):
     in_fields  = ["in_file",
                   "anat_fmri",
                   "anat_to_mni_warp",
+                  "brain_mask",
                   "reference_file",
                   "time_filtered",
                   "avg_epi",]
@@ -99,9 +110,10 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", register_to_grptemplate=False):
                   "wtime_filtered",
                   "smooth",
                   "wavg_epi",
+                  "wbrain_mask",
                   "warp_field",
-                  "coreg_src",
-                  "coreg_others"]
+                  "coreg_avg_epi"
+                  ]
 
     if register_to_grptemplate:
         in_fields += ['epi_template']
@@ -164,10 +176,9 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", register_to_grptemplate=False):
     else: # anat2fmri is False
         coreg       = setup_node(spm_coregister(cost_function="mi"), name="coreg_fmri")
         warp        = setup_node(spm_apply_deformations(), name="apply_warp_fmri")
-        coreg_files = pe.Node(Merge(2), name='merge_for_coreg')
+        coreg_files = pe.Node(Merge(3), name='merge_for_coreg')
         warp_files  = pe.Node(Merge(2), name='merge_for_warp')
         tpm_bbox.inputs.in_file = spm_tpm_priors_path()
-
 
     if anat2fmri or register_to_grptemplate:
         # prepare the inputs
@@ -217,6 +228,7 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", register_to_grptemplate=False):
                     # merge the other input files into a list
                     (wfmri_input, coreg_files, [("in_file",       "in1"),
                                                 ("time_filtered", "in2"),
+                                                ("brain_mask",    "in3"),
                                                ]),
 
                     # gunzip them for SPM
@@ -233,7 +245,7 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", register_to_grptemplate=False):
 
                     # apply to files
                     (coreg, warp_files, [("coregistered_source", "in1")]),
-                    (coreg, warp_files, [("coregistered_files", "in2")]),
+                    (coreg, warp_files, [("coregistered_files",  "in2")]),
 
                     (warp_files, warp, [("out", "apply_to_files")]),
 
@@ -241,10 +253,9 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", register_to_grptemplate=False):
                     (warp, rest_output,  [("normalized_files",  "warped_files"),]),
                     (warp, rest_output,  [(("normalized_files", selectindex, [0]), "wavg_epi"),]),
 
-                    (coreg, rest_output, [("coregistered_source", "coreg_src")]),
-                    (coreg, rest_output, [("coregistered_files",  "coreg_others")]),
+                    (coreg, rest_output, [("coregistered_source", "coreg_avg_epi")]),
+                    #(coreg, rest_output, [("coregistered_files",  "coreg_others")]),
                    ])
-
 
     # smooth and sink
     wf.connect([
@@ -317,6 +328,7 @@ def attach_spm_warp_fmri_wf(main_wf, registration_wf_name="spm_warp_fmri", do_gr
     regexp_subst = [
                     (r"/corr_stc{fmri}_trim_mean_sn.mat$", "/{fmri}_grptemplate_params.mat"),
                     (r"/y_corr_stc{fmri}_trim_mean\.nii$", "/{fmri}_to_mni_warpfield.nii"),
+                    (r"/rcorr_stc{fmri}_trim_mean.nii$",   "/avg_epi_anat.nii"),
 
                     (r"/wgrptmpl_corr_stc{fmri}_trim_mean\.nii$",                          "/avg_epi_grptemplate.nii"),
                     (r"/wgrptmpl_corr_stc{fmri}_trim\.nii$",                               "/{fmri}_trimmed_grptemplate.nii"),
@@ -340,10 +352,11 @@ def attach_spm_warp_fmri_wf(main_wf, registration_wf_name="spm_warp_fmri", do_gr
     # input and output anat workflow to main workflow connections
     main_wf.connect([# clean_up_wf to registration_wf
                      (cleanup_wf, warp_fmri_wf, [
-                                                 ("rest_output.motion_corrected", "wfmri_input.in_file"),
-                                                 ("rest_output.anat",             "wfmri_input.anat_fmri"),
-                                                 ("rest_output.time_filtered",    "wfmri_input.time_filtered"),
-                                                 ("rest_output.avg_epi",          "wfmri_input.avg_epi"),
+                                                 ("rest_output.motion_corrected",   "wfmri_input.in_file"),
+                                                 ("rest_output.anat",               "wfmri_input.anat_fmri"),
+                                                 ("rest_output.time_filtered",      "wfmri_input.time_filtered"),
+                                                 ("rest_output.avg_epi",            "wfmri_input.avg_epi"),
+                                                 ("rest_output.tissues_brain_mask", "wfmri_input.brain_mask"),
                                                 ]),
                      # output
                      (warp_fmri_wf,  datasink,  [
@@ -362,8 +375,8 @@ def attach_spm_warp_fmri_wf(main_wf, registration_wf_name="spm_warp_fmri", do_gr
                                                  ]),
                         # output
                         (warp_fmri_wf,  datasink,  [
-                                                    ("wfmri_output.coreg_src",     "rest.@coreg_fmri_anat"),
-                                                    ("wfmri_output.coreg_others",  "rest.@coreg_others"),
+                                                    ("wfmri_output.coreg_avg_epi",  "rest.@coreg_fmri_anat"),
+                                                    #("wfmri_output.coreg_others",  "rest.@coreg_others"),
                                                    ]),
                         ])
 

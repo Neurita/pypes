@@ -136,14 +136,14 @@ def _clinical_wf_setup(wf_name):
                                                 ],
 
                         # MPRAGE preprocessing, and EPI group template
-                        "spm_anat_rest_tpm_preproc": [("spm_anat_preproc",       attach_spm_anat_preprocessing),
-                                                      ("spm_rest_grouptemplate", attach_rest_grptemplate_preprocessing),
+                        "spm_anat_rest_tpm_preproc": [("spm_anat_preproc", attach_spm_anat_preprocessing),
+                                                      ("spm_warp_fmri",    attach_rest_grptemplate_preprocessing),
                                                      ],
 
                         # MPRAGE preprocessing, EPI and PET group template, and PET and rs-fMRI preprocessing and
                         # normalization to group template
                         "spm_anat_pet_rest_tpm_preproc": [("spm_anat_preproc",        attach_spm_anat_preprocessing),
-                                                          ("spm_rest_grouptemplate",  attach_rest_grptemplate_preprocessing),
+                                                          ("spm_warp_fmri",           attach_rest_grptemplate_preprocessing),
                                                           ("spm_pet_preproc",         attach_spm_pet_preprocessing),
                                                           ("spm_mrpet_grouptemplate", attach_spm_pet_grouptemplate),
                                                          ],

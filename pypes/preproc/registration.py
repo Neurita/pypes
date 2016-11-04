@@ -331,6 +331,8 @@ def spm_create_group_template_wf(wf_name="spm_create_group_template"):
                     (smooth,     output,   [("out_file", "template")]),
                    ])
     else: # if the template has been specified in the configuration file
+        wf.add_nodes([input])
+
         smooth.inputs.in_file = template_file
 
         wf.connect([
