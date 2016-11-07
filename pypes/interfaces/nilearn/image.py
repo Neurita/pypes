@@ -19,6 +19,14 @@ def ni2file(**presuffixes):
     In the last case a presuffix must be defined in the decorator to avoid overwriting
     an existing file.
     """
+    def _pick_an_input_file(*args, **kwargs):
+        """Assume that either the first arg or the first kwarg is an input file."""
+        if args:
+            return args[0]
+        else:
+            return list(kwargs.values())[0]
+
+
     def nifti_out(f):
         @wraps(f)
         def wrapped(*args, **kwargs):
@@ -44,11 +52,12 @@ def ni2file(**presuffixes):
                 out_file = fname_presuffix(out_file, **presuffixes)
             else:
                 in_file = kwargs.get('in_file', None)
-                if in_file is None and bool(args):
-                    in_file = args[0]
-                    if not op.exists(in_file):
-                        raise IOError('Expected an existing file to use as reference for'
-                                      ' the output file name, got {}.'.format(in_file))
+                if in_file is None:
+                    in_file = _pick_an_input_file(*args, **kwargs)
+
+                if not op.exists(in_file):
+                    raise IOError('Expected an existing file to use as reference for'
+                                  ' the output file name, got {}.'.format(in_file))
 
                 out_file = fname_presuffix(op.basename(in_file), **presuffixes)
 
@@ -221,5 +230,3 @@ def gauss_dilate_img(in_file, fwhm=2, out_file=None):
     nu_img = niimg.smooth_img(as_type(in_file, float), fwhm=fwhm)
 
     return thr_img(nu_img, 0.5)
-
-
