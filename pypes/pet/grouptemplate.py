@@ -129,8 +129,8 @@ def attach_spm_pet_grouptemplate(main_wf, wf_name="spm_pet_template"):
                          (output,   reg_wf,  [("pet_template",  "reg_input.template")]),
                          (in_files, reg_wf,  [("pet",           "reg_input.in_file"),]),
 
-                         (reg_wf,   datasink, [("reg_output.warped",     "mrpet.@warped"),
-                                               ("reg_output.warp_field", "mrpet.@warp_field"),
+                         (reg_wf,   datasink, [("reg_output.warped",     "pet.grp_template.@warped"),
+                                               ("reg_output.warp_field", "pet.grp_template.@warp_field"),
                                               ]),
                          ])
 
