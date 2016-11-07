@@ -475,15 +475,15 @@ def attach_spm_mrpet_preprocessing(main_wf, wf_name="spm_mrpet_preproc", do_grou
                      (r"/{pet}_.*_pvc_maths.nii.gz$",     "/{pet}_pvc_norm.nii.gz"),
                      (r"/{pet}_.*_pvc_intnormed.nii.gz$", "/{pet}_pvc_norm.nii.gz"),
                      (r"/tissues_brain_mask.nii$",        "/brain_mask_anat.nii"),
-                     (r"/w.*{pet}.nii",                   "/{pet}_{template}.nii"),
-                     (r"/w.*{pet}_.*_pvc.nii$",           "/{pet}_pvc_{template}.nii"),
-                     (r"/w.*{pet}_.*_pvc_maths.nii$",     "/{pet}_pvc_norm_{template}.nii"),
-                     (r"/w.*{pet}_.*_pvc_intnormed.nii$", "/{pet}_pvc_norm_{template}.nii"),
-                     (r"/w.*brain_mask.nii",              "/brain_mask_{template}.nii"),
-                     (r"/r.*{pet}.nii",                   "/{pet}_anat.nii"),
-                     (r"/r.*{pet}_.*_pvc.nii$",           "/{pet}_pvc_anat.nii"),
-                     (r"/r.*{pet}_.*_pvc_maths.nii$",     "/{pet}_pvc_norm_anat.nii"),
-                     (r"/r.*{pet}_.*_pvc_intnormed.nii$", "/{pet}_pvc_norm_anat.nii"),
+                     (r"/w{pet}.nii",                     "/{pet}_{template}.nii"),
+                     (r"/w{pet}_.*_pvc.nii$",             "/{pet}_pvc_{template}.nii"),
+                     (r"/w{pet}_.*_pvc_maths.nii$",       "/{pet}_pvc_norm_{template}.nii"),
+                     (r"/w{pet}_.*_pvc_intnormed.nii$",   "/{pet}_pvc_norm_{template}.nii"),
+                     (r"/wbrain_mask.nii",                "/brain_mask_{template}.nii"),
+                     (r"/r{pet}.nii",                     "/{pet}_anat.nii"),
+                     (r"/r{pet}_.*_pvc.nii$",             "/{pet}_pvc_anat.nii"),
+                     (r"/r{pet}_.*_pvc_maths.nii$",       "/{pet}_pvc_norm_anat.nii"),
+                     (r"/r{pet}_.*_pvc_intnormed.nii$",   "/{pet}_pvc_norm_anat.nii"),
                      (r"/y_rm{anat}_corrected.nii",       "/{anat}_{pet}_warpfield.nii"),
                      (r"/rm{anat}_corrected.nii$",        "/{anat}_{pet}.nii"),
                      (r"/rc1{anat}_corrected.nii$",       "/gm_{pet}.nii"),
@@ -503,6 +503,7 @@ def attach_spm_mrpet_preprocessing(main_wf, wf_name="spm_mrpet_preproc", do_grou
         regexp_subst = format_pair_list(regexp_subst, pet=pet_fbasename, atlas=atlas_basename)
 
     regexp_subst += extension_duplicates(regexp_subst)
+
     datasink.inputs.regexp_substitutions = extend_trait_list(datasink.inputs.regexp_substitutions,
                                                              regexp_subst)
 
