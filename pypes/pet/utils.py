@@ -6,7 +6,7 @@ from   nipype.interfaces.base    import traits
 from   nipype.interfaces.utility import Merge, Function, IdentityInterface
 from   nipype.pipeline import Workflow
 
-from   ..interfaces.nilearn import math_img, concat_imgs
+from   ..interfaces.nilearn import math_img, concat_imgs, resample_to_img
 from   ..config  import setup_node
 from   ..preproc import PETPVC
 from   ..utils   import selectindex, rename
@@ -193,6 +193,14 @@ def intensity_norm(wf_name='intensity_norm'):
     intnorm_input = setup_node(IdentityInterface(fields=in_fields, mandatory_inputs=True),
                                name="intnorm_input")
 
+    # fix the affine matrix (it's necessary for some cases)
+    resample = setup_node(Function(function=resample_to_img,
+                                   input_names=["source", "target", "interpolation"],
+                                   output_names=["out_file"],
+                                   imports=['from pypes.interfaces.nilearn import ni2file']),
+                          name="resample_mask")
+    resample.inputs.interpolation = "nearest"
+
     # calculate masked mean value
     mean_val = setup_node(Function(function=math_img,
                                    input_names=["formula", "img", "mask"],
@@ -217,9 +225,14 @@ def intensity_norm(wf_name='intensity_norm'):
     wf = Workflow(name=wf_name)
 
     wf.connect([
-                # input
-                (intnorm_input, mean_val,  [("source",    "img"),
-                                            ("mask",      "mask")]),
+                # resample
+                (intnorm_input, resample,  [("source",    "target"),
+                                            ("mask",      "source")]),
+
+                # normalize
+                (intnorm_input, mean_val,  [("source",    "img" )]),
+                (resample,      mean_val,  [("out_file",  "mask")]),
+
                 (intnorm_input, norm_img,  [("source",    "img"),
                                             (("source", rename, "_intnormed"), "out_file"),
                                            ]),
