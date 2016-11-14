@@ -169,10 +169,10 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", register_to_grptemplate=False):
         warp_outsource_arg = "normalized_image"
         warp_field_arg     = "deformation_field"
 
-        wf.connect([
-                    # warp source file
-                    (wfmri_input, warp,   [("anat_fmri",  warp_source_arg)]),
-                   ])
+        # wf.connect([
+        #             # warp source file
+        #             (wfmri_input, warp,   [("anat_fmri",  warp_source_arg)]),
+        #            ])
     else: # anat2fmri is False
         coreg       = setup_node(spm_coregister(cost_function="mi"), name="coreg_fmri")
         warp        = setup_node(spm_apply_deformations(), name="apply_warp_fmri")

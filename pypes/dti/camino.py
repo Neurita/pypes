@@ -45,18 +45,21 @@ def camino_tractography(wf_name="camino_tract", fa_tract_stat='mean'):
         The atlas ROIxROI structural connectivity matrix.
 
     tract_output.mean_fa
-        The average FA of the whole image.
+        The atlas ROIxROI structural connectivity matrix with average FA values.
+
+    tract_output.fa
+        The voxelwise fractional anisotropy image.
 
     Returns
     -------
     wf: nipype Workflow
     """
     in_fields  = ["diff", "bvec", "bval", "mask", "atlas"]
-    out_fields = ["tensor", "tracks", "connectivity", "mean_fa"]
+    out_fields = ["tensor", "tracks", "connectivity", "mean_fa", "fa"]
 
     tract_input  = setup_node(IdentityInterface(fields=in_fields,
-                                             mandatory_inputs=True),
-                           name="tract_input")
+                                                mandatory_inputs=True),
+                              name="tract_input")
 
     img2vox_diff = setup_node(Image2Voxel(out_type="float"), name="img2vox_diff")
     img2vox_mask = setup_node(Image2Voxel(out_type="short"), name="img2vox_mask")
@@ -84,25 +87,32 @@ def camino_tractography(wf_name="camino_tract", fa_tract_stat='mean'):
                 (tract_input,   img2vox_diff,     [("diff",                  "in_file"     )]),
                 (tract_input,   fsl2scheme,       [("bvec",                  "bvec_file"   ),
                                                    ("bval",                  "bval_file"   )]),
-                (tract_input,   track,            [("atlas",                 "seed_file"   )]),
-                (tract_input,   conmat,           [("atlas",                 "target_file" )]),
+
                 (tract_input,   img2vox_mask,     [("mask",                  "in_file"     )]),
                 (img2vox_diff,  dtifit,           [("voxel_order",           "in_file"     )]),
                 (img2vox_mask,  dtifit,           [("voxel_order",           "bgmask"      )]),
                 (fsl2scheme,    dtifit,           [("scheme",                "scheme_file" )]),
                 (fsl2scheme,    fa,               [("scheme",                "scheme_file" )]),
                 (dtifit,        fa,               [("tensor_fitted",         "in_file"     )]),
-                (dtifit,        tract_output,     [("tensor_fitted",         "tensor"      )]),
+
+                (tract_input,   track,            [("atlas",                 "seed_file"   )]),
                 (dtifit,        track,            [("tensor_fitted",         "in_file"     )]),
-                (track,         conmat,           [("tracked",               "in_file"     )]),
-                (track,         tract_output,     [("tracked",               "tracks"      )]),
+
                 (fa,            analyzehdr_fa,    [("fa",                    "in_file"     )]),
                 (tract_input,   analyzehdr_fa,    [(('diff', get_vox_dims),  "voxel_dims"  ),
                                                    (('diff', get_data_dims), "data_dims"   )]),
+
                 (analyzehdr_fa, fa2nii,           [("header",                "header_file" )]),
                 (tract_input,   fa2nii,           [(("diff", get_affine),    "affine"      )]),
                 (fa,            fa2nii,           [("fa",                    "data_file"   )]),
+
+                (tract_input,   conmat,           [("atlas",                 "target_file" )]),
+                (track,         conmat,           [("tracked",               "in_file"     )]),
                 (fa2nii,        conmat,           [("nifti_file",            "scalar_file" )]),
+
+                (fa2nii,        tract_output,     [("nifti_file",            "fa"          )]),
+                (dtifit,        tract_output,     [("tensor_fitted",         "tensor"      )]),
+                (track,         tract_output,     [("tracked",               "tracks"      )]),
                 (conmat,        tract_output,     [("conmat_sc",             "connectivity"),
                                                    ("conmat_ts",             "mean_fa"     )]),
               ])
@@ -156,7 +166,9 @@ def attach_camino_tractography(main_wf, wf_name="camino_tract"):
                      (tract_wf, datasink, [("tract_output.tensor",        "tract.@tensor"),
                                            ("tract_output.tracks",        "tract.@tracks"),
                                            ("tract_output.connectivity",  "tract.@connectivity"),
-                                           ("tract_output.mean_fa",       "tract.@mean_fa")])
+                                           ("tract_output.mean_fa",       "tract.@mean_fa"),
+                                           ("tract_output.fa",            "tract.@fa"),
+                                           ])
                     ])
 
     return main_wf

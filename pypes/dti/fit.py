@@ -70,6 +70,12 @@ def fsl_dti_preprocessing(wf_name="fsl_dti_preproc"):
         Atlas image warped to diffusion space.
         If the `atlas_file` option is an existing file and `normalize_atlas` is True.
 
+    dti_output.acpq: traits.File
+        Text file with acquisition parameters calculated for Eddy.
+
+    dti_output.index: traits.File
+        Text file with acquisition indices calculated for Eddy.
+
     Nipype Workflow Dependencies
     ----------------------------
     This workflow depends on:
@@ -86,7 +92,9 @@ def fsl_dti_preprocessing(wf_name="fsl_dti_preproc"):
                   "eddy_corrected",
                   "bvec_rotated",
                   "bval",
-                  "brain_mask_diff"]
+                  "brain_mask_diff",
+                  "acqp",
+                  "index"]
 
     do_atlas, _ = check_atlas_file()
     if do_atlas:
@@ -100,21 +108,23 @@ def fsl_dti_preprocessing(wf_name="fsl_dti_preproc"):
     # processing nodes
     write_acqp   = setup_node(Function(function=dti_acquisition_parameters,
                                        input_names=["in_file"],
-                                       output_names=["out_acqp", "out_index"],
-        ),                    name="write_acqp")
-    eddy         = setup_node(Eddy(),                                name="eddy")
+                                       output_names=["out_acqp", "out_index"],),
+                              name="write_acqp")
+
+    eddy         = setup_node(Eddy(), name="eddy")
+
     denoise      = setup_node(Function(function=nlmeans_denoise,
                                        input_names=['in_file', 'mask_file', 'out_file', 'N'],
                                        output_names=['out_file']),
                               name='nlmeans_denoise')
 
-    extract_b0   = setup_node(ExtractROI(t_min=0, t_size=1),      name="extract_b0")
-    gunzip_b0    = setup_node(Gunzip(),                           name="gunzip_b0")
+    extract_b0   = pe.Node   (ExtractROI(t_min=0, t_size=1),      name="extract_b0")
+    gunzip_b0    = pe.Node   (Gunzip(),                           name="gunzip_b0")
     coreg_b0     = setup_node(spm_coregister(cost_function="mi"), name="coreg_b0")
-    brain_sel    = setup_node(Select(index=[0, 1, 2]),            name="brain_sel")
-    coreg_split  = setup_node(Split(splits=[1, 2], squeeze=True), name="coreg_split")
+    brain_sel    = pe.Node   (Select(index=[0, 1, 2]),            name="brain_sel")
+    coreg_split  = pe.Node   (Split(splits=[1, 2], squeeze=True), name="coreg_split")
 
-    brain_merge  = setup_node(MultiImageMaths(),                  name="brain_merge")
+    brain_merge  = setup_node(MultiImageMaths(), name="brain_merge")
     brain_merge.inputs.op_string = "-add '%s' -add '%s' -abs -kernel gauss 4 -dilM -ero -kernel gauss 1 -dilM -bin"
     brain_merge.inputs.out_file = "brain_mask_diff.nii.gz"
 
@@ -158,6 +168,8 @@ def fsl_dti_preprocessing(wf_name="fsl_dti_preproc"):
                 (brain_merge,   denoise,        [("out_file",            "mask_file")]),
 
                 # output
+                (write_acqp,    dti_output,     [("out_acqp",            "acqp"),
+                                                 ("out_index",           "index")]),
                 (brain_merge,   dti_output,     [("out_file",            "brain_mask_diff")]),
                 (denoise,       dti_output,     [("out_file",            "denoised")]),
                 (eddy,          dti_output,     [("out_corrected",       "eddy_corrected")]),
@@ -254,7 +266,9 @@ def attach_fsl_dti_preprocessing(main_wf, wf_name="fsl_dti_preproc"):
                                            ("dti_output.corrected",              "diff.@corrected"),
                                            ("dti_output.brain_mask_diff",        "diff.@mask"),
                                            ("dti_output.bvec_rotated",           "diff.@bvec_rotated"),
-                                           ("dti_output.bval",                   "diff.@bval")
+                                           ("dti_output.bval",                   "diff.@bval"),
+                                           ("dti_output.acqp",                   "diff.@acqp"),
+                                           ("dti_output.index",                  "diff.@index")
                                           ]),
                     ])
 

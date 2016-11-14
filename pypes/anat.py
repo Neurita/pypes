@@ -194,8 +194,7 @@ def spm_anat_preprocessing(wf_name="spm_anat_preproc"):
     brain_mask.inputs.formula  = "np.abs(gm + wm + csf) > 0"
 
     # output node
-    anat_output = setup_node(IdentityInterface(fields=out_fields),
-                             name="anat_output")
+    anat_output = setup_node(IdentityInterface(fields=out_fields), name="anat_output")
 
     # Connect the nodes
     wf.connect([
@@ -231,9 +230,9 @@ def spm_anat_preprocessing(wf_name="spm_anat_preproc"):
 
     # atlas warping nodes
     if do_atlas:
-        gunzip_atlas = setup_node(Gunzip(),                 name="gunzip_atlas")
+        gunzip_atlas = pe.Node   (Gunzip(),                 name="gunzip_atlas")
         warp_atlas   = setup_node(spm_apply_deformations(), name="warp_atlas")
-        anat_bbox    = setup_node(Function(function=get_bounding_box,
+        anat_bbox    = pe.Node   (Function(function=get_bounding_box,
                                            input_names=["in_file"],
                                            output_names=["bbox"]),
                                   name="anat_bbox")
