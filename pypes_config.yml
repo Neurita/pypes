@@ -44,17 +44,8 @@ registration.anat2pet: False
 # 5) normalize fMRI to MNI using the anatomical to MNI transformation.
 registration.anat2fmri: True
 
-# TODO
-# If fmri2EPI is True, fmri will be directly registered to
-# MNI through a standard EPI template. This will also affect
-# the EPI group template pipeline.
-registration.fmri2EPI: False
-
-# ANAT
-
-
 # DTI
-coreg_b0.write_interp: 3
+coreg_b0.write_interp: 3 # degree of b-spline used for interpolation
 nlmeans_denoise.N: 12 # number of channels in the head coil
 
 # Camino Tractography
@@ -62,7 +53,7 @@ track.curvethresh: 50
 track.anisthresh: 0.2
 
 # REST
-coreg_rest.write_interp: 3
+coreg_rest.write_interp: 3 # degree of b-spline used for interpolation
 
 ## the last volume index to discard from the timeseries. default: 0
 trim.begin_index: 5
