@@ -6,7 +6,7 @@ Resting-state fMRI specific nuisance correction filtering workflow.
 import nipype.pipeline.engine       as pe
 from   nipype.algorithms.rapidart   import ArtifactDetect
 from   nipype.interfaces.utility    import Function, IdentityInterface, Merge
-from   nipype.algorithms.confounds  import TSNR #, ACompCor
+from   nipype.algorithms.confounds  import TSNR
 from   nipype.interfaces            import fsl
 
 from   ..config  import setup_node, _get_params_for
