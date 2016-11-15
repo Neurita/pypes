@@ -36,6 +36,7 @@ DTI and tractography
 --------------------
 - `SPM12 <http://www.fil.ion.ucl.ac.uk/spm/software/spm12/>`_ (anatomical co-registration and atlas normalization),
 - `FSL <http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/>`_ (`Eddy <http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/eddy>`_ for motion and eddy-currents correction and fslmaths) and
+- `Dipy <http://nipy.org/dipy/>`_ (NL-means)
 - `Camino <http://camino.cs.ucl.ac.uk/>`_ (diffusion tensor model fitting and deterministic tractography).
 
 Resting-state fMRI preprocessing
@@ -55,7 +56,7 @@ This package uses setuptools. You can install it running:
 
     python setup.py install
 
-If you hve problems during this installation. First you may need to install the dependencies:
+If you have problems during this installation. First you may need to install the dependencies:
 
     pip install -r requirements.txt
 
@@ -73,6 +74,11 @@ You can also install it in development mode with::
 
     python setup.py develop
 
+Introduction
+============
+
+- `Description of the pipelines <https://github.com/Neurita/pypes/blob/master/docs/pipelines.md>`_
+- `Getting started <https://github.com/Neurita/pypes/blob/master/docs/getting_started.md>`_
 
 Development
 ===========
