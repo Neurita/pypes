@@ -50,7 +50,7 @@ Install
 =======
 
 To install the external dependencies, please check how to install them in their own manuals.
-
+You can find very helpful instructions `here <http://miykael.github.io/nipype-beginner-s-guide/installation.html>`_.
 
 This package uses setuptools. You can install it running:
 

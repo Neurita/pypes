@@ -378,12 +378,10 @@ class GIFTICAResultsPlotter(MIALABICAResultsPlotter):
         tcs = niimg.load_img(tcsf).get_data()
         return tcs
 
-
     def _calculate_goodness_of_fit(self):
         """ Return the goodness-of-fit values from a GIFT result."""
         pass
         #TODO
-
 
     def goodness_of_fit_df(self, group_labels_file, subjid_pat=r'(?P<patid>[a-z]{2}_[0-9]{6})'):
         """ Return a pandas.DataFrame ready for an excel file with:
