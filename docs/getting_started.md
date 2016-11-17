@@ -1,16 +1,18 @@
-<!-- TOC depthFrom:1 depthTo:6 withLinks:1 updateOnSave:1 orderedList:0 -->
+# Getting started
 
-- [Getting started](#getting-started)
-	- [Preparing the data](#preparing-the-data)
-	- [Declaring the data](#declaring-the-data)
-	- [Setting up the pipelines](#setting-up-the-pipelines)
-	- [The configuration file](#the-configuration-file)
-	- [Running the pipelines](#running-the-pipelines)
+In this document I show how to build and run neuroimaging pipelines using [Nipype](http://nipype.readthedocs.io) and [pypes](https://github.com/Neurita/pypes).
+
+
+<!-- TOC depthFrom:2 depthTo:6 withLinks:1 updateOnSave:1 orderedList:0 -->
+
+- [Preparing the data](#preparing-the-data)
+- [Declaring the data](#declaring-the-data)
+- [Setting up the pipelines](#setting-up-the-pipelines)
+- [Setting pipeline parameters](#setting-pipeline-parameters)
+- [Building the pipeline](#building-the-pipeline)
+- [Running the pipelines](#running-the-pipelines)
 
 <!-- /TOC -->
-
-# Getting started
-In this document I show how to build and run neuroimaging pipelines using [Nipype](http://nipype.readthedocs.io) and [pypes](https://github.com/Neurita/pypes).
 
 ## Preparing the data
 I recommend organizing your dataset first. [This guide](http://miykael.github.io/nipype-beginner-s-guide/prepareData.html) explains good ways to organize it. Usually I recommend the following tree: `{base_dir}/raw/{subject_id}/{session_id}/{image_files}`.

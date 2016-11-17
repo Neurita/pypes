@@ -1,15 +1,8 @@
 
 # Description of the pipelines
 
-- [Anatomical MRI (MPRAGE)](#anat)
-- [FDG-PET](#fdg_pet)
-- [MPRAGE + FDG-PET](#mrpet)
-- [Resting-state fMRI](#fmri)
-- [Independent Component Analysis](#ica)
-- [Diffusion MRI](#dti)
-- [Tractography](#tract)
 
-## <a name="anat"></a> Anatomical MRI (MPRAGE)
+## Anatomical MRI (MPRAGE)
 This pipeline will clean and register a T1-weighted image to MNI.
 
 It is based in ANTS and SPM12.
@@ -25,6 +18,7 @@ It is implemented in [`pypes.anat.attach_spm_anat_preprocessing`](https://github
 5. Warp atlas (or any file in SPM12-MNI space) to anatomical space.
 
 ##### Related settings
+
 ```yaml
 spm_dir: "~/Software/matlab_tools/spm12"
 
@@ -32,7 +26,7 @@ normalize_atlas: True
 atlas_file: ''
 ```
 
-## <a name="fdg_pet"></a> FDG-PET
+## FDG-PET
 This is a spatial normalization pipeline for FDG-PET images. Here I say specifically FDG-PET because I haven't tested
 this too much for other PET tracers.
 
@@ -45,7 +39,7 @@ There is a group-template option of this: first a group template
 is created, then all FDG-PET are images are normalized to this
 group template.
 
-#### Related settings
+##### Related settings
 ```yaml
 # GROUP PET TEMPLATE
 spm_pet_grouptemplate_smooth.fwhm: 8
@@ -53,7 +47,7 @@ spm_pet_grouptemplate_smooth.fwhm: 8
 spm_pet_grouptemplate.template_file: ""
 ```
 
-## <a name="mrpet"></a> MPRAGE + FDG-PET
+## MPRAGE + FDG-PET
 This is a partial volume correction and spatial normalization pipeline
 for FDG-PET images.
 
@@ -100,7 +94,7 @@ rbvpvc.fwhm_y: 4.3
 rbvpvc.fwhm_z: 4.3
 ```
 
-## <a name="fmri"></a> Resting-state fMRI (RS-fMRI)
+## Resting-state fMRI (RS-fMRI)
 This pipeline preprocess fMRI data for resting-state fMRI analyses.
 It depends on the MPRAGE preprocessing pipeline.
 
@@ -151,6 +145,7 @@ according to `smooth_fmri.fwhm: 8`.
 
 
 ##### Related settings
+
 ```yaml
 registration.anat2fmri: True
 
@@ -216,7 +211,7 @@ compcor_pars.num_components: 6
 gsr_pars.num_components: 1
 ```
 
-## <a name="ica"></a> fMRI Independent Component Analysis (ICA)
+## fMRI Independent Component Analysis (ICA)
 This pipeline performs ICA on fMRI images. It is based on nilearn, and you
 can choose between CanICA and DictLearning.
 There is one version for one functional image, in `attach_canica` and
@@ -227,6 +222,7 @@ approach should be further tested on real data.
 It depends on the RS-fMRI pipeline.
 This is implemented in
 [`pypes.postproc.decompose`](https://github.com/Neurita/pypes/blob/master/pypes/postproc/decompose.py).
+
 
 ##### Related settings
 ```yaml
@@ -270,7 +266,7 @@ rest_connectivity.smoothing_fwhm: 8
 rest_connectivity.atlas_type: labels # choices: "labels", "probabilistic".
 ```
 
-## <a name="dti"></a> Diffusion MRI (DTI)
+## Diffusion MRI (DTI)
 This pipeline performs Diffusion MRI correction and pre-processing., tensor-fitting and tractography
 it is based on FSL Eddy, dipy, and UCL Camino.
 
@@ -296,7 +292,7 @@ coreg_b0.write_interp: 3
 nlmeans_denoise.N: 12 # number of channels in the head coil
 ```
 
-## <a name="tract"></a> Tractography
+## Tractography
 This pipeline performs DTI tensor model fitting and tractography.
 
 It is based on UCL Camino.
