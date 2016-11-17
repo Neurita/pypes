@@ -38,7 +38,7 @@ exec(compile(read(VERSION_PYFILE), VERSION_PYFILE, 'exec'))
 # INSTALL_REQUIRES = list(parse_requirements('requirements.txt'))
 # req_files = ['requirements.txt', 'pip_requirements.txt']
 
-LICENSE = 'New BSD'
+LICENSE = 'Apache License, Version 2.0'
 
 
 setup_dict = dict(
