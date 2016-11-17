@@ -17,7 +17,6 @@ source_suffix = ['.rst', '.md']
 MOCK_MODULES = ['numpy',
                 'scipy',
                 'matplotlib', 'matplotlib.pyplot', 'matplotlib.transforms', 'mpl_toolkits.axes_grid1',
-                ''
                 'nipy',
                 'hansel',
                 'dipy',
