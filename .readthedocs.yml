@@ -3,7 +3,7 @@ formats:
     - epub
     - pdf
 
-requirements_file: ''
+requirements_file: 'requirements.txt'
 
 python:
     version: 3
