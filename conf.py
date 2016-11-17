@@ -13,5 +13,15 @@ source_parsers = {
 }
 
 source_suffix = ['.rst', '.md']
-MOCK_MODULES = ['numpy', 'scipy']
+MOCK_MODULES = ['numpy',
+                'scipy',
+                'nipy',
+                'hansel',
+                'dipy',
+                'matplotlib',
+                'nipype',
+                'kaptan',
+                'pydicom',
+                'boyle',
+                'dcmstack']
 sys.modules.update((mod_name, MagicMock()) for mod_name in MOCK_MODULES)
