@@ -54,8 +54,7 @@ setup_dict = dict(
 
     packages=find_packages(),
 
-    install_requires=['numpy',
-                      'scipy'],
+    install_requires=[],
 
     scripts=[],
 

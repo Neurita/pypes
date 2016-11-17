@@ -1,6 +1,8 @@
+numpy>=1.11
+scipy>=0.18
+hansel>=0.9.5
 matplotlib==1.5.2
 nibabel==2.1.0
-hansel>=0.9.5
 nilearn==0.2.6
 git+https://github.com/nipy/nipy.git@dfbee7273e4795ac2a8d04ca454b0ef3cc1e6a29#egg=nipy
 git+https://github.com/nipy/nipype.git@f00ab33258557dd9ab2262a144c672cdc4b5518a#egg=nipype
