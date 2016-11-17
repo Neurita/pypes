@@ -1,8 +1,9 @@
 # Build PDF & ePub
 formats:
+    - pdf
     - epub
 
-requirements_file: 'requirements.txt'
+requirements_file: 'docs/requirements.txt'
 
 python:
     version: 3

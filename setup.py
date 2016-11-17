@@ -54,7 +54,8 @@ setup_dict = dict(
 
     packages=find_packages(),
 
-    install_requires=[],
+    install_requires=['numpy',
+                      'scipy'],
 
     scripts=[],
 
@@ -83,8 +84,8 @@ setup_dict = dict(
     ],
 
     extras_require={'tests': [],
-                    'docs': ['mkdocs >= 0.16',
-                             'recommonmark >= 0.4.0']
+                    'docs': ['mkdocs',
+                             'recommonmark']
                    }
 )
 
