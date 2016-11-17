@@ -59,7 +59,7 @@ setup_dict = dict(
 
     scripts=[],
 
-    long_description=read('README.rst', 'CHANGES.rst'),
+    long_description=read('README.md', 'CHANGES.md'),
 
     platforms='Linux/MacOSX',
 
