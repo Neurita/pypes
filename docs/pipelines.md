@@ -1,16 +1,19 @@
 
 # Description of the pipelines
-
+Here I explain the key points of each of the different pipelines. I also list the
+configuration parameters relevant to each of them.
 
 ## Anatomical MRI (MPRAGE)
-This pipeline will clean and register a T1-weighted image to MNI.
+This pipeline will bias-field correct, segment the tissues, and register a T1-weighted image to MNI.
 
 It is based in ANTS and SPM12.
 It is implemented in [`pypes.anat.attach_spm_anat_preprocessing`](https://github.com/Neurita/pypes/blob/master/pypes/anat.py).
 
+These are the steps:
+
 1. Bias-field correction using ANTS/N4BiasFieldCorrection.
 2. Brain tissue segmentation and spatial normalization with SPM12 New Segment.
-3. Spatial normalization of tissues to MNI using SPM12 Normalize.
+3. Spatial normalization of tissue maps to MNI using SPM12 Normalize.
 4. Create a brain mask based on tissue segmentations.
 
 [optional]

@@ -83,7 +83,7 @@ crumb_arguments = {'anat': [('modality', 'anat_1'),
 
 You can either have a separate configuration file (in JSON, YAML, .ini, etc...), dealt by [Kaptan](https://github.com/emre/kaptan). And you can also set configuration parameters with a Python `dict`.
 Pypes provides a function named `update_config` where you can input a `dict` or a file path to update the global configuration state before building the pipelines.
-I recommend YAML, have a look at the [example config file](https://github.com/Neurita/pypes/blob/master/pypes_config.yml).
+I recommend YAML, have a look at the [example config file](pypes_config.yml).
 
 ```python
 from pypes.config import update_config
