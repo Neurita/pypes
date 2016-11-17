@@ -83,7 +83,10 @@ setup_dict = dict(
         'Programming Language :: Python :: 3.5',
     ],
 
-    tests_require=['pytest'],
+    extras_require={'tests': [],
+                    'docs': ['mkdocs >= 0.16',
+                             'recommonmark >= 0.4.0']
+                   }
 )
 
 # Python3 support keywords

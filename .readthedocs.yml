@@ -1,0 +1,12 @@
+# Build PDF & ePub
+formats:
+    - epub
+    - pdf
+
+requirements_file: ''
+
+python:
+    version: 3
+    setup_py_install: false
+    extra_requirements:
+        - docs
