@@ -124,7 +124,7 @@ The one in debug mode will call a debugger if any exception is raised in the end
 They have the same arguments as the workflow `wf.run()` function.
 
 ```python
-from pypes.run import run_wf
+from pypes.run import run_debug
 
-run_wf(wf, plugin="MultiProc", n_cpus=1)
+run_debug(wf, plugin="MultiProc", n_cpus=4)
 ```
