@@ -1,7 +1,7 @@
 import sys
 from mock import Mock as MagicMock
-
 from recommonmark.parser import CommonMarkParser
+
 
 class Mock(MagicMock):
     @classmethod
@@ -13,8 +13,11 @@ source_parsers = {
 }
 
 source_suffix = ['.rst', '.md']
+
 MOCK_MODULES = ['numpy',
                 'scipy',
+                'matplotlib', 'matplotlib.pyplot', 'matplotlib.transforms', 'mpl_toolkits.axes_grid1',
+                ''
                 'nipy',
                 'hansel',
                 'dipy',
