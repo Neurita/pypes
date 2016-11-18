@@ -7,7 +7,7 @@ neuroimaging preprocessing software.
 
 The objectives of this projects are:
 
-- easy-to-use complete, reusable, and configurable pre-processing pipelines, and
+- easy-to-use, complete, reusable, and configurable pre-processing pipelines, and
 - high-quality results with the minimum manual intervention in the images.
 
 
