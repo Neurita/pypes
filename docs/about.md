@@ -21,8 +21,9 @@ Licensed under the Apache License, Version 2.0.
 ## Author
 
 The main author of this project is [Alexandre Savio](http://alexsavio.github.io/).
-This work was done while he was employed in the Nuklear Medizin Department (NUK) of
-the Klinikum rechts der Isar of the Technical University of Munich, Germany.
+This work was done while he was employed by MD Dr. Igor Yakushev
+in the Nuklear Medizin Department (NUK) of the Klinikum rechts der Isar of
+the Technical University of Munich, Germany.
 
 ### Many thanks to other contributors:
 
