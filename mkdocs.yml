@@ -5,4 +5,5 @@ pages:
     - Pipelines: pipelines.md
     - Datasets: datasets.md
     - About: about.md
+    - License: license.md
 theme: readthedocs

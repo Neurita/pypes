@@ -110,8 +110,3 @@ git clone git@github.com:neurita/pypes.git
 If you are going to create patches for this project, create a branch for it from the master branch.
 
 The stable releases are tagged in the repository.
-
-
-## License
-
-This software is licensed under the [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0).

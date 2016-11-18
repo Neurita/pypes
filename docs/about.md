@@ -13,11 +13,6 @@ Without modifying parameters, 95% of the images were correctly registered and pr
 Very few subjects needed manual editings such as neck removal or AC-PC reorientation.
 
 
-## License
-
-Licensed under the Apache License, Version 2.0.
-
-
 ## Author
 
 The main author of this project is [Alexandre Savio](http://alexsavio.github.io/).
