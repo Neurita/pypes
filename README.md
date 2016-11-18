@@ -1,13 +1,16 @@
-pypes
-=====
+# pypes
 
-Reusable neuroimaging pipelines using nipype
+[![image](https://readthedocs.org/projects/neuro-pypes/badge/?version=latest)](http://neuro-pypes.readthedocs.io)
 
-[![image](https://secure.travis-ci.org/neurita/pypes.png?branch=master)](https://travis-ci.org/neurita/pypes)
-[![image](https://readthedocs.org/projects/neurita-pypes/badge/?version=latest)](http://neuro-pypes.readthedocs.io)
-[![image](https://coveralls.io/repos/neurita/pypes/badge.png)](https://coveralls.io/r/neurita/pypes)
+Reusable neuroimaging pipelines using [nipype](http://nipype.readthedocs.io/) and state-of-the-art
+neuroimaging preprocessing software.
 
-Documentation
-=============
+The objectives of this projects are:
+
+- easy-to-use complete, reusable, and configurable pre-processing pipelines, and
+- high-quality results with the minimum manual intervention in the images.
+
+
+## Documentation
 
 Please have a look at the documentation [here](http://neuro-pypes.readthedocs.io).
