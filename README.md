@@ -14,3 +14,8 @@ The objectives of this projects are:
 ## Documentation
 
 Please have a look at the documentation [here](http://neuro-pypes.readthedocs.io).
+
+
+## License
+
+Licensed under the Apache License, Version 2.0.

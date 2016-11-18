@@ -196,7 +196,7 @@ def cobre_crumb_workflow(wf_name, data_crumb, output_dir, cache_dir='', config_f
     wf_name: str
         A name for the workflow.
         Choices: 'spm_anat_preproc': MPRAGE preprocessing with SPM12
-                 'spm_rest_preproc': MPRAGE+rs-fMRI preprocessing with SPM12 (not implemented yet)
+                 'spm_rest_preproc': MPRAGE+rs-fMRI preprocessing with SPM12
 
     data_crumb: hansel.Crumb
         The crumb until the subject files.

@@ -1,5 +1,23 @@
 # Welcome to Pypes
 
+Pypes is a Python module for brain PET and multimodal MRI processing.
+It contains specific pipelines to pre-process this type of images.
+
+The objectives of this module are:
+
+- easy-to-use, complete, reusable, and configurable pre-processing pipelines, and
+- high-quality results with the minimum manual intervention in the images.
+
+First you will need to convert those DICOM files to NifTI files.
+I recommend you to use [dcm2niix](https://github.com/rordenlab/dcm2niix) for this.
+The you will probably want to clean and rename those files to have a homogeneous database.
+
+I've tested these on ~140 subjects with very good results.
+Without modifying parameters, 95% of the images were correctly registered and processed.
+Very few subjects needed manual editings such as neck removal or AC-PC reorientation.
+
+The spatial normalization here are only done with [SPM12](http://www.fil.ion.ucl.ac.uk/spm/software/spm12/) for now.
+
 
 ## Installation
 
@@ -7,8 +25,11 @@ The first thing you need to install are the external dependencies.
 
 ### External dependencies
 
-Each pipeline type has a sub-set of external dependencies. To install these, please check how to install them in their own manuals.
+Each pipeline type has a sub-set of external dependencies.
+To install these, please check how to install them in their own manuals.
 You can also find very helpful instructions [here](http://miykael.github.io/nipype-beginner-s-guide/installation.html).
+If you are familiar with Bash, you can check our [neuro-docker](https://github.com/Neurita/neuro_docker).
+Following, for each modality of MRI we list the dependencies you will need to have installed.
 
 #### Anatomical MRI
 

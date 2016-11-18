@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-DICOM to Nifti converter node based on dcm2nii.
+DICOM to Nifti converter node based on dcm2niix and hansel.Crumb.
 """
 import nipype.pipeline.engine as pe
 from nipype.interfaces.base    import traits

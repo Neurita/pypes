@@ -12,4 +12,19 @@ I've tested these on ~140 subjects with very good results.
 Without modifying parameters, 95% of the images were correctly registered and processed.
 Very few subjects needed manual editings such as neck removal or AC-PC reorientation.
 
-The spatial normalization here are only done with SPM12 for now.
+
+## License
+
+Licensed under the Apache License, Version 2.0.
+
+
+## Author
+
+The main author of this project is [Alexandre Savio](http://alexsavio.github.io/).
+This work was done while he was employed in the Nuklear Medizin Department (NUK) of
+the Klinikum rechts der Isar of the Technical University of Munich, Germany.
+
+### Many thanks to other contributors:
+
+- [Michael Schutte](https://github.com/schutte) for improvements and the DTI/Camino
+pipeline while doing his Master Thesis in the NUK.
