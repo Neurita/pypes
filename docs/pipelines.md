@@ -3,7 +3,7 @@
 Here I explain the key points of each of the different pipelines. I also list the
 configuration parameters relevant to each of them.
 
-## Anatomical MRI (MPRAGE)
+## Anatomical MRI (MPRAGE) [<a href="https://github.com/Neurita/pypes/blob/master/docs/img/spm_anat_preproc_workflow.png?raw=true" target="_blank">graph</a>]
 This pipeline will bias-field correct, segment the tissues, and register a T1-weighted image to MNI.
 
 It is based in ANTS and SPM12.
@@ -50,7 +50,7 @@ spm_pet_grouptemplate_smooth.fwhm: 8
 spm_pet_grouptemplate.template_file: ""
 ```
 
-## MPRAGE + FDG-PET
+## MPRAGE + FDG-PET [<a href="https://github.com/Neurita/pypes/blob/master/docs/img/spm_anat_pet_preproc_workflow.png?raw=true" target="_blank">graph</a>]
 This is a partial volume correction and spatial normalization pipeline
 for FDG-PET images.
 
@@ -97,7 +97,7 @@ rbvpvc.fwhm_y: 4.3
 rbvpvc.fwhm_z: 4.3
 ```
 
-## Resting-state fMRI (RS-fMRI)
+## Resting-state fMRI (RS-fMRI) [<a href="https://github.com/Neurita/pypes/blob/master/docs/img/spm_rest_preproc_workflow.png?raw=true" target="_blank">graph</a>]
 This pipeline preprocess fMRI data for resting-state fMRI analyses.
 It depends on the MPRAGE preprocessing pipeline.
 
@@ -269,7 +269,7 @@ rest_connectivity.smoothing_fwhm: 8
 rest_connectivity.atlas_type: labels # choices: "labels", "probabilistic".
 ```
 
-## Diffusion MRI (DTI)
+## Diffusion MRI (DTI) [<a href="https://github.com/Neurita/pypes/blob/master/docs/img/spm_pet_anat_dti_camino_workflow.png?raw=true" target="_blank">graph</a>]
 This pipeline performs Diffusion MRI correction and pre-processing., tensor-fitting and tractography
 it is based on FSL Eddy, dipy, and UCL Camino.
 
@@ -295,7 +295,7 @@ coreg_b0.write_interp: 3
 nlmeans_denoise.N: 12 # number of channels in the head coil
 ```
 
-## Tractography
+## Tractography [<a href="https://github.com/Neurita/pypes/blob/master/docs/img/spm_pet_anat_dti_camino_workflow.png?raw=true" target="_blank">graph</a>]
 This pipeline performs DTI tensor model fitting and tractography.
 
 It is based on UCL Camino.
