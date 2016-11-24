@@ -5,17 +5,17 @@ Nipype workflows to preprocess diffusion MRI.
 import os.path as op
 
 import nipype.pipeline.engine    as pe
-from   nipype.interfaces.fsl     import Eddy, MultiImageMaths
+from   nipype.interfaces.fsl     import Eddy, BET, ExtractROI
+import nipype.interfaces.dipy as dipy
 from   nipype.interfaces.utility import Function, Select, Split, IdentityInterface
 from   nipype.algorithms.misc    import Gunzip
-from   nipype.workflows.dmri.fsl.utils import eddy_rotate_bvecs, b0_average
+from   nipype.workflows.dmri.fsl.utils import eddy_rotate_bvecs, b0_average, b0_indices
 from   nipype.workflows.dmri.fsl import hmc_pipeline
 
-from   .utils import dti_acquisition_parameters, nlmeans_denoise, rapidart_dti_artifact_detection
+from   .utils import dti_acquisition_parameters, rapidart_dti_artifact_detection
 
-from   .._utils  import flatten_list, format_pair_list
-from   ..preproc import spm_coregister
-from   ..config  import setup_node, check_atlas_file
+from   .._utils  import format_pair_list
+from   ..config  import setup_node, check_atlas_file, get_config_setting
 from   ..utils   import (get_datasink,
                          get_input_node,
                          remove_ext,
@@ -25,9 +25,10 @@ from   ..utils   import (get_datasink,
                          )
 
 
-def dti_artifact_correction(wf_name="fsl_dti_preproc"):
+def dti_artifact_correction(wf_name="dti_artifact_correction"):
     """ Run the diffusion MRI pre-processing workflow against the diff files in `data_dir`.
 
+    It will resample/regrid the diffusion image to have isometric voxels.
     Corrects for head motion correction and Eddy currents.
     Estimates motion outliers and exports motion reports using nipype.algorithms.RapidArt.
 
@@ -45,7 +46,7 @@ def dti_artifact_correction(wf_name="fsl_dti_preproc"):
 
     Nipype Outputs
     --------------
-    dti_output.corrected: traits.File
+    dti_output.diff_corrected: traits.File
         Eddy currents corrected DTI image.
 
     dti_output.bvec_rotated: traits.File
@@ -66,7 +67,7 @@ def dti_artifact_correction(wf_name="fsl_dti_preproc"):
     """
     # specify input and output fields
     in_fields  = ["diff", "bval", "bvec"]
-    out_fields = ["corrected",
+    out_fields = ["diff_corrected",
                   "bvec_rotated",
                   "brain_mask_diff",
                   "acqp",
@@ -76,24 +77,33 @@ def dti_artifact_correction(wf_name="fsl_dti_preproc"):
     dti_input = setup_node(IdentityInterface(fields=in_fields, mandatory_inputs=True),
                            name="dti_input")
 
+    # resample
+    resample = setup_node(dipy.Resample(), name='dti_resample')
+
     # head motion correction
-    hm = hmc_pipeline()
+    list_b0 = pe.Node(Function(function=b0_indices,
+                               input_names=['in_bval'],
+                               output_names=['out_idx'],),
+                               name='b0_indices')
+
+    ## extract b0s for brain mask
+    extract_b0 = pe.Node(ExtractROI(t_size=1),
+                         name="extract_b0")
+
+    bet_dwi0 = pe.Node(BET(frac=0.3, mask=True, robust=True),
+                       name='bet_dwi_pre')
+
+    pick_first = lambda lst: lst[0]
+
+    hmc = hmc_pipeline()
 
     # motion artifacts detection
-    art = setup_node(rapidart_dti_artifact_detection(), name="detect_artifacts")
+    do_rapidart = get_config_setting("dmri.artifact_detect", True)
+    if do_rapidart:
+        art = setup_node(rapidart_dti_artifact_detection(), name="detect_artifacts")
 
     # Eddy
     eddy = setup_node(Eddy(method='jac'), name="eddy")
-
-    ## extract b0s for brain mask
-    extract_b0 = setup_node(Function(function=b0_average,
-                                     input_names=['in_dwi', 'in_bval'],
-                                     output_names=['out_file']),
-                            name='extract_b0')
-
-    #extract_b0   = pe.Node   (ExtractROI(t_min=0, t_size=1),      name="extract_b0")
-    gunzip_b0    = pe.Node   (Gunzip(),                           name="gunzip_b0")
-    coreg_b0     = setup_node(spm_coregister(cost_function="mi"), name="coreg_b0")
 
     ## acquisition parameters for Eddy
     write_acqp = setup_node(Function(function=dti_acquisition_parameters,
@@ -116,33 +126,29 @@ def dti_artifact_correction(wf_name="fsl_dti_preproc"):
 
     # Connect the nodes
     wf.connect([
-                #
+                # resample to iso-voxel
+                (dti_input, resample, [("diff", "in_file"),]),
 
-                # head motion correction
+                # read from input file the acquisition parameters
+                (dti_input, write_acqp, [("diff", "in_file")]),
 
-                # average b0 images
-                (dti_input,     extract_b0,     [("diff",                "in_dwi"),
-                                                 ("bval",                "in_bval"),
-                                                ]),
+                # reference mask for hmc
+                (list_b0,  extract_b0, [(("out_idx", pick_first), "t_min"),]),
+                (resample, extract_b0, [("out_file",              "in_file")]),
 
-                (dti_input,     write_acqp,     [("diff",                "in_file")]),
+                (extract_b0, bet_dwi0, [("out_file", "in_file")]),
 
-                # artifact detection
-                (dti_input,     art,            [("in_file",        "realigned_files"),
-                                                 ("motion_params",  "realignment_parameters"),
-                                                 ("brain_mask",     "mask_file"),
-                                                ]),
-
-                # Co-registration
-                (dti_input,     coreg_b0,       [("anat",                "source")]),
-
-                (extract_b0,    gunzip_b0,      [("out_file",            "in_file")]),
-                (coreg_b0,      coreg_split,    [("coregistered_files",  "inlist")]),
-                (coreg_split,   brain_merge,    [("out1",                "in_file")]),
-                (coreg_split,   brain_merge,    [("out2",                "operand_files")]),
+                # head motion correction (hmc)
+                (dti_input, list_b0, [("bval",      "in_bval"),]),
+                (dti_input, hmc,     [("bval",      "inputnode.in_bval"),
+                                      ("bvec",      "inputnode.in_bvec"),
+                                     ]),
+                (resample,  hmc,     [("out_file",  "inputnode.in_file")]),
+                (bet_dwi0,  hmc,     [("mask_file", "inputnode.in_mask")]),
+                (list_b0,   hmc,     [(("out_idx", pick_first), "inputnode.ref_num"),]),
 
                 # Eddy
-                (brain_merge,   eddy,           [("out_file",            "in_mask")]),
+                #(brain_merge,   eddy,           [("out_file",            "in_mask")]),
                 (dti_input,     eddy,           [("diff",                "in_file")]),
                 (dti_input,     eddy,           [("bval",                "in_bval")]),
                 (dti_input,     eddy,           [("bvec",                "in_bvec")]),
@@ -153,33 +159,30 @@ def dti_artifact_correction(wf_name="fsl_dti_preproc"):
                 (dti_input,     rot_bvec,       [("bvec",                "in_bvec")]),
                 (eddy,          rot_bvec,       [("out_parameter",       "eddy_params")]),
 
-                # nlmeans denoise
-                (eddy,          denoise,        [("out_corrected",       "in_file")]),
-                (brain_merge,   denoise,        [("out_file",            "mask_file")]),
-
                 # output
                 (write_acqp,    dti_output,     [("out_acqp",            "acqp"),
                                                  ("out_index",           "index")]),
-                (brain_merge,   dti_output,     [("out_file",            "brain_mask_diff")]),
-                (denoise,       dti_output,     [("out_file",            "denoised")]),
                 (eddy,          dti_output,     [("out_corrected",       "eddy_corrected")]),
-                (denoise,       dti_output,     [("out_file",            "corrected")]),
                 (rot_bvec,      dti_output,     [("out_file",            "bvec_rotated")]),
                 (dti_input,     dti_output,     [("bval",                "bval")]),
               ])
 
-    # add more nodes if to perform atlas registration
-    if do_atlas:
-        coreg_atlas = setup_node(spm_coregister(cost_function="mi"), name="coreg_atlas")
-
-        # set the registration interpolation to nearest neighbour.
-        coreg_atlas.inputs.write_interp = 0
+    if do_rapidart:
         wf.connect([
-                    (dti_input,   coreg_atlas, [("anat",               "source"),
-                                                ("atlas_anat",         "apply_to_files"),
-                                               ]),
-                    (gunzip_b0,   coreg_atlas, [("out_file",           "target")]),
-                    (coreg_atlas, dti_output,  [("coregistered_files", "atlas_diff")]),
+                    # artifact detection
+                    (dti_input, art, [("in_file",        "realigned_files"),
+                                      ("motion_params",  "realignment_parameters"),
+                                      ("brain_mask",     "mask_file"),
+                                     ]),
+
+                    # output
+                    (art, dti_output, [("displacement_files",   "art_displacement_files"),
+                                       ("intensity_files",      "art_intensity_files"),
+                                       ("norm_files",           "art_norm_files"),
+                                       ("outlier_files",        "art_outlier_files"),
+                                       ("plot_files",           "art_plot_files"),
+                                       ("statistic_files",      "art_statistic_files"),
+                                      ]),
                   ])
 
     return wf
