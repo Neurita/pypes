@@ -7,7 +7,7 @@ from collections import OrderedDict
 
 from   .config  import update_config
 from   .anat    import attach_spm_anat_preprocessing
-from   .dti     import (attach_fsl_dti_preprocessing,
+from   .dmri    import (attach_fsl_dti_preprocessing,
                         attach_camino_tractography)
 from   .fmri    import attach_rest_preprocessing, attach_rest_grptemplate_preprocessing
 from   .io      import build_crumb_workflow

@@ -45,6 +45,9 @@ registration.anat2pet: False
 registration.anat2fmri: True
 
 # DTI
+extract_b0.max_b: 0.0 # maximum b-value to be considered a b0, for brain mask calculation.
+dmri.artifact_detect: True # to compute motion statistics for post-hoc outliers exclusion.
+
 coreg_b0.write_interp: 3 # degree of b-spline used for interpolation
 nlmeans_denoise.N: 12 # number of channels in the head coil
 

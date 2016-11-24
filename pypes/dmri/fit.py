@@ -5,12 +5,13 @@ Nipype workflows to preprocess diffusion MRI.
 import os.path as op
 
 import nipype.pipeline.engine    as pe
-from   nipype.interfaces.fsl     import ExtractROI, Eddy, MultiImageMaths
+from   nipype.interfaces.fsl     import Eddy, MultiImageMaths
 from   nipype.interfaces.utility import Function, Select, Split, IdentityInterface
 from   nipype.algorithms.misc    import Gunzip
-from   nipype.workflows.dmri.fsl.utils import eddy_rotate_bvecs
+from   nipype.workflows.dmri.fsl.utils import eddy_rotate_bvecs, b0_average
+from   nipype.workflows.dmri.fsl import hmc_pipeline
 
-from   .utils import dti_acquisition_parameters, nlmeans_denoise
+from   .utils import dti_acquisition_parameters, nlmeans_denoise, rapidart_dti_artifact_detection
 
 from   .._utils  import flatten_list, format_pair_list
 from   ..preproc import spm_coregister
@@ -102,36 +103,55 @@ def fsl_dti_preprocessing(wf_name="fsl_dti_preproc"):
         out_fields += ["atlas_diff"]
 
     # input interface
-    dti_input    = setup_node(IdentityInterface(fields=in_fields, mandatory_inputs=True),
-                              name="dti_input")
+    dti_input = setup_node(IdentityInterface(fields=in_fields, mandatory_inputs=True),
+                           name="dti_input")
 
     # processing nodes
-    write_acqp   = setup_node(Function(function=dti_acquisition_parameters,
-                                       input_names=["in_file"],
-                                       output_names=["out_acqp", "out_index"],),
-                              name="write_acqp")
 
-    eddy         = setup_node(Eddy(), name="eddy")
+    # head motion correction
+    hm = hmc_pipeline()
 
-    denoise      = setup_node(Function(function=nlmeans_denoise,
-                                       input_names=['in_file', 'mask_file', 'out_file', 'N'],
-                                       output_names=['out_file']),
-                              name='nlmeans_denoise')
+    # motion artifacts detection
+    art = setup_node(rapidart_dti_artifact_detection(), name="detect_artifacts")
 
-    extract_b0   = pe.Node   (ExtractROI(t_min=0, t_size=1),      name="extract_b0")
+    # Eddy
+    eddy = setup_node(Eddy(method='jac'), name="eddy")
+
+    ## extract b0s for brain mask
+    extract_b0 = setup_node(Function(function=b0_average,
+                                     input_names=['in_dwi', 'in_bval'],
+                                     output_names=['out_file']),
+                            name='extract_b0')
+
+    #extract_b0   = pe.Node   (ExtractROI(t_min=0, t_size=1),      name="extract_b0")
     gunzip_b0    = pe.Node   (Gunzip(),                           name="gunzip_b0")
     coreg_b0     = setup_node(spm_coregister(cost_function="mi"), name="coreg_b0")
+
+    ## acquisition parameters for Eddy
+    write_acqp = setup_node(Function(function=dti_acquisition_parameters,
+                                     input_names=["in_file"],
+                                     output_names=["out_acqp", "out_index"],),
+                            name="write_acqp")
+
+    ## rotate b-vecs
+    rot_bvec     = setup_node(Function(function=eddy_rotate_bvecs,
+                                       input_names=["in_bvec", "eddy_params"],
+                                       output_names=["out_file"],),
+                              name="rot_bvec")
+
+    # denoise image
+    denoise = setup_node(Function(function=nlmeans_denoise,
+                                  input_names=['in_file', 'mask_file', 'out_file', 'N'],
+                                  output_names=['out_file']),
+                         name='nlmeans_denoise')
+
+    # co-registration
     brain_sel    = pe.Node   (Select(index=[0, 1, 2]),            name="brain_sel")
     coreg_split  = pe.Node   (Split(splits=[1, 2], squeeze=True), name="coreg_split")
 
     brain_merge  = setup_node(MultiImageMaths(), name="brain_merge")
     brain_merge.inputs.op_string = "-add '%s' -add '%s' -abs -kernel gauss 4 -dilM -ero -kernel gauss 1 -dilM -bin"
     brain_merge.inputs.out_file = "brain_mask_diff.nii.gz"
-
-    rot_bvec     = setup_node(Function(function=eddy_rotate_bvecs,
-                                       input_names=["in_bvec", "eddy_params"],
-                                       output_names=["out_file"],),
-                              name="rot_bvec")
 
     # output interface
     dti_output   = setup_node(IdentityInterface(fields=out_fields),
@@ -142,25 +162,45 @@ def fsl_dti_preprocessing(wf_name="fsl_dti_preproc"):
 
     # Connect the nodes
     wf.connect([
-                (dti_input,     extract_b0,     [("diff",                "in_file")]),
+                #
+
+                # head motion correction
+
+                # average b0 images
+                (dti_input,     extract_b0,     [("diff",                "in_dwi"),
+                                                 ("bval",                "in_bval"),
+                                                ]),
+
                 (dti_input,     write_acqp,     [("diff",                "in_file")]),
+
+                # artifact detection
+                (dti_input,     art,            [("in_file",        "realigned_files"),
+                                                 ("motion_params",  "realignment_parameters"),
+                                                 ("brain_mask",     "mask_file"),
+                                                ]),
+
+                # Co-registration
+                (dti_input,     coreg_b0,       [("anat",                "source")]),
+
+                (dti_input,     brain_sel,      [("tissues",             "inlist")]),
+                (brain_sel,     coreg_b0,       [(("out", flatten_list), "apply_to_files")]),
+                (gunzip_b0,     coreg_b0,       [("out_file",            "target")]),
+
+                (extract_b0,    gunzip_b0,      [("out_file",            "in_file")]),
+                (coreg_b0,      coreg_split,    [("coregistered_files",  "inlist")]),
+                (coreg_split,   brain_merge,    [("out1",                "in_file")]),
+                (coreg_split,   brain_merge,    [("out2",                "operand_files")]),
+
+                # Eddy
+                (brain_merge,   eddy,           [("out_file",            "in_mask")]),
                 (dti_input,     eddy,           [("diff",                "in_file")]),
                 (dti_input,     eddy,           [("bval",                "in_bval")]),
                 (dti_input,     eddy,           [("bvec",                "in_bvec")]),
-                (dti_input,     rot_bvec,       [("bvec",                "in_bvec")]),
-                (dti_input,     brain_sel,      [("tissues",             "inlist")]),
-                (dti_input,     coreg_b0,       [("anat",                "source")]),
                 (write_acqp,    eddy,           [("out_acqp",            "in_acqp"),
                                                  ("out_index",           "in_index")]),
-                (extract_b0,    gunzip_b0,      [("roi_file",            "in_file")]),
-                (gunzip_b0,     coreg_b0,       [("out_file",            "target")]),
-                (coreg_b0,      coreg_split,    [("coregistered_files",  "inlist")]),
-                (brain_sel,     coreg_b0,       [(("out", flatten_list), "apply_to_files")]),
-                (coreg_split,   brain_merge,    [("out1",                "in_file")]),
-                (coreg_split,   brain_merge,    [("out2",                "operand_files")]),
-                (brain_merge,   eddy,           [("out_file",            "in_mask")]),
 
                 # rotate bvecs
+                (dti_input,     rot_bvec,       [("bvec",                "in_bvec")]),
                 (eddy,          rot_bvec,       [("out_parameter",       "eddy_params")]),
 
                 # nlmeans denoise

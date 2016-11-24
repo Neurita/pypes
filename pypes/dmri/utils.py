@@ -2,6 +2,18 @@
 """
 Utilities to help in the DTI pre-processing
 """
+from nipype.algorithms.rapidart import ArtifactDetect
+
+
+def rapidart_dti_artifact_detection():
+    art = ArtifactDetect()
+    art.inputs.use_differences      = [True, False]
+    art.inputs.use_norm             = True
+    art.inputs.zintensity_threshold = 2
+    art.inputs.norm_threshold       = 1
+    art.inputs.mask_type            = 'file'
+    art.inputs.parameter_source     = 'NiPy'
+    return art
 
 
 def nlmeans_denoise(in_file, mask_file, out_file='', N=12):

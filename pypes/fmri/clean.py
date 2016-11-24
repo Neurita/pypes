@@ -2,15 +2,15 @@
 """
 Nipype workflow to clean up resting-state functional MRI.
 """
-import nipype.pipeline.engine    as pe
+import nipype.pipeline.engine as pe
 import os.path as op
-from   nipype.algorithms.misc    import Gunzip
-from   nipype.interfaces         import fsl
+from   nipype.algorithms.misc import Gunzip
+from   nipype.interfaces import fsl
 from   nipype.interfaces.nipy.preprocess import Trim, ComputeMask
 from   nipype.interfaces.utility import Function, Select, IdentityInterface
 from   pypes.interfaces.nilearn import mean_img, smooth_img
 
-from   .filter   import bandpass_filter
+from   .filter import bandpass_filter
 from   .nuisance import rest_noise_filter_wf
 from   .._utils import format_pair_list, flatten_list
 from   ..config import setup_node, get_config_setting
