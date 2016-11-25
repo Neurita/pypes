@@ -18,6 +18,7 @@ from .piping  import  (extend_trait_list,
                        find_wf_node,
                        get_datasink,
                        get_input_node,
+                       get_interface_node,
                        get_input_file_name,
                        )
 from .pandas import (add_table_headers,

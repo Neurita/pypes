@@ -3,7 +3,9 @@
 Helper functions for joining, merging, managing the workflow nodes.
 """
 
-from nipype import Function, SelectFiles, DataSink, DataGrabber
+from nipype import (Function, SelectFiles,
+                    DataSink, DataGrabber,
+                    IdentityInterface)
 from nipype.interfaces.base import (traits, isdefined)
 import nipype.interfaces.fsl as fsl
 
@@ -83,6 +85,11 @@ def get_input_node(wf, name=''):
     return get_node(wf, (DataCrumb, SelectFiles, DataGrabber), name=name)
 
 
+def get_interface_node(wf, name):
+    """ Return the first node found of type IdentityInterface in `wf` with name `name`."""
+    return get_node(wf, (IdentityInterface, ), name=name)
+
+
 def wf_nodes(wf, iface_type):
     """ Return the nodes found in the list of node names in `wf` that
     has an interface of type `iface_type`.
@@ -122,7 +129,7 @@ def find_wf_node(wf, iface_type, name=''):
         if isinstance(getattr(wf.get_node(node_nom), 'interface', None), iface_type):
             if not name:
                 return wf.get_node(node_nom)
-            elif name == node_nom:
+            elif name in node_nom.split('.'):
                 return wf.get_node(node_nom)
     return None
 

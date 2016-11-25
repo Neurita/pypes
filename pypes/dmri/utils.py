@@ -12,7 +12,7 @@ def rapidart_dti_artifact_detection():
     art.inputs.zintensity_threshold = 2
     art.inputs.norm_threshold       = 1
     art.inputs.mask_type            = 'file'
-    art.inputs.parameter_source     = 'NiPy'
+    art.inputs.parameter_source     = 'FSL'
     return art
 
 
