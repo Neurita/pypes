@@ -5,7 +5,8 @@ from .realign import nipy_motion_correction
 from .denoise import (nlmeans_denoise_img,
                       create_regressors,
                       extract_noise_components,
-                      motion_regressors)
+                      motion_regressors,
+                      reslice_img)
 from .registration import (spm_apply_deformations,
                            spm_coregister,
                            spm_normalize,

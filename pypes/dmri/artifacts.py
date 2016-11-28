@@ -12,7 +12,7 @@ from   nipype.workflows.dmri.fsl.utils import eddy_rotate_bvecs, b0_average, b0_
 from   nipype.workflows.dmri.fsl import hmc_pipeline
 
 from .utils import (dti_acquisition_parameters,
-                    nlmeans_denoise,
+                    nlmeans_denoise, reslice,
                     rapidart_dti_artifact_detection,)
 
 from .._utils  import format_pair_list
@@ -121,7 +121,10 @@ def dti_artifact_correction(wf_name="dti_artifact_correction"):
                            name="dti_art_input")
 
     # resample
-    resample = setup_node(dipy.Resample(), name='dti_resample')
+    resample = setup_node(Function(function=reslice,
+                                   input_names=['in_file', 'new_zooms', 'order', 'out_file'],
+                                   output_names=['out_file']),
+                          name='dti_reslice')
 
     # head motion correction
     list_b0 = pe.Node(Function(function=b0_indices,

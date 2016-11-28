@@ -152,16 +152,21 @@ def extension_duplicates(regexp_pair_list):
 
 
 def rename(in_files, suffix=None):
-    """Rename all the files in `in_files` adding the `suffix` keeping its extension."""
+    """Rename all the files in `in_files` adding the `suffix` keeping its
+    extension and basedir."""
+    import os.path as path
     from nipype.utils.filemanip import (filename_to_list, split_filename,
                                         list_to_filename)
     out_files = []
     for idx, filename in enumerate(filename_to_list(in_files)):
-        _, name, ext = split_filename(filename)
+        base, name, ext = split_filename(filename)
         if suffix is None:
-            out_files.append(name + ('_%03d' % idx) + ext)
+            new_name = name + ('_%03d' % idx) + ext
         else:
-            out_files.append(name + suffix + ext)
+            new_name = name + suffix + ext
+
+        out_files.append(path.join(base, new_name))
+
     return list_to_filename(out_files)
 
 

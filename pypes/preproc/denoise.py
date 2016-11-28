@@ -35,6 +35,63 @@ def nlmeans_denoise_img(img, mask, N=4):
     return nlmeans(data, sigma=sigma, mask=msk)
 
 
+def reslice_img(img, new_zooms=None, order=3):
+    """ Performs regridding of an image to set isotropic voxel sizes using dipy.
+    If the file has already isotropic voxels, will return a copy of the same image.
+
+    Parameters
+    ----------
+    img: nibabel.Nifti1Image
+        The diffusion image.
+
+    new_zooms : tuple, shape (3,)
+        new voxel size for (i,j,k) after resampling
+
+    order : int, from 0 to 5
+       order of interpolation for resampling/reslicing, 0 nearest interpolation, 1 trilinear etc..
+       if you don’t want any smoothing 0 is the option you need.
+
+    Returns
+    -------
+    nu_img: nibabel.Nifti1Image
+        A isotropic voxel version from `img`.
+    """
+    import numpy as np
+    import nibabel as nib
+    from dipy.align.reslice import reslice
+
+    # read the data
+    data = img.get_data()
+    img_zooms = img.header.get_zooms()[:3]
+
+    # check if already isotropic voxels
+    all_equal = len(np.unique(img_zooms)) == 1
+    if all_equal:
+        return nib.Nifti1Image(img.get_data(), affine=img.affine, header=img.header)
+
+    # set new_zooms parameter
+    if new_zooms is None:
+        minzoom = np.array(img_zooms).min()
+        new_zooms = tuple(np.ones((3,)) * minzoom)
+
+    # reslice it
+    nu_data, nu_affine = reslice(data=data, affine=img.affine,
+                                 zooms=img_zooms,
+                                 new_zooms=new_zooms,
+                                 order=order)
+
+    # create the new image object
+    header = img.header.copy()
+    tmp_zooms = np.array(header.get_zooms())
+    tmp_zooms[:3] = new_zooms[0]
+    header.set_zooms(tuple(tmp_zooms))
+    header.set_data_shape(nu_data.shape)
+    header.set_xyzt_units('mm')
+    nu_img = nib.Nifti1Image(nu_data.astype(header.get_data_dtype()), nu_affine, header)
+
+    return nu_img
+
+
 def motion_regressors(motion_params, order=0, derivatives=1):
     """Compute motion regressors upto given order and derivative
 
