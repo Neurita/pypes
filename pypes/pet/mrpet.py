@@ -334,7 +334,7 @@ def spm_mrpet_grouptemplate_preprocessing(wf_name="spm_mrpet_grouptemplate_prepr
                            name="pet_input")
 
     # workflow to perform partial volume correction
-    petpvc    = petpvc_workflow(wf_name="petpvc")
+    petpvc = petpvc_workflow(wf_name="petpvc")
 
     unzip_mrg = setup_node(Merge(4), name='merge_for_unzip')
     gunzipper = pe.MapNode(Gunzip(), name="gunzip", iterfield=['in_file'])
@@ -455,7 +455,7 @@ def attach_spm_mrpet_preprocessing(main_wf, wf_name="spm_mrpet_preproc", do_grou
     in_files = get_input_node(main_wf)
     datasink = get_datasink  (main_wf)
 
-    anat_output = get_interface_node("anat_output")
+    anat_output = get_interface_node(main_wf, "anat_output")
 
     # The base name of the 'pet' file for the substitutions
     anat_fbasename = remove_ext(op.basename(get_input_file_name(in_files, 'anat')))
