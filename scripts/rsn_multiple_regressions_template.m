@@ -198,8 +198,10 @@ end
 
 clear spatialTemplate;
 
+output_file = [output_dir, output_basename, '_regression_values.csv'];
+disp(output_file);
 regression_values = cell2mat(regressionCoeff);
-csvwrite([output_dir, output_basename, '_regression_values.csv'], regression_values);
+csvwrite(output_file, regression_values);
 
 % calculate the beta weights
 % temp_regression = regression_values';

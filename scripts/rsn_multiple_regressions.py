@@ -76,7 +76,7 @@ allen_rsn_idx = \
 
 output_dir     = '/home/alexandre/data/thomas/ica_out/8mm/fmri_no-grptemplate_noWMcor_30ICs/'
 ica_param_file = '/home/alexandre/data/thomas/ica_out/8mm/fmri_no-grptemplate_noWMcor_30ICs/_ica_parameter_info.mat'
-zscore_thr     = 1
+zscore_thr     = 2
 
 n_cpus = 2
 

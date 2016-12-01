@@ -77,8 +77,8 @@ def camino_tractography(wf_name="camino_tract"):
 
     fa2nii = setup_node(interface=misc.CreateNifti(), name='fa2nii')
 
-    track        = setup_node(Track(inputmodel="dt", out_file="tracts.Bfloat"), name="track")
-    conmat       = setup_node(Conmat(output_root="conmat_"), name="conmat")
+    track  = setup_node(Track(inputmodel="dt", out_file="tracts.Bfloat"), name="track")
+    conmat = setup_node(Conmat(output_root="conmat_"), name="conmat")
 
     tract_output = pe.Node(IdentityInterface(fields=out_fields),
                            name="tract_output")
@@ -88,32 +88,42 @@ def camino_tractography(wf_name="camino_tract"):
 
     # Connect the nodes
     wf.connect([
+                # convert data to camino format
                 (tract_input,   img2vox_diff,     [("diff",                  "in_file"     )]),
+                (tract_input,   img2vox_mask,     [("mask",                  "in_file"     )]),
+
+                # convert bvec and bval to camino scheme
                 (tract_input,   fsl2scheme,       [("bvec",                  "bvec_file"   ),
                                                    ("bval",                  "bval_file"   )]),
 
-                (tract_input,   img2vox_mask,     [("mask",                  "in_file"     )]),
+                # dtifit
                 (img2vox_diff,  dtifit,           [("voxel_order",           "in_file"     )]),
                 (img2vox_mask,  dtifit,           [("voxel_order",           "bgmask"      )]),
                 (fsl2scheme,    dtifit,           [("scheme",                "scheme_file" )]),
+
+                # calculate FA
                 (fsl2scheme,    fa,               [("scheme",                "scheme_file" )]),
                 (dtifit,        fa,               [("tensor_fitted",         "in_file"     )]),
 
+                # tractography
                 (tract_input,   track,            [("atlas",                 "seed_file"   )]),
                 (dtifit,        track,            [("tensor_fitted",         "in_file"     )]),
 
+                # convert FA data to NifTI
                 (fa,            analyzehdr_fa,    [("fa",                    "in_file"     )]),
                 (tract_input,   analyzehdr_fa,    [(('diff', get_vox_dims),  "voxel_dims"  ),
                                                    (('diff', get_data_dims), "data_dims"   )]),
 
-                (analyzehdr_fa, fa2nii,           [("header",                "header_file" )]),
                 (tract_input,   fa2nii,           [(("diff", get_affine),    "affine"      )]),
+                (analyzehdr_fa, fa2nii,           [("header",                "header_file" )]),
                 (fa,            fa2nii,           [("fa",                    "data_file"   )]),
 
+                # connectivity matrix
                 (tract_input,   conmat,           [("atlas",                 "target_file" )]),
                 (track,         conmat,           [("tracked",               "in_file"     )]),
                 (fa2nii,        conmat,           [("nifti_file",            "scalar_file" )]),
 
+                # output
                 (fa2nii,        tract_output,     [("nifti_file",            "fa"          )]),
                 (dtifit,        tract_output,     [("tensor_fitted",         "tensor"      )]),
                 (track,         tract_output,     [("tracked",               "tracks"      )]),
@@ -148,7 +158,7 @@ def attach_camino_tractography(main_wf, wf_name="camino_tract"):
     ----------------------------
     This workflow depends on:
     - spm_anat_preproc
-    - fsl_dti_preproc
+    - spm_fsl_dti_preprocessing
 
     Returns
     -------

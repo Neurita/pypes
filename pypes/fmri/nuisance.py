@@ -131,7 +131,7 @@ def rest_noise_filter_wf(wf_name='rest_noise_removal'):
     motion_regs = setup_node(Function(input_names=['motion_params',
                                                    'order',
                                                    'derivatives',
-                                                 ],
+                                                  ],
                                       output_names=['out_files'],
                                       function=motion_regressors,),
                              name='motion_regressors')

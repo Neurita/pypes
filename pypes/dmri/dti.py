@@ -85,9 +85,9 @@ def attach_spm_fsl_dti_preprocessing(main_wf, wf_name="spm_fsl_dti_preprocessing
 
     # input and output diffusion MRI workflow to main workflow connections
     main_wf.connect([
-                     (dti_art_output, coreg_dti_wf, [("avg_b0", "dti_co_input.avg_b0"),]),
-                     (anat_output,    coreg_dti_wf, [("tissues_native",   "dti_co_input.tissues"),
-                                                     ("anat_biascorr",     "dti_co_input.anat")
+                     (dti_art_output, coreg_dti_wf, [("avg_b0",          "dti_co_input.avg_b0"),]),
+                     (anat_output,    coreg_dti_wf, [("tissues_native",  "dti_co_input.tissues"),
+                                                     ("anat_biascorr",   "dti_co_input.anat")
                                                     ]),
                      (coreg_dti_wf, datasink, [("dti_co_output.anat_diff",         "diff.@anat_diff"),
                                                ("dti_co_output.tissues_diff",      "diff.@tissues_diff"),

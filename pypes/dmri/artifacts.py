@@ -101,14 +101,14 @@ def dti_artifact_correction(wf_name="dti_artifact_correction"):
                   "acqp",
                   "index",
                   "avg_b0",
-                  "hmc_corr_file",
-                  "hmc_corr_bvec",
-                  "hmc_corr_xfms",
                  ]
 
     do_rapidart = get_config_setting("dmri.artifact_detect", True)
     if do_rapidart:
-        out_fields += ["art_displacement_files",
+        out_fields += ["hmc_corr_file",
+                       "hmc_corr_bvec",
+                       "hmc_corr_xfms",
+                       "art_displacement_files",
                        "art_intensity_files",
                        "art_norm_files",
                        "art_outlier_files",
@@ -116,7 +116,7 @@ def dti_artifact_correction(wf_name="dti_artifact_correction"):
                        "art_statistic_files",
                       ]
 
-                                                       # input interface
+    # input interface
     dti_input = setup_node(IdentityInterface(fields=in_fields, mandatory_inputs=True),
                            name="dti_art_input")
 
@@ -126,25 +126,28 @@ def dti_artifact_correction(wf_name="dti_artifact_correction"):
                                    output_names=['out_file']),
                           name='dti_reslice')
 
-    # head motion correction
+    ## extract first b0 for Eddy and HMC brain mask
     list_b0 = pe.Node(Function(function=b0_indices,
                                input_names=['in_bval'],
                                output_names=['out_idx'],),
                                name='b0_indices')
 
-    ## extract first b0 for HMC brain mask
     extract_b0 = pe.Node(ExtractROI(t_size=1),
                          name="extract_first_b0")
 
+    # For Eddy, the mask is only used for selecting voxels for the estimation of the hyperparameters,
+    # so isn’t very critical.
+    # Note also that it is better with a too conservative (small) mask than a too big.
     bet_dwi0 = setup_node(BET(frac=0.3, mask=True, robust=True),
                           name='bet_dwi_pre')
 
     pick_first = lambda lst: lst[0]
 
-    hmc = hmc_pipeline()
-
-    # motion artifacts detection
+    # motion artifacts detection, requires linear co-registration for motion estimation.
     if do_rapidart:
+        # head motion correction
+        hmc = hmc_pipeline()
+
         art = setup_node(rapidart_dti_artifact_detection(), name="detect_artifacts")
 
     # Eddy
@@ -156,26 +159,20 @@ def dti_artifact_correction(wf_name="dti_artifact_correction"):
                                      output_names=["out_acqp", "out_index"],),
                             name="write_acqp")
 
-    ## extract all b0s and average them for Eddy brain mask
-    avg_b0_pre = pe.Node(Function(function=b0_average,
-                                  input_names=['in_dwi', 'in_bval'],
-                                  output_names=['out_file'],),
-                         name='b0_avg_pre')
-
-    bet_dwi1 = setup_node(BET(frac=0.3, mask=True, robust=True),
-                          name='bet_dwi_post')
-
     ## rotate b-vecs
     rot_bvec = setup_node(Function(function=eddy_rotate_bvecs,
                                    input_names=["in_bvec", "eddy_params"],
                                    output_names=["out_file"],),
                           name="rot_bvec")
 
-    ## calculate resulting average b0
+    ## extract all b0s and average them after Eddy correction
     avg_b0_post = pe.Node(Function(function=b0_average,
                                    input_names=['in_dwi', 'in_bval'],
                                    output_names=['out_file'],),
                           name='b0_avg_post')
+
+    bet_dwi1 = setup_node(BET(frac=0.3, mask=True, robust=True),
+                          name='bet_dwi_post')
 
     # nlmeans denoise
     apply_nlmeans = get_config_setting("dmri.apply_nlmeans", True)
@@ -197,61 +194,47 @@ def dti_artifact_correction(wf_name="dti_artifact_correction"):
                 # resample to iso-voxel
                 (dti_input, resample, [("diff", "in_file"),]),
 
-                # read from input file the acquisition parameters
+                # read from input file the acquisition parameters for eddy
                 (dti_input, write_acqp, [("diff", "in_file")]),
 
-                # reference mask for hmc
-                (list_b0,  extract_b0, [(("out_idx", pick_first), "t_min"),]),
-                (resample, extract_b0, [("out_file",              "in_file")]),
+                # reference mask for hmc and eddy
+                (dti_input,  list_b0,    [("bval",     "in_bval")]),
+                (resample,   extract_b0, [("out_file", "in_file")]),
+                (list_b0,    extract_b0, [(("out_idx", pick_first), "t_min")]),
 
-                (extract_b0, bet_dwi0, [("roi_file", "in_file")]),
-
-                # head motion correction (hmc)
-                (dti_input, list_b0, [("bval",      "in_bval")]),
-                (dti_input, hmc,     [("bval",      "inputnode.in_bval"),
-                                      ("bvec",      "inputnode.in_bvec"),
-                                     ]),
-                (resample,  hmc,     [("out_file",  "inputnode.in_file")]),
-                (bet_dwi0,  hmc,     [("mask_file", "inputnode.in_mask")]),
-                (list_b0,   hmc,     [(("out_idx", pick_first), "inputnode.ref_num"),]),
+                (extract_b0, bet_dwi0,   [("roi_file", "in_file")]),
 
                 # Eddy
-                ## brain mask for Eddy
-                (hmc,           avg_b0_pre, [("outputnode.out_file",  "in_dwi")]),
-                (dti_input,     avg_b0_pre, [("bval",                 "in_bval")]),
-                (avg_b0_pre,    bet_dwi1,   [("out_file",             "in_file")]),
-                (bet_dwi1,      eddy,       [("mask_file",            "in_mask")]),
-
-                ## other Eddy inputs
-                (dti_input,     eddy,     [("bval",      "in_bval")]),
-                (hmc,           eddy,     [("outputnode.out_file",  "in_file"),
-                                           ("outputnode.out_bvec",  "in_bvec")]),
-                (write_acqp,    eddy,     [("out_acqp",  "in_acqp"),
-                                           ("out_index", "in_index")]),
+                (resample,   eddy, [("out_file",  "in_file")]),
+                (bet_dwi0,   eddy, [("mask_file", "in_mask")]),
+                (dti_input,  eddy, [("bval",      "in_bval"),
+                                    ("bvec",      "in_bvec")
+                                   ]),
+                (write_acqp, eddy, [("out_acqp",  "in_acqp"),
+                                    ("out_index", "in_index")
+                                   ]),
 
                 # rotate bvecs
-                (hmc,  rot_bvec, [("outputnode.out_bvec",      "in_bvec")]),
-                (eddy, rot_bvec, [("out_parameter", "eddy_params")]),
+                (dti_input, rot_bvec, [("bvec",          "in_bvec")]),
+                (eddy,      rot_bvec, [("out_parameter", "eddy_params")]),
 
                 # final avg b0
-                (dti_input, avg_b0_post, [("bval",          "in_bval")]),
-                (eddy,      avg_b0_post, [("out_corrected", "in_dwi" )]),
+                (dti_input,   avg_b0_post, [("bval",          "in_bval")]),
+                (eddy,        avg_b0_post, [("out_corrected", "in_dwi" )]),
+                (avg_b0_post, bet_dwi1,    [("out_file",      "in_file")]),
 
                 # output
-                (write_acqp,   dti_output, [("out_acqp",      "acqp"),
-                                            ("out_index",     "index")]),
-                (hmc,          dti_output, [("outputnode.out_file",      "hmc_corr_file"),
-                                            ("outputnode.out_bvec",      "hmc_corr_bvec"),
-                                            ("outputnode.out_xfms",      "hmc_corr_xfms"),
-                                           ]),
-                (bet_dwi0,    dti_output,  [("mask_file",     "brain_mask_1")]),
-                (bet_dwi1,    dti_output,  [("mask_file",     "brain_mask_2")]),
-                (rot_bvec,    dti_output,  [("out_file",      "bvec_rotated")]),
-                (avg_b0_post, dti_output,  [("out_file",      "avg_b0")]),
+                (write_acqp,  dti_output,  [("out_acqp",  "acqp"),
+                                            ("out_index", "index")]),
+                (bet_dwi0,    dti_output,  [("mask_file", "brain_mask_1")]),
+                (bet_dwi1,    dti_output,  [("mask_file", "brain_mask_2")]),
+                (rot_bvec,    dti_output,  [("out_file",  "bvec_rotated")]),
+                (avg_b0_post, dti_output,  [("out_file",  "avg_b0")]),
               ])
 
     if apply_nlmeans:
         wf.connect([
+                    # non-local means
                     (eddy,     nlmeans,   [("out_corrected", "in_file")]),
                     (bet_dwi1, nlmeans,   [("mask_file",     "mask_file")]),
 
@@ -266,19 +249,32 @@ def dti_artifact_correction(wf_name="dti_artifact_correction"):
 
     if do_rapidart:
         wf.connect([
-                    # artifact detection
-                    (hmc,       art, [("outputnode.out_file", "realigned_files"),
-                                      ("outputnode.out_xfms", "realignment_parameters"),
+                    # head motion correction
+                    (dti_input, hmc, [("bval", "inputnode.in_bval"),
+                                      ("bvec", "inputnode.in_bvec"),
                                      ]),
-                    (bet_dwi1,  art, [("mask_file", "mask_file"),]),
+                    (resample,  hmc, [("out_file",              "inputnode.in_file")]),
+                    (bet_dwi0,  hmc, [("mask_file",             "inputnode.in_mask")]),
+                    (list_b0,   hmc, [(("out_idx", pick_first), "inputnode.ref_num"),]),
+
+                    # artifact detection
+                    (hmc,      art, [("outputnode.out_file", "realigned_files"),
+                                     ("outputnode.out_xfms", "realignment_parameters"),
+                                    ]),
+                    (bet_dwi1, art, [("mask_file", "mask_file"),]),
 
                     # output
-                    (art, dti_output, [("displacement_files",   "art_displacement_files"),
-                                       ("intensity_files",      "art_intensity_files"),
-                                       ("norm_files",           "art_norm_files"),
-                                       ("outlier_files",        "art_outlier_files"),
-                                       ("plot_files",           "art_plot_files"),
-                                       ("statistic_files",      "art_statistic_files"),
+                    (hmc, dti_output, [("outputnode.out_file", "hmc_corr_file"),
+                                       ("outputnode.out_bvec", "hmc_corr_bvec"),
+                                       ("outputnode.out_xfms", "hmc_corr_xfms"),
+                                      ]),
+
+                    (art, dti_output, [("displacement_files",  "art_displacement_files"),
+                                       ("intensity_files",     "art_intensity_files"),
+                                       ("norm_files",          "art_norm_files"),
+                                       ("outlier_files",       "art_outlier_files"),
+                                       ("plot_files",          "art_plot_files"),
+                                       ("statistic_files",     "art_statistic_files"),
                                       ]),
                   ])
 
@@ -337,22 +333,23 @@ def attach_dti_artifact_correction(main_wf, wf_name="dti_artifact_correction"):
                                                ("bval", "dti_art_input.bval"),
                                                ("bvec", "dti_art_input.bvec"),
                                               ]),
-                     (art_dti_wf, datasink,   [("dti_art_output.eddy_corr_file",         "diff.@eddy_corr_file"),
-                                               ("dti_art_output.bvec_rotated",           "diff.@bvec_rotated"),
-                                               ("dti_art_output.brain_mask_1",           "diff.@brain_mask_1"),
-                                               ("dti_art_output.brain_mask_2",           "diff.@brain_mask_2"),
-                                               ("dti_art_output.acqp",                   "diff.@acquisition_pars"),
-                                               ("dti_art_output.index",                  "diff.@acquisition_idx"),
-                                               ("dti_art_output.avg_b0",                 "diff.@avg_b0"),
-                                               ("dti_art_output.hmc_corr_file",          "diff.@hmc_corr_file"),
-                                               ("dti_art_output.hmc_corr_bvec",          "diff.@hmc_rot_bvec"),
-                                               ("dti_art_output.hmc_corr_xfms",          "diff.@hmc_corr_xfms"),
+                     (art_dti_wf, datasink,   [("dti_art_output.eddy_corr_file", "diff.@eddy_corr_file"),
+                                               ("dti_art_output.bvec_rotated",   "diff.@bvec_rotated"),
+                                               ("dti_art_output.brain_mask_1",   "diff.@brain_mask_1"),
+                                               ("dti_art_output.brain_mask_2",   "diff.@brain_mask_2"),
+                                               ("dti_art_output.acqp",           "diff.@acquisition_pars"),
+                                               ("dti_art_output.index",          "diff.@acquisition_idx"),
+                                               ("dti_art_output.avg_b0",         "diff.@avg_b0"),
                                               ]),
                     ])
 
     do_rapidart = get_config_setting("dmri.artifact_detect", True)
     if do_rapidart:
-        main_wf.connect([(art_dti_wf, datasink, [("dti_art_output.art_displacement_files", "diff.artifact_stats.@art_disp_files"),
+        main_wf.connect([(art_dti_wf, datasink, [
+                                                 ("dti_art_output.hmc_corr_file",          "diff.artifact_stats.@hmc_corr_file"),
+                                                 ("dti_art_output.hmc_corr_bvec",          "diff.artifact_stats.@hmc_rot_bvec"),
+                                                 ("dti_art_output.hmc_corr_xfms",          "diff.artifact_stats.@hmc_corr_xfms"),
+                                                 ("dti_art_output.art_displacement_files", "diff.artifact_stats.@art_disp_files"),
                                                  ("dti_art_output.art_intensity_files",    "diff.artifact_stats.@art_ints_files"),
                                                  ("dti_art_output.art_norm_files",         "diff.artifact_stats.@art_norm_files"),
                                                  ("dti_art_output.art_outlier_files",      "diff.artifact_stats.@art_outliers"),
