@@ -7,7 +7,7 @@ from   glob        import glob
 from   functools   import wraps
 
 import nibabel as nib
-from   boyle.nifti.read import read_img
+import nilearn.image as niimg
 
 
 def get_vox_dims(volume):
@@ -44,7 +44,7 @@ def niftiimg_out(f):
     def wrapped(*args, **kwargs):
         r = f(*args, **kwargs)
 
-        img = read_img(args[0])
+        img = niimg.load_img(args[0])
         return nib.Nifti1Image(r, affine=img.get_affine(), header=img.header)
 
     return wrapped
