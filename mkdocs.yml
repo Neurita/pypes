@@ -2,7 +2,10 @@ site_name: pypes
 pages:
     - Home: index.md
     - Getting started: getting_started.md
-    - Pipelines: pipelines.md
+    - Preprocessing: preprocessing.md
+    - Post-processing: postprocessing.md
+    - Other utilities: other_utilities.md
+    - External interfaces: external_interfaces.md
     - Datasets: datasets.md
     - About: about.md
     - License: license.md
