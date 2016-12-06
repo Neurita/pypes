@@ -30,74 +30,7 @@ normalize_atlas: True
 atlas_file: ''
 ```
 
-## FDG-PET
-This is a spatial normalization pipeline for FDG-PET images. Here I say specifically FDG-PET because I haven't tested
-this too much for other PET tracers.
 
-It is based on SPM12.
-It is implemented in [`pypes.pet.warp.attach_spm_pet_preprocessing`](https://github.com/Neurita/pypes/blob/master/pypes/pet/warp.py).
-
-1. Use SPM12 Normalize to spatially normalize FDG-PET to MNI.
-
-There is a group-template option of this: first a group template
-is created, then all FDG-PET are images are normalized to this
-group template.
-
-##### Related settings
-```yaml
-# GROUP PET TEMPLATE
-spm_pet_grouptemplate_smooth.fwhm: 8
-# path to a common PET template, if you don't want the average across subjects
-spm_pet_grouptemplate.template_file: ""
-```
-
-## MPRAGE + FDG-PET
-[<a href="https://github.com/Neurita/pypes/blob/master/docs/img/spm_anat_pet_preproc_workflow.png?raw=true" target="_blank">graph</a>]
-This is a partial volume correction and spatial normalization pipeline
-for FDG-PET images.
-
-It is based on PETPVC, nilearn and SPM12.
-It is implemented in [`pypes.pet.mrpet.attach_spm_mrpet_preprocessing`](https://github.com/Neurita/pypes/blob/master/pypes/pet/mrpet.py).
-
-This pipeline depends on the anatomical preprocessing pipeline.
-There is 2 ways of doing the co-registration, you can configure that by
-setting the `registration.anat2pet` boolean option to `True` or `False`.
-
-#### If registration.anat2pet: True
-1. Co-register anatomical and tissues to PET space.
-2. Partial volume effect correction (PVC) with PETPVC in PET space.
-This is done based on tissue segmentations from the anatomical pipeline.
-3. Use SPM12 Normalize to normalize FDG-PET to MNI.
-
-#### If registration.anat2pet: False
-1. Co-register FDG-PET to anatomical space.
-2. PVC with PETPVC in anatomical space.
-3. Normalize PET to MNI with SPM12 Normalize applying the
-anatomical-to-MNI warp field.
-
-[optional]
-
-5. Warp atlas from anatomical to PET space.
-
-##### Related settings
-```yaml
-normalize_atlas: True
-atlas_file: ''
-
-registration.anat2pet: False
-
-# GROUP PET TEMPLATE with MR co-registration
-spm_mrpet_grouptemplate_smooth.fwhm: 8
-spm_mrpet_grouptemplate.do_petpvc: True
-# path to a common PET template, if you don't want the average across subjects
-spm_mrpet_grouptemplate.template_file: ""
-
-# PET PVC
-rbvpvc.pvc: RBV
-rbvpvc.fwhm_x: 4.3
-rbvpvc.fwhm_y: 4.3
-rbvpvc.fwhm_z: 4.3
-```
 
 ## Resting-state fMRI (RS-fMRI)
 [<a href="https://github.com/Neurita/pypes/blob/master/docs/img/spm_rest_preproc_workflow.png?raw=true" target="_blank">graph</a>]
@@ -243,4 +176,74 @@ atlas_file: ''
 # degree of b-spline used for interpolation
 coreg_b0.write_interp: 3
 nlmeans_denoise.N: 12 # number of channels in the head coil
+```
+
+
+## FDG-PET
+This is a spatial normalization pipeline for FDG-PET images. Here I say specifically FDG-PET because I haven't tested
+this too much for other PET tracers.
+
+It is based on SPM12.
+It is implemented in [`pypes.pet.warp.attach_spm_pet_preprocessing`](https://github.com/Neurita/pypes/blob/master/pypes/pet/warp.py).
+
+1. Use SPM12 Normalize to spatially normalize FDG-PET to MNI.
+
+There is a group-template option of this: first a group template
+is created, then all FDG-PET are images are normalized to this
+group template.
+
+##### Related settings
+```yaml
+# GROUP PET TEMPLATE
+spm_pet_grouptemplate_smooth.fwhm: 8
+# path to a common PET template, if you don't want the average across subjects
+spm_pet_grouptemplate.template_file: ""
+```
+
+## MPRAGE + FDG-PET
+[<a href="https://github.com/Neurita/pypes/blob/master/docs/img/spm_anat_pet_preproc_workflow.png?raw=true" target="_blank">graph</a>]
+This is a partial volume correction and spatial normalization pipeline
+for FDG-PET images.
+
+It is based on PETPVC, nilearn and SPM12.
+It is implemented in [`pypes.pet.mrpet.attach_spm_mrpet_preprocessing`](https://github.com/Neurita/pypes/blob/master/pypes/pet/mrpet.py).
+
+This pipeline depends on the anatomical preprocessing pipeline.
+There is 2 ways of doing the co-registration, you can configure that by
+setting the `registration.anat2pet` boolean option to `True` or `False`.
+
+#### If registration.anat2pet: True
+1. Co-register anatomical and tissues to PET space.
+2. Partial volume effect correction (PVC) with PETPVC in PET space.
+This is done based on tissue segmentations from the anatomical pipeline.
+3. Use SPM12 Normalize to normalize FDG-PET to MNI.
+
+#### If registration.anat2pet: False
+1. Co-register FDG-PET to anatomical space.
+2. PVC with PETPVC in anatomical space.
+3. Normalize PET to MNI with SPM12 Normalize applying the
+anatomical-to-MNI warp field.
+
+[optional]
+
+5. Warp atlas from anatomical to PET space.
+
+##### Related settings
+```yaml
+normalize_atlas: True
+atlas_file: ''
+
+registration.anat2pet: False
+
+# GROUP PET TEMPLATE with MR co-registration
+spm_mrpet_grouptemplate_smooth.fwhm: 8
+spm_mrpet_grouptemplate.do_petpvc: True
+# path to a common PET template, if you don't want the average across subjects
+spm_mrpet_grouptemplate.template_file: ""
+
+# PET PVC
+rbvpvc.pvc: RBV
+rbvpvc.fwhm_x: 4.3
+rbvpvc.fwhm_y: 4.3
+rbvpvc.fwhm_z: 4.3
 ```
