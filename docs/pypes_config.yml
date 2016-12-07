@@ -45,10 +45,15 @@ registration.anat2pet: False
 registration.anat2fmri: True
 
 # DTI
+extract_b0.max_b: 0.0 # maximum b-value to be considered a b0, for brain mask calculation.
+dmri.artifact_detect: True # to compute motion statistics for post-hoc outliers exclusion.
+dmri.apply_nlmeans: True # to apply non-local means to the corrected DTI data.
+
 coreg_b0.write_interp: 3 # degree of b-spline used for interpolation
 nlmeans_denoise.N: 12 # number of channels in the head coil
 
 # Camino Tractography
+conmat.tract_stat: "mean"
 track.curvethresh: 50
 track.anisthresh: 0.2
 
@@ -161,3 +166,14 @@ rbvpvc.pvc: RBV
 rbvpvc.fwhm_x: 4.3
 rbvpvc.fwhm_y: 4.3
 rbvpvc.fwhm_z: 4.3
+
+# Cortical Thickness
+# read: http://nipype.readthedocs.io/en/latest/interfaces/generated/nipype.interfaces.ants.segmentation.html#corticalthickness
+## Settings for antsCorticalThickness pipeline
+cortical_thickness.brain_template: "/home/pyper/data/std_brains/templates/NKI/T_template.nii.gz"
+cortical_thickness.brain_probability_mask: "/home/pyper/data/std_brains/templates/NKI/T_templateProbabilityMask.nii.gz"
+cortical_thickness.segmentation_priors: ["/home/pyper/data/std_brains/templates/NKI/Priors/priors1.nii.gz",
+                                         "/home/pyper/data/std_brains/templates/NKI/Priors/priors2.nii.gz",
+                                         "/home/pyper/data/std_brains/templates/NKI/Priors/priors3.nii.gz",
+                                         "/home/pyper/data/std_brains/templates/NKI/Priors/priors4.nii.gz"]
+cortical_thickness.t1_registration_template: "/home/pyper/data/std_brains/templates/NKI/T_template_BrainCerebellum.nii.gz"

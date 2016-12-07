@@ -6,7 +6,8 @@ Functions to create pipelines for public and not so public available datasets.
 from collections import OrderedDict
 
 from   .config  import update_config
-from   .anat    import attach_spm_anat_preprocessing
+from   .anat    import (attach_spm_anat_preprocessing,
+                        attach_ants_cortical_thickness)
 from   .dti     import (attach_fsl_dti_preprocessing,
                         attach_camino_tractography)
 from   .fmri    import attach_rest_preprocessing, attach_rest_grptemplate_preprocessing
@@ -152,6 +153,11 @@ def _clinical_wf_setup(wf_name):
                         "spm_anat_pet_rest_preproc":    [("spm_anat_preproc",  attach_spm_anat_preprocessing),
                                                          ("spm_rest_preproc",  attach_rest_preprocessing),
                                                          ("spm_mrpet_preproc", attach_spm_mrpet_preprocessing),
+                                                        ],
+
+                        # MPRAGE and cortical thickness
+                        "spm_anat_ants_cortical_thick": [("spm_anat_preproc",  attach_spm_anat_preprocessing),
+                                                         ("ants_cort_thick",   attach_ants_cortical_thickness),
                                                         ],
                        }
 
