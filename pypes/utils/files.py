@@ -6,9 +6,6 @@ from   os          import path as op
 from   glob        import glob
 from   functools   import wraps
 
-import nibabel as nib
-import nilearn.image as niimg
-
 
 def get_vox_dims(volume):
     import nibabel as nb
