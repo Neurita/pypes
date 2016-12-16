@@ -32,12 +32,12 @@ def attach_ants_cortical_thickness(main_wf, wf_name='ants_cortical_thickness'):
 
     input_files.anat: input node
 
-    corthick_input.brain_template: traits.File
+    cortical_thickness.brain_template: traits.File
         Anatomical *intensity* template (possibly created using a population
         data set with buildtemplateparallel.sh in ANTs).
         This template is *not* skull-stripped.
 
-    corthick_input.segmentation_priors: string
+    cortical_thickness.segmentation_priors: string
         Pattern for paths to the tissue segmentation priors in the space of the
         given template.
 
@@ -51,6 +51,10 @@ def attach_ants_cortical_thickness(main_wf, wf_name='ants_cortical_thickness'):
     corthick_input.brain_probability_mask: traits.File
         Brain probability mask in template space.
 
+    cortical_thickness.t1_registration_template:
+        Anatomical *intensity* template(assumed to be skull-stripped). A
+        commoncase would be where this would be the sametemplate as
+        specified in the -e option whichis not skull stripped.
 
     datasink: nipype Node
 
