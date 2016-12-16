@@ -24,7 +24,7 @@ def run_wf(wf, plugin='MultiProc', n_cpus=2, **plugin_kwargs):
         then 'MultiProc'.
     """
     # run the workflow according to `plugin`
-    if plugin == "MultiProc" and n_cpus > 1:
+    if plugin == "MultiProc" or n_cpus > 1:
         wf.run("MultiProc", plugin_args={"n_procs": n_cpus})
     elif not plugin or plugin is None or n_cpus <= 1:
         wf.run()
