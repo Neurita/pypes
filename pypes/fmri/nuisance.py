@@ -14,7 +14,7 @@ from   ..utils   import selectindex, rename
 from   ..preproc import motion_regressors, extract_noise_components, create_regressors
 
 
-def rapidart_artifact_detection():
+def rapidart_fmri_artifact_detection():
     art = ArtifactDetect()
     art.inputs.use_differences      = [True, False]
     art.inputs.use_norm             = True
@@ -51,7 +51,8 @@ def rest_noise_filter_wf(wf_name='rest_noise_removal'):
 
     rest_noise_output.nuis_corrected
         The resulting nuisance corrected image.
-        This will be the same as 'motion_corrected' if compcor is disabled.
+        This will be the same as 'motion_corrected' if compcor
+        is disabled.
 
     rest_noise_output.motion_regressors
         Motion regressors file.
@@ -63,20 +64,24 @@ def rest_noise_filter_wf(wf_name='rest_noise_removal'):
         One image file containing the voxel-displacement timeseries.
 
     rest_noise_output.art_intensity_files
-        One file containing the global intensity values determined from the brainmask.
+        One file containing the global intensity values determined
+        from the brainmask.
 
     rest_noise_output.art_norm_files
         One file containing the composite norm.
 
     rest_noise_output.art_outlier_files
-         One file containing a list of 0-based indices corresponding to outlier volumes.
+         One file containing a list of 0-based indices corresponding
+         to outlier volumes.
 
     rest_noise_output.art_plot_files
         One image file containing the detected outliers.
 
     rest_noise_output.art_statistic_files
-        One file containing information about the different types of artifacts and if design info is provided then
-        details of stimulus correlated motion and a listing or artifacts by event type.
+        One file containing information about the different types of
+        artifacts and if design info is provided then details of
+        stimulus correlated motion and a listing or artifacts by
+        event type.
 
     Returns
     -------
@@ -120,13 +125,13 @@ def rest_noise_filter_wf(wf_name='rest_noise_removal'):
     # Use :class:`nipype.algorithms.rapidart` to determine which of the
     # images in the functional series are outliers based on deviations in
     # intensity or movement.
-    art = setup_node(rapidart_artifact_detection(), name="detect_artifacts")
+    art = setup_node(rapidart_fmri_artifact_detection(), name="detect_artifacts")
 
     # Compute motion regressors
     motion_regs = setup_node(Function(input_names=['motion_params',
                                                    'order',
                                                    'derivatives',
-                                                 ],
+                                                  ],
                                       output_names=['out_files'],
                                       function=motion_regressors,),
                              name='motion_regressors')

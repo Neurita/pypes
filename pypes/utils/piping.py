@@ -129,7 +129,7 @@ def find_wf_node(wf, iface_type, name=''):
         if isinstance(getattr(wf.get_node(node_nom), 'interface', None), iface_type):
             if not name:
                 return wf.get_node(node_nom)
-            elif name == node_nom:
+            elif name in node_nom.split('.'):
                 return wf.get_node(node_nom)
     return None
 

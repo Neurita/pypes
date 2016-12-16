@@ -2,15 +2,15 @@
 """
 Nipype workflow to clean up resting-state functional MRI.
 """
-import nipype.pipeline.engine    as pe
+import nipype.pipeline.engine as pe
 import os.path as op
-from   nipype.algorithms.misc    import Gunzip
-from   nipype.interfaces         import fsl
+from   nipype.algorithms.misc import Gunzip
+from   nipype.interfaces import fsl
 from   nipype.interfaces.nipy.preprocess import Trim, ComputeMask
 from   nipype.interfaces.utility import Function, Select, IdentityInterface
 from   pypes.interfaces.nilearn import mean_img, smooth_img
 
-from   .filter   import bandpass_filter
+from   .filter import bandpass_filter
 from   .nuisance import rest_noise_filter_wf
 from   .._utils import format_pair_list, flatten_list
 from   ..config import setup_node, get_config_setting
@@ -21,6 +21,7 @@ from   ..preproc import (auto_spm_slicetime,
 from   ..utils  import (remove_ext,
                         extend_trait_list,
                         get_input_node,
+                        get_interface_node,
                         get_datasink,
                         get_input_file_name,
                         extension_duplicates)
@@ -308,9 +309,10 @@ def attach_fmri_cleanup_wf(main_wf, wf_name="fmri_cleanup"):
     main_wf: nipype Workflow
     """
     # Dependency workflows
-    anat_wf  = main_wf.get_node("spm_anat_preproc")
     in_files = get_input_node(main_wf)
     datasink = get_datasink  (main_wf)
+
+    anat_output = get_interface_node(main_wf, "anat_output")
 
     # create the fMRI preprocessing pipelines
     cleanup_wf = fmri_cleanup_wf(wf_name)
@@ -350,12 +352,12 @@ def attach_fmri_cleanup_wf(main_wf, wf_name="fmri_cleanup"):
                                                              regexp_subst)
 
     # input and output anat workflow to main workflow connections
-    main_wf.connect([(in_files, cleanup_wf,  [("rest", "rest_input.in_file")]),
+    main_wf.connect([(in_files,   cleanup_wf, [("rest", "rest_input.in_file")]),
 
                     # anat to fMRI registration inputs
-                    (anat_wf,  cleanup_wf,   [("new_segment.native_class_images",     "rest_input.tissues"),
-                                              ("new_segment.bias_corrected_images",   "rest_input.anat"),
-                                             ]),
+                    (anat_output, cleanup_wf, [("tissues_native", "rest_input.tissues"),
+                                               ("anat_biascorr",  "rest_input.anat"),
+                                              ]),
 
                     # clean_up_wf to datasink
                     (cleanup_wf,  datasink,  [

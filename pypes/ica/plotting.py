@@ -12,16 +12,15 @@ from   boyle.nifti.utils  import filter_icc
 from   nilearn.image      import iter_img
 from   nilearn.masking    import apply_mask
 
-from .ica_loadings import (filter_ics,
-                           get_largest_blobs,
-                           build_raw_loadings_table,
-                           add_groups_to_loadings_table,
-                           )
-from ..utils.files import fetch_one_file
-from ..interfaces.nilearn.plot import (plot_all_components,
-                                       plot_ica_components,
-                                       plot_multi_slices,
-                                       plot_overlays)
+from .utils import get_largest_blobs
+from .loadings import (filter_ics,
+                       build_raw_loadings_table,
+                       add_groups_to_loadings_table,)
+from ..interfaces import (plot_all_components,
+                          plot_ica_components,
+                          plot_multi_slices,
+                          plot_overlays)
+from ..utils import fetch_one_file
 
 
 def plot_connectivity_matrix(connectivity_matrix, label_names):
@@ -53,7 +52,7 @@ def plot_ica_results(ica_result_dir, application, mask_file='', zscore=2., mode=
         Path to the ICA output folder or the ICA components volume file.
 
     application: str
-        Choicese: ('nilearn', 'sbm', 'gift')
+        Choicese: ('nilearn', 'sbm', 'gift', 'gift-group')
 
     mask_file: str
         Path to the brain mask file to be used for thresholding.
@@ -72,7 +71,9 @@ def plot_ica_results(ica_result_dir, application, mask_file='', zscore=2., mode=
     """
     if application == 'sbm': # SBM ICA (3D sources)
         plotter = SBMICAResultsPlotter(ica_result_dir)
-    elif application == 'gift': # group GIFT ICA (4D sources)
+    elif application == 'gift-group': # group GIFT ICA (4D sources)
+        plotter = GIFTGroupICAResultsPlotter(ica_result_dir)
+    elif application == 'gift': # single subject GIFT ICA (4D sources)
         plotter = GIFTICAResultsPlotter(ica_result_dir)
     elif application == 'canica': # group ICA (4D sources)
         plotter = CanICAResultsPlotter(ica_result_dir)
@@ -277,8 +278,8 @@ class MIALABICAResultsPlotter(ICAResultsPlotter):
     def _fetch_components_file(self):
         return fetch_one_file(self.ica_dir, self._comps_fname,
                               file_extension='.nii',
-                              extra_prefix='*mean',
-                              extra_suffix='_s_all*')
+                              extra_prefix='',
+                              extra_suffix='_s*')
 
     def _get_subject_files(self):
         """ Load the .mat file with subjects lists, mainly to get the order in
@@ -342,28 +343,73 @@ class MIALABICAResultsPlotter(ICAResultsPlotter):
 
 
 class GIFTICAResultsPlotter(MIALABICAResultsPlotter):
-    """ Use nilearn to plot results from the MIALAB SBM tool, given the ICA result folder path.
+    """ Use nilearn to plot results from the MIALAB ICA tool used to analyse one subject,
+    given the ICA result folder path.
 
     Parameters
     ----------
     ica_result_dir: str
         Path to the ICA output folder or the ICA components volume file.
     """
-    _tcs_fname = '*_timecourses_ica*.nii'
+    _tcs_fname   = '*_sub01_timecourses_ica_s1_.nii'
+    _comps_fname = '*_sub01_component_ica_s1_.nii'
 
     def _check_output(self):
         comps_img = self._load_components()
         tcs_img   = self._load_timecourses()
-
-        # read the groups file
-        subj_files   = self._get_subject_files()
-        n_timepoints = len(subj_files)
 
         n_ics = tcs_img.shape[1]
         if comps_img.get_data().shape[-1] != n_ics:
             raise AttributeError('Shape mismatch between timecourses matrix {} '
                                  'and components data shape {}.'.format(tcs_img.shape,
                                                                         comps_img.get_data().shape))
+
+        # read the groups file
+        subj_files   = self._get_subject_files()
+        n_timepoints = len(subj_files)
+
+        # check shapes
+        if n_timepoints != tcs_img.shape[0]:
+            raise AttributeError('Shape mismatch between list of subjects {} '
+                                 'and timecourses data shape {}.'.format(n_timepoints,
+                                                                         tcs_img.shape))
+
+    def _load_timecourses(self):
+        """ Return the timecourses image file and checks if the shape is correct."""
+        # load the timecourses file
+        tcsf = fetch_one_file(self.ica_dir, self._tcs_fname)
+        tcs = niimg.load_img(tcsf).get_data()
+        return tcs
+
+    def _fetch_components_file(self):
+        return fetch_one_file(self.ica_dir, self._comps_fname)
+
+
+class GIFTGroupICAResultsPlotter(MIALABICAResultsPlotter):
+    """ Use nilearn to plot results from the MIALAB Group ICA tool used to analyse a group of subjects,
+    given the ICA result folder path.
+
+    Parameters
+    ----------
+    ica_result_dir: str
+        Path to the ICA output folder or the ICA components volume file.
+    """
+    _tcs_fname   = '*_mean_timecourses_ica_s_all_.nii'
+    _comps_fname = '*_mean_component_ica_s_all_.nii'
+
+    def _check_output(self):
+        comps_img = self._load_components()
+        tcs_img   = self._load_timecourses()
+
+        n_ics = tcs_img.shape[1]
+        if comps_img.get_data().shape[-1] != n_ics:
+            raise AttributeError('Shape mismatch between timecourses matrix {} '
+                                 'and components data shape {}.'.format(tcs_img.shape,
+                                                                        comps_img.get_data().shape))
+
+        # read the groups file
+        # subj_files   = self._get_subject_files()
+        # n_timepoints = len(subj_files)
 
         # check shapes
         #if n_timepoints != tcs_img.shape[0]:
@@ -374,9 +420,12 @@ class GIFTICAResultsPlotter(MIALABICAResultsPlotter):
     def _load_timecourses(self):
         """ Return the timecourses image file and checks if the shape is correct."""
         # load the timecourses file
-        tcsf = fetch_one_file(self.ica_dir, self._tcs_fname, extra_prefix='*tmap')
+        tcsf = fetch_one_file(self.ica_dir, self._tcs_fname)
         tcs = niimg.load_img(tcsf).get_data()
         return tcs
+
+    def _fetch_components_file(self):
+        return fetch_one_file(self.ica_dir, self._comps_fname)
 
     def _calculate_goodness_of_fit(self):
         """ Return the goodness-of-fit values from a GIFT result."""

@@ -6,7 +6,6 @@ import pandas               as pd
 import nilearn.image        as niimg
 from   nilearn.image        import iter_img
 from   boyle.nifti.utils    import filter_icc
-from   boyle.nifti.roi      import largest_connected_component
 
 
 def build_raw_loadings_table(loads, patids):
@@ -49,20 +48,3 @@ def filter_ics(comps_img, mask, zscore=2.):
             icimg = filter_icc(icimg, mask=mask, thr=zscore, zscore=True, mode='+-')
 
         yield icimg
-
-
-def get_largest_blobs(ic_maps):
-    """ Generator for the largest blobs in each IC spatial map.
-    These should be masked and thresholded.
-
-    Parameters
-    ----------
-    ic_maps: sequence of niimg-like
-
-    Returns
-    -------
-    blobs: generator of niimg-like
-    """
-    # store the average value of the blob in a list
-    for i, icimg in enumerate(iter_img(ic_maps)):
-        yield niimg.new_img_like(icimg, largest_connected_component(icimg.get_data()))

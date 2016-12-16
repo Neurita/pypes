@@ -42,13 +42,18 @@ registration.anat2pet: False
 # 3) all the cleaning and resting-state processes in fMRI space,
 # 4) pick the anatomical image to MNI transformation from the anatomical pipeline,
 # 5) normalize fMRI to MNI using the anatomical to MNI transformation.
-registration.anat2fmri: True
+registration.anat2fmri: False
 
 # DTI
+extract_b0.max_b: 0.0 # maximum b-value to be considered a b0, for brain mask calculation.
+dmri.artifact_detect: True # to compute motion statistics for post-hoc outliers exclusion.
+dmri.apply_nlmeans: True # to apply non-local means to the corrected DTI data.
+
 coreg_b0.write_interp: 3 # degree of b-spline used for interpolation
 nlmeans_denoise.N: 12 # number of channels in the head coil
 
 # Camino Tractography
+conmat.tract_stat: "mean"
 track.curvethresh: 50
 track.anisthresh: 0.2
 

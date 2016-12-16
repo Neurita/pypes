@@ -7,14 +7,13 @@ import nipype.pipeline.engine    as pe
 from   nipype.interfaces         import io
 from   nipype.interfaces.utility import IdentityInterface, Function
 
-from   .plotting import plot_ica_results
 from   .._utils import _check_list
-from   ..config  import setup_node, get_config_setting
-from   ..utils   import (get_trait_value,
-                         get_datasink,)
+from   ..config import setup_node, get_config_setting
 from   ..interfaces import CanICAInterface
 from   ..interfaces.nilearn.image import concat_3D_imgs
-
+from   ..utils import (get_trait_value,
+                       get_datasink, )
+from   .plotting import plot_ica_results
 
 def attach_canica(main_wf, wf_name="canica", **kwargs):
     """ Attach a nilearn CanICA interface to `main_wf`.

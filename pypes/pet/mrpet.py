@@ -20,6 +20,7 @@ from   ..utils import (get_datasink,
                        spm_tpm_priors_path,
                        extend_trait_list,
                        get_input_node,
+                       get_interface_node,
                        remove_ext,
                        get_input_file_name,
                        extension_duplicates)
@@ -333,7 +334,7 @@ def spm_mrpet_grouptemplate_preprocessing(wf_name="spm_mrpet_grouptemplate_prepr
                            name="pet_input")
 
     # workflow to perform partial volume correction
-    petpvc    = petpvc_workflow(wf_name="petpvc")
+    petpvc = petpvc_workflow(wf_name="petpvc")
 
     unzip_mrg = setup_node(Merge(4), name='merge_for_unzip')
     gunzipper = pe.MapNode(Gunzip(), name="gunzip", iterfield=['in_file'])
@@ -451,9 +452,10 @@ def attach_spm_mrpet_preprocessing(main_wf, wf_name="spm_mrpet_preproc", do_grou
     main_wf: nipype Workflow
     """
     # Dependency workflows
-    anat_wf  = main_wf.get_node("spm_anat_preproc")
     in_files = get_input_node(main_wf)
     datasink = get_datasink  (main_wf)
+
+    anat_output = get_interface_node(main_wf, "anat_output")
 
     # The base name of the 'pet' file for the substitutions
     anat_fbasename = remove_ext(op.basename(get_input_file_name(in_files, 'anat')))
@@ -513,9 +515,9 @@ def attach_spm_mrpet_preprocessing(main_wf, wf_name="spm_mrpet_preproc", do_grou
                      (in_files, pet_wf, [("pet", "pet_input.in_file")]),
 
                      # pet to anat registration
-                     (anat_wf,  pet_wf, [("new_segment.bias_corrected_images",     "pet_input.anat"),
-                                         ("new_segment.native_class_images",       "pet_input.tissues"),
-                                        ]),
+                     (anat_output,  pet_wf, [("anat_biascorr",  "pet_input.anat"),
+                                             ("tissues_native", "pet_input.tissues"),
+                                            ]),
 
                      (pet_wf, datasink, [
                                          ("pet_output.gm_norm",      "mrpet.@norm"),
@@ -534,13 +536,13 @@ def attach_spm_mrpet_preprocessing(main_wf, wf_name="spm_mrpet_preproc", do_grou
         # Connect the nodes
         main_wf.connect([
                          # pet to anat registration
-                         (anat_wf,  pet_wf, [("new_segment.forward_deformation_field", "pet_input.anat_to_mni_warp"),]),
-                         ])
+                         (anat_output,  pet_wf, [("warp_forward", "pet_input.anat_to_mni_warp"),]),
+                        ])
 
 
     if do_atlas:
-            main_wf.connect([(anat_wf,  pet_wf,   [("anat_output.atlas_anat", "pet_input.atlas_anat")]),
-                             (pet_wf,   datasink, [("pet_output.atlas_pet",   "mrpet.@atlas")]),
+            main_wf.connect([(anat_output, pet_wf,   [("atlas_anat",           "pet_input.atlas_anat")]),
+                             (pet_wf,      datasink, [("pet_output.atlas_pet", "mrpet.@atlas")]),
                             ])
 
     return main_wf

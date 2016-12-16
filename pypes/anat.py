@@ -163,8 +163,9 @@ def spm_anat_preprocessing(wf_name="spm_anat_preproc"):
         out_fields += ["atlas_anat"]
 
     # input node
-    anat_input = setup_node(IdentityInterface(fields=in_fields, mandatory_inputs=True),
-                            name="anat_input")
+    anat_input = pe.Node(IdentityInterface(fields=in_fields, mandatory_inputs=True),
+                         name="anat_input")
+
     # atlas registration
     if do_atlas:
         anat_input.inputs.set(atlas_file=atlas_file)
@@ -194,7 +195,7 @@ def spm_anat_preprocessing(wf_name="spm_anat_preproc"):
     brain_mask.inputs.formula  = "np.abs(gm + wm + csf) > 0"
 
     # output node
-    anat_output = setup_node(IdentityInterface(fields=out_fields), name="anat_output")
+    anat_output = pe.Node(IdentityInterface(fields=out_fields), name="anat_output")
 
     # Connect the nodes
     wf.connect([

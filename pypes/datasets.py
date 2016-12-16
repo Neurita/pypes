@@ -7,7 +7,7 @@ from collections import OrderedDict
 
 from   .config  import update_config
 from   .anat    import attach_spm_anat_preprocessing
-from   .dti     import (attach_fsl_dti_preprocessing,
+from   .dmri    import (attach_spm_fsl_dti_preprocessing,
                         attach_camino_tractography)
 from   .fmri    import attach_rest_preprocessing, attach_rest_grptemplate_preprocessing
 from   .io      import build_crumb_workflow
@@ -119,19 +119,19 @@ def _clinical_wf_setup(wf_name):
 
                         # MPRAGE preprocessing, DTI preprocessing with FSL
                         "fsl_dti_preproc":      [("spm_anat_preproc",  attach_spm_anat_preprocessing),
-                                                 ("fsl_dti_preproc",   attach_fsl_dti_preprocessing),
+                                                 ("fsl_dti_preproc",   attach_spm_fsl_dti_preprocessing),
                                                 ],
 
                         # MPRAGE preprocessing, DTI preprocessing with FSL, and tractography with Camino
                         "anat_dti_camino":      [("spm_anat_preproc",  attach_spm_anat_preprocessing),
-                                                 ("fsl_dti_preproc",   attach_fsl_dti_preprocessing),
+                                                 ("fsl_dti_preproc",   attach_spm_fsl_dti_preprocessing),
                                                  ("camino_tract" ,     attach_camino_tractography),
                                                 ],
 
                         # MPRAGE and PET preprocessing, DTI preprocessing with FSL, and tractography with Camino
                         "anat_pet_dti_camino":  [("spm_anat_preproc",  attach_spm_anat_preprocessing),
                                                  ("spm_mrpet_preproc", attach_spm_mrpet_preprocessing),
-                                                 ("fsl_dti_preproc",   attach_fsl_dti_preprocessing),
+                                                 ("fsl_dti_preproc",   attach_spm_fsl_dti_preprocessing),
                                                  ("camino_tract",      attach_camino_tractography),
                                                 ],
 

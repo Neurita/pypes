@@ -2,24 +2,55 @@
 """
 Utilities to help in the DTI pre-processing
 """
+from nipype.algorithms.rapidart import ArtifactDetect
+
+
+def rapidart_dti_artifact_detection():
+    art = ArtifactDetect()
+    art.inputs.use_differences      = [True, False]
+    art.inputs.use_norm             = True
+    art.inputs.zintensity_threshold = 2
+    art.inputs.norm_threshold       = 1
+    art.inputs.mask_type            = 'file'
+    art.inputs.parameter_source     = 'FSL'
+    return art
 
 
 def nlmeans_denoise(in_file, mask_file, out_file='', N=12):
     """ Filepath interface to the nlmeans_denoise_img in pypes.preproc."""
     import os.path as op
     import nibabel as nib
-    from boyle.files.names import remove_ext, get_extension
+
     from pypes.preproc import nlmeans_denoise_img
+    from pypes.utils import rename
 
     den = nlmeans_denoise_img(nib.load(in_file), mask=nib.load(mask_file), N=N)
 
     if not out_file:
-        base_name = op.basename(in_file)
-        ext = get_extension(base_name)
-        base_name = remove_ext(base_name)
-        out_file = '{}_denoised{}'.format(base_name, ext)
+        out_file = rename(in_file, '_denoised')
 
     den.to_filename(out_file)
+
+    return op.abspath(out_file)
+
+
+def reslice(in_file, new_zooms=None, order=3, out_file=''):
+    """
+    Performs regridding of an image to set isotropic voxel sizes using dipy.
+    """
+    import os.path as op
+
+    import nibabel as nib
+
+    from pypes.preproc import reslice_img
+    from pypes.utils import rename
+
+    img = reslice_img(nib.load(in_file), new_zooms=new_zooms, order=order)
+
+    if not out_file:
+        out_file = rename(in_file, '_resliced')
+
+    img.to_filename(out_file)
 
     return op.abspath(out_file)
 

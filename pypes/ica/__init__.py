@@ -7,12 +7,14 @@ from .plotting import ( plot_connectivity_matrix,
                         CanICAResultsPlotter,
                         MIALABICAResultsPlotter,
                         GIFTICAResultsPlotter,
+                        GIFTGroupICAResultsPlotter,
                         SBMICAResultsPlotter,)
 
-from .ica_loadings import ( get_largest_blobs,
-                            filter_ics,
-                            add_groups_to_loadings_table,
-                            build_raw_loadings_table)
+from .utils import get_largest_blobs
+
+from .loadings import (filter_ics,
+                       add_groups_to_loadings_table,
+                       build_raw_loadings_table)
 
 from .rsn_compare import (RestingStateNetworks,
                           spatial_maps_pairwise_similarity,
