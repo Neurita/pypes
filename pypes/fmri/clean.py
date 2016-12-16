@@ -51,8 +51,9 @@ def fmri_cleanup_wf(wf_name="fmri_cleanup"):
     rest_input.anat: traits.File
         Path to the high-contrast anatomical image.
 
-    rest_input.tissues: traits.File
-        path to the tissue segmentations in anatomical space.
+    rest_input.tissues: list of traits.File
+        Paths to the tissue segmentations in anatomical space.
+        Expected to have this order: GM, WM and CSF.
 
     rest_input.highpass_sigma:traits.Float
         Band pass timeseries filter higher bound in Hz.
@@ -82,8 +83,9 @@ def fmri_cleanup_wf(wf_name="fmri_cleanup"):
         GM, WM and CSF segmentation volumes from the anatomical
         segmentation.
 
-    rest_output.tissues: traits.File
+    rest_output.tissues: list of traits.File
         The tissues segmentation volume in fMRI space.
+        Expected to have this order: GM, WM and CSF.
 
     rest_output.anat: traits.File
         The T1w image in fMRI space.
@@ -172,12 +174,15 @@ def fmri_cleanup_wf(wf_name="fmri_cleanup"):
     coreg     = setup_node(spm_coregister(cost_function="mi"), name="coreg_fmri")
     brain_sel = setup_node(Select(index=[0, 1, 2]),            name="brain_sel")
 
-    # brain masks
+    # brain mask made with EPI
     epi_mask    = setup_node(ComputeMask(),         name='epi_mask')
+
+    # brain mask made with the merge of the tissue segmentations
     tissue_mask = setup_node(fsl.MultiImageMaths(), name='tissue_mask')
     tissue_mask.inputs.op_string = "-add %s -add %s -abs -kernel gauss 4 -dilM -ero -kernel gauss 1 -dilM -bin"
     tissue_mask.inputs.out_file = "tissue_brain_mask.nii.gz"
 
+    # select tissues
     gm_select    = setup_node(Select(index=[0]),    name="gm_sel")
     wmcsf_select = setup_node(Select(index=[1, 2]), name="wmcsf_sel")
 

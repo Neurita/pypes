@@ -166,3 +166,14 @@ rbvpvc.pvc: RBV
 rbvpvc.fwhm_x: 4.3
 rbvpvc.fwhm_y: 4.3
 rbvpvc.fwhm_z: 4.3
+
+# Cortical Thickness
+# read: http://nipype.readthedocs.io/en/latest/interfaces/generated/nipype.interfaces.ants.segmentation.html#corticalthickness
+## Settings for antsCorticalThickness pipeline
+cortical_thickness.brain_template: "/home/pyper/data/std_brains/templates/NKI/T_template.nii.gz"
+cortical_thickness.brain_probability_mask: "/home/pyper/data/std_brains/templates/NKI/T_templateProbabilityMask.nii.gz"
+cortical_thickness.segmentation_priors: ["/home/pyper/data/std_brains/templates/NKI/Priors/priors1.nii.gz",
+                                         "/home/pyper/data/std_brains/templates/NKI/Priors/priors2.nii.gz",
+                                         "/home/pyper/data/std_brains/templates/NKI/Priors/priors3.nii.gz",
+                                         "/home/pyper/data/std_brains/templates/NKI/Priors/priors4.nii.gz"]
+cortical_thickness.t1_registration_template: "/home/pyper/data/std_brains/templates/NKI/T_template_BrainCerebellum.nii.gz"
