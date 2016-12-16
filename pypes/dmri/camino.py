@@ -8,7 +8,7 @@ from   nipype.interfaces.utility import IdentityInterface
 from   nipype.interfaces.camino  import (Image2Voxel, FSL2Scheme, DTIFit, Track,
                                          Conmat, ComputeFractionalAnisotropy, AnalyzeHeader)
 
-from   ..config  import setup_node
+from   ..config  import setup_node, check_atlas_file
 from   ..utils import (get_datasink,
                        get_interface_node,
                        get_input_node,
@@ -174,14 +174,13 @@ def attach_camino_tractography(main_wf, wf_name="camino_tract"):
 
     # input and output diffusion MRI workflow to main workflow connections
     main_wf.connect([(in_files,         tract_wf, [("bval",            "tract_input.bval")]),
-                     (dti_coreg_output, tract_wf, [("brain_mask_diff", "tract_input.mask"),
-                                                   ("atlas_diff",      "tract_input.atlas")
-                                                  ]),
+                     (dti_coreg_output, tract_wf, [("brain_mask_diff", "tract_input.mask")]),
 
                      (dti_artif_output, tract_wf, [("eddy_corr_file",  "tract_input.diff"),
                                                    ("bvec_rotated",    "tract_input.bvec"),
                                                   ]),
 
+                     # output
                      (tract_wf, datasink, [("tract_output.tensor",       "tract.@tensor"),
                                            ("tract_output.tracks",       "tract.@tracks"),
                                            ("tract_output.connectivity", "tract.@connectivity"),
@@ -189,5 +188,10 @@ def attach_camino_tractography(main_wf, wf_name="camino_tract"):
                                            ("tract_output.fa",           "tract.@fa"),
                                            ])
                     ])
+
+    # pass the atlas if it's the case
+    do_atlas, _ = check_atlas_file()
+    if do_atlas:
+        main_wf.connect([(dti_coreg_output, tract_wf, [("atlas_diff", "tract_input.atlas")])])
 
     return main_wf
