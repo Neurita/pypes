@@ -9,13 +9,14 @@ import pandas             as pd
 import re
 import scipy.io           as sio
 from   boyle.nifti.utils  import filter_icc
+from   nilearn.input_data import NiftiMasker
 from   nilearn.image      import iter_img
 from   nilearn.masking    import apply_mask
+from   nilearn._utils.niimg_conversions import check_niimg, _index_img
 
-from .utils import get_largest_blobs
-from .loadings import (filter_ics,
-                       build_raw_loadings_table,
-                       add_groups_to_loadings_table,)
+from .utils import (get_largest_blobs,
+                    build_raw_loadings_table,
+                    add_groups_to_loadings_table,)
 from ..interfaces import (plot_all_components,
                           plot_ica_components,
                           plot_multi_slices,
@@ -111,7 +112,7 @@ class ICAResultsPlotter(object):
 
         self.ica_dir = op.expanduser(ica_result_dir)
 
-    def fit(self,  mask_file='', mode='+', zscore=2):
+    def fit(self,  mask_file='', mode='+-', zscore=2):
         """ Process/filter/threshold the output to make it ready for plot.
 
         Parameters
@@ -121,7 +122,7 @@ class ICAResultsPlotter(object):
 
         mode: str
             Choices: '+' for positive threshold,
-                     '+-' for positive and negative threshold and
+                     '+-' or '-+' for positive and negative threshold and
                      '-' for negative threshold.
 
         zscore: int or float
@@ -133,6 +134,24 @@ class ICAResultsPlotter(object):
         self._icc_imgs = None
         self._update(force=True)
 
+    def _update(self, force=False):
+        if self._icc_imgs is not None and not force:
+            return
+
+        self._check_output()
+        self._icc_imgs = self._filter_ic_imgs(self._fetch_components_file())
+
+    def is_fit(self):
+        """ Return True if the self `fit` function has been called, False otherwise."""
+        if not hasattr(self, '_icc_imgs'):
+            return False
+        else:
+            return self._icc_imgs is not None
+
+    def _check_is_fit(self):
+        if not self.is_fit():
+            raise RuntimeError('You should call `fit()` before using this function.')
+
     def _fetch_components_file(self):
         if self._comps_fname is None:
             raise NotImplementedError('This is a generic class to support the output from different applications,'
@@ -141,30 +160,18 @@ class ICAResultsPlotter(object):
         return fetch_one_file(self.ica_dir, self._comps_fname)
 
     def _filter_ic_imgs(self, ic_file):
-        # filter the ICC if mask and threshold are set
-        if self.mask_file and self.zscore > 0:
-            mask = niimg.load_img(self.mask_file)
-            icc_imgs = [filter_icc(icc, mask=mask, thr=self.zscore, zscore=True, mode=self.mode)
-                        for icc in iter_img(ic_file)]
+        if self.zscore > 0:
+            do_zscore = True
         else:
-            icc_imgs = [niimg.load_img(ic) for ic in ic_file]
-        return icc_imgs
+            do_zscore = False
+
+        mask = niimg.load_img(self.mask_file)
+        return [filter_icc(icimg, mask=mask, thr=self.zscore, zscore=do_zscore, mode=self.mode)
+                for icimg in iter_img(ic_file)]
 
     def _check_output(self):
         raise NotImplementedError('This is a generic class to support the output from different applications,'
                                   'please use a derived class from ICAResultsPlotter.')
-
-    def _update(self, force=False):
-        if not hasattr(self, '_icc_imgs'):
-            raise RuntimeError('You should call `fit()` before using this function.')
-
-        if self._icc_imgs is not None and not force:
-            return
-
-        self._check_output()
-
-        ic_file = self._fetch_components_file()
-        self._icc_imgs = list(filter_ics(ic_file, mask=self.mask_file, zscore=self.zscore))
 
     def plot_icmaps(self, outtype='png', **kwargs):
         """ Plot the thresholded IC spatial maps and store the outputs in the ICA results folder.
@@ -233,8 +240,8 @@ class MIALABICAResultsPlotter(ICAResultsPlotter):
         Path to the ICA output folder or the ICA components volume file.
     """
     # define the input file patterns
+    _tcs_fname       = '*_timecourses_ica*'
     _comps_fname     = '*_component_ica*'
-    _loadings_fname  = '*_loading_coeff*'
     _subjects_fname  = '*Subject.mat'
     _mask_fname      = '*Mask.hdr'
 
@@ -275,11 +282,13 @@ class MIALABICAResultsPlotter(ICAResultsPlotter):
         comps_img = niimg.load_img(compsf)
         return comps_img
 
+    def _load_loadings(self):
+        loadf = fetch_one_file(self.ica_dir, self._tcs_fname)
+        loads = niimg.load_img(loadf).get_data()
+        return loads
+
     def _fetch_components_file(self):
-        return fetch_one_file(self.ica_dir, self._comps_fname,
-                              file_extension='.nii',
-                              extra_prefix='',
-                              extra_suffix='_s*')
+        return fetch_one_file(self.ica_dir, self._comps_fname)
 
     def _get_subject_files(self):
         """ Load the .mat file with subjects lists, mainly to get the order in
@@ -317,21 +326,116 @@ class MIALABICAResultsPlotter(ICAResultsPlotter):
 
         return patids
 
+    @staticmethod
+    def _index_img(img_file, index):
+        """ Return the volume in `index` 4th dimension index of `img_file`.
+        If the image is 3D and idx is zero will return the container of `img_file`.
+        """
+        imgs = check_niimg(img_file, ensure_ndim=4, atleast_4d=True)
+        return _index_img(imgs, index)
+
+    def load_mask(self):
+        """ Return the mask image. """
+        mask_file = fetch_one_file(self.ica_dir, self._mask_fname)
+        return niimg.load_img(mask_file)
+
+    def load_subject_data(self, masked=False, **kwargs):
+        """ Generator of the input data volumes in the order it was inserted in GIFT ICA.
+
+        Returns
+        -------
+        subj_imgs: generator of niimg-like objects.
+            The input data to the ICA.
+
+        masked: bool
+            If True will apply the mask to the data.
+
+        kwargs: keyword arguments
+            Keyword arguments for the NiftiMasker used to mask the data.
+            The mask used is the one used in the `fit` function or specified
+            in `_mask_fname`.
+
+        Note
+        ----
+        This will actually read the paths in the Subjects.mat file. If you have moved
+        or erased those files, this will not work as expected.
+        """
+        if masked:
+            sessions = self._input_data_sessions()
+            data = self._apply_mask_to_imgs(self._load_subject_data(), **kwargs)
+        else:
+            data = self._load_subject_data()
+
+        return np.array(list(data))
+
+    def load_components_data(self, masked=False, **kwargs):
+        if masked:
+            comps = self._load_components()
+            n_comps = comps.shape[-1]
+            return self._apply_mask_to_4dimg(comps, **kwargs)
+        else:
+            return self._load_components()
+
+    def _input_data_sessions(self):
+        """ Return a 1D array with a session number for each session
+        in the input data.
+        This is used for NiftiMasker as a value for the `sessions`
+        parameter.
+
+        Example
+        -------
+        Given input data:
+        ["subject01.nii,1",
+         "subject01.nii,2",
+         "subject02.nii,1",]
+
+        Would return: [0, 0, 1]
+        """
+        # get the subject file list
+        subj_files = self._get_subject_files()
+
+        # remove the numbers after the comma in this list
+        files = np.array([f.split(',')[0] for f in subj_files])
+
+        # make a dict that assign a number to each unique file
+        file_int = {f: i for i, f in enumerate(np.unique(files))}
+
+        # return the corresponding numbers for each file in the cleaned file list
+        return np.array([file_int[f] for f in files])
+
+    def _load_subject_data(self):
+        img_file_list = self._get_subject_files()
+        for line in img_file_list:
+            img_file, idx = line.split(',')
+            yield self._index_img(img_file, int(idx) - 1)
+
+    def _apply_mask_to_img(self, img, **kwargs):
+        masker = NiftiMasker(mask_img=self.load_mask(), **kwargs)
+        return masker.fit_transform(img)
+
+    def _apply_mask_to_4dimg(self, imgs, **kwargs):
+        masker = NiftiMasker(mask_img=self.load_mask(), **kwargs)
+        return (masker.fit_transform(img) for img in iter_img(imgs))
+
+    def _apply_mask_to_imgs(self, imgs, **kwargs):
+        masker = NiftiMasker(mask_img=self.load_mask(), **kwargs)
+        return (masker.fit_transform(img) for img in imgs)
+
     def fit(self,  mask_file='', mode='+', zscore=2):
         """ Process/filter/threshold the output to make it ready for plot.
         If no mask_file is set, will pick the output from GIFT.
 
         Parameters
         ----------
-        mask_file: str
+        mask_file: str, optional
             Path to the brain mask file to be used for thresholding.
 
-        mode: str
+        mode: str, optional
             Choices: '+' for positive threshold,
                      '+-' for positive and negative threshold and
                      '-' for negative threshold.
 
-        zscore: int or float
+        zscore: int or float, optional
             Value of the Z-score thresholding.
         """
         if not mask_file:
@@ -340,180 +444,6 @@ class MIALABICAResultsPlotter(ICAResultsPlotter):
         super(MIALABICAResultsPlotter, self).fit(mask_file=mask_file,
                                                  mode=mode,
                                                  zscore=zscore)
-
-
-class GIFTICAResultsPlotter(MIALABICAResultsPlotter):
-    """ Use nilearn to plot results from the MIALAB ICA tool used to analyse one subject,
-    given the ICA result folder path.
-
-    Parameters
-    ----------
-    ica_result_dir: str
-        Path to the ICA output folder or the ICA components volume file.
-    """
-    _tcs_fname   = '*_sub01_timecourses_ica_s1_.nii'
-    _comps_fname = '*_sub01_component_ica_s1_.nii'
-
-    def _check_output(self):
-        comps_img = self._load_components()
-        tcs_img   = self._load_timecourses()
-
-        n_ics = tcs_img.shape[1]
-        if comps_img.get_data().shape[-1] != n_ics:
-            raise AttributeError('Shape mismatch between timecourses matrix {} '
-                                 'and components data shape {}.'.format(tcs_img.shape,
-                                                                        comps_img.get_data().shape))
-
-        # read the groups file
-        subj_files   = self._get_subject_files()
-        n_timepoints = len(subj_files)
-
-        # check shapes
-        if n_timepoints != tcs_img.shape[0]:
-            raise AttributeError('Shape mismatch between list of subjects {} '
-                                 'and timecourses data shape {}.'.format(n_timepoints,
-                                                                         tcs_img.shape))
-
-    def _load_timecourses(self):
-        """ Return the timecourses image file and checks if the shape is correct."""
-        # load the timecourses file
-        tcsf = fetch_one_file(self.ica_dir, self._tcs_fname)
-        tcs = niimg.load_img(tcsf).get_data()
-        return tcs
-
-    def _fetch_components_file(self):
-        return fetch_one_file(self.ica_dir, self._comps_fname)
-
-
-class GIFTGroupICAResultsPlotter(MIALABICAResultsPlotter):
-    """ Use nilearn to plot results from the MIALAB Group ICA tool used to analyse a group of subjects,
-    given the ICA result folder path.
-
-    Parameters
-    ----------
-    ica_result_dir: str
-        Path to the ICA output folder or the ICA components volume file.
-    """
-    _tcs_fname   = '*_mean_timecourses_ica_s_all_.nii'
-    _comps_fname = '*_mean_component_ica_s_all_.nii'
-
-    def _check_output(self):
-        comps_img = self._load_components()
-        tcs_img   = self._load_timecourses()
-
-        n_ics = tcs_img.shape[1]
-        if comps_img.get_data().shape[-1] != n_ics:
-            raise AttributeError('Shape mismatch between timecourses matrix {} '
-                                 'and components data shape {}.'.format(tcs_img.shape,
-                                                                        comps_img.get_data().shape))
-
-        # read the groups file
-        # subj_files   = self._get_subject_files()
-        # n_timepoints = len(subj_files)
-
-        # check shapes
-        #if n_timepoints != tcs_img.shape[0]:
-        #    raise AttributeError('Shape mismatch between list of subjects {} '
-        #                         'and timecourses data shape {}.'.format(n_timepoints,
-        #                                                                 tcs_img.shape))
-
-    def _load_timecourses(self):
-        """ Return the timecourses image file and checks if the shape is correct."""
-        # load the timecourses file
-        tcsf = fetch_one_file(self.ica_dir, self._tcs_fname)
-        tcs = niimg.load_img(tcsf).get_data()
-        return tcs
-
-    def _fetch_components_file(self):
-        return fetch_one_file(self.ica_dir, self._comps_fname)
-
-    def _calculate_goodness_of_fit(self):
-        """ Return the goodness-of-fit values from a GIFT result."""
-        pass
-        #TODO
-
-    def goodness_of_fit_df(self, group_labels_file, subjid_pat=r'(?P<patid>[a-z]{2}_[0-9]{6})'):
-        """ Return a pandas.DataFrame ready for an excel file with:
-        - the subject IDs taken from the file paths inside the *Subject.mat file,
-        - the groups taken from `group_labels_file`, and
-        - the goodness-of-fit measures for each subject and independent component.
-
-        Parameters
-        ----------
-        group_labels_file: str
-            A CSV file with two columns: "subject_id" and "group".
-            The subject_ids must be in the paths contained in the Subject.mat
-            file and match the `subjid_pat` argument.
-
-        subjid_pat: regext str
-            A search regex pattern that returns one group element that
-            contains the subject id.
-            This will be used to *search* for subject_id in the file paths
-            contained in the Subjects.mat file.
-
-        Returns
-        -------
-        gof_df: pandas.DataFrame
-        """
-        # make sure file exists
-        if not op.exists(group_labels_file):
-            raise FileNotFoundError('The file {} has not been found.'.format(group_labels_file))
-
-        # make sure this object has been .fit()
-        self._update()
-
-        # read the groups file
-        groups = self._parse_groups_file(group_labels_file=group_labels_file)
-        patids = self._get_subject_ids(subjid_pat=subjid_pat)
-
-        # calculate the goodness of fit
-        gofs = self._calculate_goodness_of_fit(patids)
-
-        # build the goodness-of-fit table
-        df = build_raw_loadings_table(gofs, patids)
-        df = add_groups_to_loadings_table(df, groups)
-
-        return df
-
-
-class SBMICAResultsPlotter(MIALABICAResultsPlotter):
-    """ Use nilearn to plot results from the MIALAB SBM tool, given the ICA result folder path.
-
-    Parameters
-    ----------
-    ica_result_dir: str
-        Path to the ICA output folder or the ICA components volume file.
-    """
-    def _load_loadings(self):
-        loadf = fetch_one_file(self.ica_dir, self._loadings_fname, file_extension='.nii')
-        loads = niimg.load_img(loadf).get_data()
-        return loads
-
-    def _check_output(self):
-        # read the groups file
-        subj_files   = self._get_subject_files()
-        n_timepoints = len(subj_files)
-
-        # load the loadings file
-        loads = self._load_loadings()
-
-        # check shapes
-        if n_timepoints != loads.shape[0]:
-            raise AttributeError('Shape mismatch between list of subjects {} '
-                                 'and loadings data shape {}.'.format(n_timepoints,
-                                                                      loads.shape))
-
-        # load components image file to check shape match
-        # this doesn't make much sense to be here (because it does not use the components image
-        # but it checks if the ICA output is consistent).
-        compsf = fetch_one_file(self.ica_dir, self._comps_fname)
-        comps_img = niimg.load_img(compsf)
-
-        n_ics = loads.shape[1]
-        if comps_img.get_data().shape[-1] != n_ics:
-            raise AttributeError('Shape mismatch between loadings matrix {} '
-                                 'and components data shape {}.'.format(loads.shape,
-                                                                        comps_img.get_data().shape))
 
     def simple_loadings_df(self, group_labels_file, subjid_pat=r'(?P<patid>[a-z]{2}_[0-9]{6})'):
         """ Return a pandas.DataFrame spreadsheet ready for an excel file with the subject IDs taken from
@@ -628,3 +558,231 @@ class SBMICAResultsPlotter(MIALABICAResultsPlotter):
 
         # save fig
         fig.savefig(outfile, facecolor=fig.get_facecolor(), edgecolor='none')
+
+
+class GIFTICAResultsPlotter(MIALABICAResultsPlotter):
+    """ Use nilearn to plot results from the MIALAB ICA tool used to analyse one subject,
+    given the ICA result folder path.
+
+    Parameters
+    ----------
+    ica_result_dir: str
+        Path to the ICA output folder or the ICA components volume file.
+    """
+    _tcs_fname   = '*_sub01_timecourses_ica_s1_.nii'
+    _comps_fname = '*_sub01_component_ica_s1_.nii'
+
+    def _check_output(self):
+        comps_img = self._load_components()
+        tcs_img   = self._load_timecourses()
+
+        n_ics = tcs_img.shape[1]
+        if comps_img.get_data().shape[-1] != n_ics:
+            raise AttributeError('Shape mismatch between timecourses matrix {} '
+                                 'and components data shape {}.'.format(tcs_img.shape,
+                                                                        comps_img.get_data().shape))
+
+        # read the groups file
+        subj_files   = self._get_subject_files()
+        n_timepoints = len(subj_files)
+
+        # check shapes
+        if n_timepoints != tcs_img.shape[0]:
+            raise AttributeError('Shape mismatch between list of subjects {} '
+                                 'and timecourses data shape {}.'.format(n_timepoints,
+                                                                         tcs_img.shape))
+
+    def _load_timecourses(self):
+        """ Return the timecourses image file and checks if the shape is correct."""
+        # load the timecourses file
+        tcsf = fetch_one_file(self.ica_dir, self._tcs_fname)
+        tcs = niimg.load_img(tcsf).get_data()
+        return tcs
+
+    def _fetch_components_file(self):
+        return fetch_one_file(self.ica_dir, self._comps_fname)
+
+
+class GIFTGroupICAResultsPlotter(MIALABICAResultsPlotter):
+    """ Use nilearn to plot results from the MIALAB Group ICA tool used to analyse a group of subjects,
+    given the ICA result folder path.
+
+    Parameters
+    ----------
+    ica_result_dir: str
+        Path to the ICA output folder or the ICA components volume file.
+    """
+    _tcs_fname   = '*_agg__timecourses_ica_.nii'
+    _comps_fname = '*_agg__component_ica_.nii'
+
+    def _check_output(self):
+        comps_img = self._load_components()
+        tcs_img   = self._load_timecourses()
+
+        n_ics = tcs_img.shape[1]
+        if comps_img.get_data().shape[-1] != n_ics:
+            raise AttributeError('Shape mismatch between timecourses matrix {} '
+                                 'and components data shape {}.'.format(tcs_img.shape,
+                                                                        comps_img.get_data().shape))
+
+        # read the groups file
+        # subj_files   = self._get_subject_files()
+        # n_timepoints = len(subj_files)
+
+        # check shapes
+        #if n_timepoints != tcs_img.shape[0]:
+        #    raise AttributeError('Shape mismatch between list of subjects {} '
+        #                         'and timecourses data shape {}.'.format(n_timepoints,
+        #                                                                 tcs_img.shape))
+
+    def _load_timecourses(self):
+        """ Return the timecourses image file and checks if the shape is correct."""
+        # load the timecourses file
+        tcsf = fetch_one_file(self.ica_dir, self._tcs_fname)
+        tcs = niimg.load_img(tcsf).get_data()
+        return tcs
+
+    def _fetch_components_file(self):
+        return fetch_one_file(self.ica_dir, self._comps_fname)
+
+    # def _calculate_goodness_of_fit(self):
+    #     """ Return the goodness-of-fit values from a GIFT result."""
+    #     pass
+    #     #TODO
+    #
+    # def goodness_of_fit_df(self, group_labels_file, subjid_pat=r'(?P<patid>[a-z]{2}_[0-9]{6})'):
+    #     """ Return a pandas.DataFrame ready for an excel file with:
+    #     - the subject IDs taken from the file paths inside the *Subject.mat file,
+    #     - the groups taken from `group_labels_file`, and
+    #     - the goodness-of-fit measures for each subject and independent component.
+    #
+    #     Parameters
+    #     ----------
+    #     group_labels_file: str
+    #         A CSV file with two columns: "subject_id" and "group".
+    #         The subject_ids must be in the paths contained in the Subject.mat
+    #         file and match the `subjid_pat` argument.
+    #
+    #     subjid_pat: regext str
+    #         A search regex pattern that returns one group element that
+    #         contains the subject id.
+    #         This will be used to *search* for subject_id in the file paths
+    #         contained in the Subjects.mat file.
+    #
+    #     Returns
+    #     -------
+    #     gof_df: pandas.DataFrame
+    #     """
+    #     # make sure file exists
+    #     if not op.exists(group_labels_file):
+    #         raise FileNotFoundError('The file {} has not been found.'.format(group_labels_file))
+    #
+    #     # make sure this object has been .fit()
+    #     self._update()
+    #
+    #     # read the groups file
+    #     groups = self._parse_groups_file(group_labels_file=group_labels_file)
+    #     patids = self._get_subject_ids(subjid_pat=subjid_pat)
+    #
+    #     # calculate the goodness of fit
+    #     gofs = self._calculate_goodness_of_fit(patids)
+    #
+    #     # build the goodness-of-fit table
+    #     df = build_raw_loadings_table(gofs, patids)
+    #     df = add_groups_to_loadings_table(df, groups)
+    #
+    #     return df
+
+
+class SBMICAResultsPlotter(MIALABICAResultsPlotter):
+    """ Use nilearn to plot results from the MIALAB SBM tool, given the ICA result folder path.
+
+    Parameters
+    ----------
+    ica_result_dir: str
+        Path to the ICA output folder or the ICA components volume file.
+    """
+    _tcs_fname  = '*_loading_coeff_.nii'
+
+    def _check_output(self):
+        # read the groups file
+        subj_files   = self._get_subject_files()
+        n_timepoints = len(subj_files)
+
+        # load the loadings file
+        loads = self._load_loadings()
+
+        # check shapes
+        if n_timepoints != loads.shape[0]:
+            raise AttributeError('Shape mismatch between list of subjects {} '
+                                 'and loadings data shape {}.'.format(n_timepoints,
+                                                                      loads.shape))
+
+        # load components image file to check shape match
+        # this doesn't make much sense to be here (because it does not use the components image
+        # but it checks if the ICA output is consistent).
+        compsf = fetch_one_file(self.ica_dir, self._comps_fname)
+        comps_img = niimg.load_img(compsf)
+
+        n_ics = loads.shape[1]
+        if comps_img.get_data().shape[-1] != n_ics:
+            raise AttributeError('Shape mismatch between loadings matrix {} '
+                                 'and components data shape {}.'.format(loads.shape,
+                                                                        comps_img.get_data().shape))
+
+
+def ica_loadings_sheet(plotter, labels_file, mask=None, bg_img=None, zscore=2.,
+                       subjid_pat=r'(?P<patid>[a-z]{2}_[0-9]{6})'):
+    """ Save the Excel loadings files in the `ica_out_dir`.
+    One file is `subject_loadings.xls` which has the loadings as is, with the subjects IDs and group.
+    The other file is `subject_group_loadings.xls` which has the loading signs changed according to
+    the average correlation value of the "main" region of each of the IC spatial maps.
+
+    Parameters
+    ----------
+    plotter: MIALABICAResultsPlotter, or any derivative
+        The GIFT ICA analysis plotter object.
+        You must call the plotter fit function before, otherwise this function will call fit
+        with `mask`, `zscore` and mode='+-'.
+
+    labels_file: str
+        A CSV file with two columns: "subject_id" and "group".
+        The subject_ids must be in the paths contained in the Subject.mat
+        file and match the `subjid_pat` argument.
+
+    mask: str
+        Path to a mask file to select only brain area from the IC spatial map.
+
+    bg_img: str
+        A background image for the blob plots check report, to verify that the blobs
+        taken into account for the loadings signs are correct.
+
+    zscore: float
+        Value to threshold the IC spatial maps to obtain the IC spatial map "main" region.
+
+    subjid_pat: regext str
+        A search regex pattern that returns one group element that
+        contains the subject id.
+        This will be used to search for subject_id in the file paths
+        contained in the Subjects.mat file.
+    """
+    rawloadings_filename   = 'subject_loadings.xls'
+    grouploadings_filename = 'subject_weighted_loadings.xls'
+    check_blob_plot        = 'check_sign_blobs.png'
+
+    if not plotter.is_fit():
+        plotter.fit(mask_file=mask, mode='+-', zscore=zscore)
+
+    output_dir = plotter.ica_dir
+
+    # generate and save the simple loadings sheet
+    sdf = plotter.simple_loadings_df(group_labels_file=labels_file, subjid_pat=subjid_pat)
+    sdf.to_excel(op.join(output_dir, rawloadings_filename))
+
+    # generate and save the group-processed loadings sheet
+    pdf = plotter.weighted_loadings_df(group_labels_file=labels_file, subjid_pat=subjid_pat)
+    pdf.to_excel(op.join(output_dir, grouploadings_filename))
+
+    # plot blobs over IC maps for checking
+    check_blob_plot = op.join(output_dir, check_blob_plot)
+    plotter.plot_icmaps_and_blobs(check_blob_plot, bg_img=bg_img)
