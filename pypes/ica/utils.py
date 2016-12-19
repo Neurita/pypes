@@ -2,11 +2,11 @@
 """
 Helper functions to read, threshold, and build IC loadings results.
 """
-import pandas               as pd
-import nilearn.image   as niimg
-from   nilearn.image   import iter_img
+import pandas as pd
+import nilearn.image as niimg
+from   nilearn.image import iter_img
 from   boyle.nifti.roi import largest_connected_component
-from   boyle.nifti.utils    import filter_icc
+from   boyle.nifti.utils import filter_icc
 
 
 def get_largest_blobs(ic_maps):

@@ -8,6 +8,7 @@ from .files   import  (remove_ext,
                        get_affine,
                        get_data_dims,
                        get_vox_dims,
+                       fetch_one_file,
                        extension_duplicates,)
 
 from .piping  import  (extend_trait_list,
