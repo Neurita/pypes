@@ -44,7 +44,7 @@ def spatial_maps_pairwise_similarity(imgs1, imgs2, mask_file, distance='correlat
     Returns
     -------
     corrs: np.ndarray
-        A matrix of shape MxN, where M is len(rsn_imgs) and N is len(ic_imgs).
+        A matrix of shape MxN, where M is len(imgs1) and N is len(imgs2).
         It contains the similarity values.
     """
     img1_ = niimg.load_img(imgs1)
@@ -237,6 +237,7 @@ from sklearn.linear_model import Ridge
 
 def _compute_loadings(components, data):
     """
+    DONT USE THIS YET!
 
     Parameters
     ----------
@@ -261,6 +262,8 @@ def _compute_loadings(components, data):
 
 def spatiotemporal_regression(components, imgs, mask, confounds=None):
     """Project the data into a reduced representation
+
+    DONT USE THIS YET!
 
     Parameters
     ----------
@@ -300,6 +303,8 @@ def spatiotemporal_regression(components, imgs, mask, confounds=None):
 def inverse_transform(self, loadings):
     """Use provided loadings to compute corresponding linear component
     combination in whole-brain voxel space
+
+    DONT USE THIS YET
 
     Parameters
     ----------
