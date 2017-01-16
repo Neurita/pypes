@@ -5,7 +5,7 @@ matplotlib==1.5.2
 nibabel==2.1.0
 nilearn==0.2.6
 git+https://github.com/nipy/nipy.git@dfbee7273e4795ac2a8d04ca454b0ef3cc1e6a29#egg=nipy
-git+https://github.com/nipy/nipype.git@f00ab33258557dd9ab2262a144c672cdc4b5518a#egg=nipype
+git+https://github.com/alexsavio/nipype.git@f6a3f0f5e2c94838b2514f45a1d869f999b62614#egg=nipype
 git+https://git@github.com/emre/kaptan.git@b64ad9b6941896cce88de02b5753df8e7e7c4498#egg=kaptan
 git+https://github.com/moloney/dcmstack@c12d27d2c802d75a33ad70110124500a83e851ee#egg=dcmstack
 git+https://github.com/darcymason/pydicom@1d525bea082ecc7fe70dfa15b38d132db7cfa0c7#egg=pydicom
