@@ -114,6 +114,9 @@ if params_dict:
     update_config(params_dict)
 ```
 
+See section [Configuration](configuration.md) for more details on how this works.
+
+
 ## Build
 
 Finally we define the output and working folders:

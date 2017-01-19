@@ -42,11 +42,11 @@ cobre_tree = path.join('{subject_id}', 'session_1', '{modality}', '{image}')
 cobre_crumb = Crumb(path.join(base_dir, cobre_tree), ignore_list=['.*'])
 
 # output and working dir
-output_dir = '/home/pyper/data/cobre/out'
-cache_dir  = '/home/pyper/data/cobre/wd'
+output_dir = path.join(path.dirname(base_dir), 'out')
+cache_dir  = path.join(path.dirname(base_dir), 'wd')
 
 # we have a configuration file in:
-config_file = '/home/pyper/data/cobre/pypes_config.yml'
+config_file = path.join(path.dirname(base_dir), 'pypes_config.yml')
 
 # we choose what pipeline set we want to run.
 # the choices are: 'spm_anat_preproc', 'spm_rest_preproc'
@@ -65,7 +65,9 @@ run_debug(wf, plugin='MultiProc', n_cpus=4)
 ```
 
 
-## A clinical dataset
+## My clinical dataset
+
+Sadly, this is not public available.
 
 The dataset we are working in our department has a very similar folder structure
 as COBRE:  `{base_dir}/{subject_id}/{session_id}/{image}`.
@@ -90,11 +92,11 @@ data_tree = path.join('{subject_id}', '{session_id}', '{image}')
 data_crumb = Crumb(path.join(base_dir, data_tree), ignore_list=['.*'])
 
 # output and working dir
-output_dir = '/home/pyper/data/nuk/out'
-cache_dir  = '/home/pyper/data/nuk/wd'
+output_dir = path.join(path.dirname(base_dir), 'out')
+cache_dir  = path.join(path.dirname(base_dir), 'wd')
 
 # we have a configuration file in:
-config_file = '/home/pyper/data/nuk/pypes_config.yml'
+config_file = path.join(path.dirname(base_dir), 'pypes_config.yml')
 
 # we choose what pipeline set we want to run.
 # there are many choices
@@ -103,7 +105,7 @@ wf_name = 'spm_anat_pet_tpm_pvc' # MPRAGE preprocessing, PET MNI group template,
 
 # instantiate the workflow
 wf = clinical_crumb_workflow(wf_name     = wf_name,
-                             data_crumb  = cobre_crumb,
+                             data_crumb  = data_crumb,
                              cache_dir   = cache_dir,
                              output_dir  = output_dir,
                              config_file = config_file,

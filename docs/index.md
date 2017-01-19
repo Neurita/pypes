@@ -1,7 +1,8 @@
 # Welcome to Pypes
 
-Pypes is a Python module for brain PET and multimodal MRI processing.
-It contains specific pipelines to pre-process this type of images.
+Pypes is a Python module for brain PET and multimodal MRI pre-processing.
+It contains specific pipelines to pre-process this type of images leveraging 
+[Nipy](http://nipy.org/) tools and others.
 
 The objectives of this module are:
 
@@ -17,7 +18,6 @@ Without modifying parameters, 95% of the images were correctly registered and pr
 Very few subjects needed manual editings such as neck removal or AC-PC reorientation.
 
 The spatial normalization here are only done with [SPM12](http://www.fil.ion.ucl.ac.uk/spm/software/spm12/) for now.
-
 
 ## Installation
 
