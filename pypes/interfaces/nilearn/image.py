@@ -26,7 +26,6 @@ def ni2file(**presuffixes):
         else:
             return list(kwargs.values())[0]
 
-
     def nifti_out(f):
         @wraps(f)
         def wrapped(*args, **kwargs):
@@ -84,7 +83,7 @@ def math_img(formula, out_file='', **imgs):
         The absolute path to the output file.
     """
     import numpy as np
-    from   nilearn.image import math_img
+    import nilearn.image as niimg
     from   six import string_types
 
     for arg in list(imgs.keys()):
@@ -98,7 +97,7 @@ def math_img(formula, out_file='', **imgs):
             formula = formula.replace(arg, str(imgs[arg]))
             imgs.pop(arg)
 
-    return math_img(formula=formula, **imgs)
+    return niimg.math_img(formula=formula, **imgs)
 
 
 @ni2file(suffix='_resampled')
@@ -110,8 +109,8 @@ def resample(in_file, **kwargs):
     out_file: str
         The absolute path to the output file.
     """
-    from nilearn.image import resample_img
-    return resample_img(img=in_file, **kwargs)
+    import nilearn.image as niimg
+    return niimg.resample_img(img=in_file, **kwargs)
 
 
 @ni2file(suffix='_resampled')
@@ -123,8 +122,8 @@ def resample_to_img(source, target, **kwargs):
     out_file: str
         The absolute path to the output file.
     """
-    from nilearn.image import resample_to_img
-    return resample_to_img(source_img=source, target_img=target, **kwargs)
+    import nilearn.image as niimg
+    return niimg.resample_to_img(source_img=source, target_img=target, **kwargs)
 
 
 @ni2file(out_file='concat_img.nii.gz')
