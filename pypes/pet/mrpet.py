@@ -10,7 +10,10 @@ from   nipype.interfaces         import spm
 from   nipype.interfaces.utility import Merge, IdentityInterface, Function
 
 from   .pvc      import petpvc_workflow
-from   ..config  import setup_node, check_atlas_file, get_config_setting
+from   ..config  import (setup_node,
+                        check_atlas_file,
+                        get_config_setting)
+
 from   ..preproc import (spm_normalize,
                          spm_coregister,
                          spm_apply_deformations,
@@ -30,9 +33,10 @@ from   .._utils import format_pair_list, flatten_list
 
 # TODO: merge the two workflows below, maybe splitting them in two wf steps: pre-processing then registration.
 def spm_mrpet_preprocessing(wf_name="spm_mrpet_preproc"):
-    """ Run the PET pre-processing workflow against the gunzip_pet.in_file files.
-    It depends on the anat_preproc_workflow, so if this has not been run, this function
-    will run it too.
+    """ Run the PET pre-processing workflow against the
+    gunzip_pet.in_file files.
+    It depends on the anat_preproc_workflow, so if this
+    has not been run, this function will run it too.
 
     # TODO: organize the anat2pet hack/condition somehow:
     If anat2pet:
@@ -42,7 +46,8 @@ def spm_mrpet_preprocessing(wf_name="spm_mrpet_preproc"):
     else:
     - SPM12 Coregister PET to T1
     - PVC the PET image in anatomical space
-    - SPM12 Warp PET in anatomical space to MNI through the `anat_to_mni_warp`.
+    - SPM12 Warp PET in anatomical space to MNI through the
+    `anat_to_mni_warp`.
 
     Parameters
     ----------
@@ -56,17 +61,19 @@ def spm_mrpet_preprocessing(wf_name="spm_mrpet_preproc"):
 
     pet_input.anat: traits.File
         Path to the high-contrast anatomical image.
-        Reference file of the warp_field, i.e., the anatomical image in its native space.
+        Reference file of the warp_field, i.e., the
+        anatomical image in its native space.
 
     pet_input.anat_to_mni_warp: traits.File
-        The warp field from the transformation of the anatomical image to the standard MNI space.
+        The warp field from the transformation of the
+        anatomical image to the standard MNI space.
 
     pet_input.atlas_anat: traits.File
         The atlas file in anatomical space.
 
     pet_input.tissues: list of traits.File
-        List of tissues files from the New Segment process. At least the first
-        3 tissues must be present.
+        List of tissues files from the New Segment process.
+        At least the first 3 tissues must be present.
 
     Nipype outputs
     --------------
@@ -84,18 +91,22 @@ def spm_mrpet_preprocessing(wf_name="spm_mrpet_preproc"):
 
     pet_output.pvc_warped: existing file
         Results from PETPVC normalized to MNI.
-        The result of every internal pre-processing step is normalized to MNI here.
+        The result of every internal pre-processing step
+        is normalized to MNI here.
 
     pet_output.warp_field: existing files
         Spatial normalization parameters .mat files
 
     pet_output.gm_norm: existing file
-        The output of the grey matter intensity normalization process.
-        This is the last step in the PET signal correction, before registration.
+        The output of the grey matter intensity
+        normalization process.
+        This is the last step in the PET signal correction,
+        before registration.
 
     pet_output.atlas_pet: existing file
         Atlas image warped to PET space.
-        If the `atlas_file` option is an existing file and `normalize_atlas` is True.
+        If the `atlas_file` option is an existing file and
+        `normalize_atlas` is True.
 
     Returns
     -------
@@ -239,9 +250,9 @@ def spm_mrpet_grouptemplate_preprocessing(wf_name="spm_mrpet_grouptemplate_prepr
     It depends on the anat_preproc_workflow, so if this has not been run, this function
     will run it too.
 
-    This is identical to the workflow defined in `spm_mrpet_preprocessing`, with the only
-    difference that we now normalize all subjects agains a custom template using the spm Old Normalize
-    interface.
+    This is identical to the workflow defined in `spm_mrpet_preprocessing`,
+    with the only difference that we now normalize all subjects agains a custom
+    template using the spm Old Normalize interface.
 
     It does:
     - SPM12 Coregister T1 and tissues to PET
@@ -291,7 +302,8 @@ def spm_mrpet_grouptemplate_preprocessing(wf_name="spm_mrpet_grouptemplate_prepr
 
     pet_output.pvc_warped: existing file
         The outputs of the PETPVC workflow normalized to the group template.
-        The result of every internal pre-processing step is normalized to the group template here.
+        The result of every internal pre-processing step is normalized to the
+        group template here.
 
     pet_output.warp_field: existing files
         Spatial normalization parameters .mat files.
@@ -420,13 +432,15 @@ def spm_mrpet_grouptemplate_preprocessing(wf_name="spm_mrpet_grouptemplate_prepr
     return wf
 
 
-def attach_spm_mrpet_preprocessing(main_wf, wf_name="spm_mrpet_preproc", do_group_template=False):
+def attach_spm_mrpet_preprocessing(main_wf, wf_name="spm_mrpet_preproc",
+                                   do_group_template=False):
     """ Attach a PET pre-processing workflow that uses SPM12 to `main_wf`.
     This workflow needs MRI based
 
     Nipype Inputs for `main_wf`
     ---------------------------
-    Note: The `main_wf` workflow is expected to have an `input_files` and a `datasink` nodes.
+    Note: The `main_wf` workflow is expected to have an `input_files` and a
+    `datasink` nodes.
 
     input_files.select.pet: input node
 
