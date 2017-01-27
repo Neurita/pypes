@@ -163,6 +163,7 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", register_to_grptemplate=False):
 
     elif anat2fmri:
         # register to standard template
+        gunzip_template = pe.Node(Gunzip(), name="gunzip_template", )
         warp = setup_node(spm_normalize(), name="fmri_warp")
         tpm_bbox.inputs.in_file = spm_tpm_priors_path()
         warp_source_arg    = "image_to_align"
