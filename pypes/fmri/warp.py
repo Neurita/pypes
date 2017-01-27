@@ -185,16 +185,16 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", register_to_grptemplate=False):
                     # unzip and forward the template file
                     (wfmri_input,     gunzip_template, [("epi_template", "in_file")]),
                     (gunzip_template, warp,            [("out_file",     "template")]),
-                   ])
+
+                    # get template bounding box to apply to results
+                    (wfmri_input, tpm_bbox, [("epi_template", "in_file")]),
+                    ])
 
     if anat2fmri or register_to_grptemplate:
         # prepare the inputs
         wf.connect([
                     # unzip the in_file input file
                     (wfmri_input, in_gunzip, [("avg_epi", "in_file")]),
-
-                    # get template bounding box to apply to results
-                    (wfmri_input, tpm_bbox, [("epi_template", "in_file")]),
 
                     # warp source file
                     (in_gunzip, warp, [("out_file", warp_source_arg)]),
