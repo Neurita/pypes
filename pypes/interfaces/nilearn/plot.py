@@ -81,7 +81,7 @@ def plot_multi_slices(img, cut_dir="z", n_cuts=20, n_cols=4, figsize=(2.5, 3),
     """
     import math
 
-    from matplotlib import pyplot as plt
+    import matplotlib.pyplot as plt
     from matplotlib import gridspec
     import nilearn.plotting as niplot
     import nilearn.image as niimg
@@ -103,20 +103,22 @@ def plot_multi_slices(img, cut_dir="z", n_cuts=20, n_cols=4, figsize=(2.5, 3),
     if n_cuts > n_cols:
         n_rows = math.ceil(n_cuts/n_cols)
 
-    cuts = niplot.find_cut_slices(_img, n_cuts=n_cuts, direction=cut_dir)
+    spacing = kwargs.get('spacing', 'auto')
+    cuts = niplot.find_cut_slices(_img, n_cuts=n_cuts,
+                                  direction=cut_dir,
+                                  spacing=spacing)
 
     figsize = figsize[0] * n_cols, figsize[1] * n_rows
     fig = plt.figure(figsize=figsize, facecolor='black')
     gs  = gridspec.GridSpec(n_rows, 1)
 
     if title:
-        fig.suptitle(title, fontsize=title_fontsize, color='gray')
+        fig.suptitle(title, fontsize=title_fontsize, color='white')
 
     # for the superior plot
     put_colorbar = True
 
     # make the plots
-    plots = []
     for i, cut_chunks in enumerate(grouper(cuts, n_cols)):
         ax = plt.subplot(gs[i])
 
@@ -134,10 +136,100 @@ def plot_multi_slices(img, cut_dir="z", n_cuts=20, n_cols=4, figsize=(2.5, 3),
             logging.warning('Could not plot for coords {}.'.format(cut_chunks))
         finally:
             put_colorbar = False
-            plots.append(p)
 
-    for p in plots:
-        p.close()
+    return fig
+
+
+def plot_ortho_slices(img, n_cuts=4, n_cols=6, figsize=(2.5, 3),
+                      title="", title_fontsize=32, plot_func=None, **kwargs):
+    """
+    Parameters
+    ----------
+    img: niimg-like
+
+    n_cuts: int
+        Number of cuts for each dimension (X, Y, and Z) in the plot.
+
+    n_cols: int
+        Maximum number of image columns in the plot.
+
+    figsize: 2-tuple of int
+        (w, h) size in inches of one slice image.
+
+    title: str
+        The superior title of the figure.
+
+    title_fontsize: int
+        The size of the title font.
+
+    plot_func: function
+       Function to plot each slice.
+       Default: nilearn.plotting.plot_stat_map
+
+    kwargs: keyword arguments
+        Input arguments for plot_func.
+
+    Returns
+    -------
+    fig: matplotlib.figure
+    """
+    from matplotlib import pyplot as plt
+    from matplotlib import gridspec
+    import nilearn.plotting as niplot
+    import nilearn.image as niimg
+
+    if plot_func is None:
+        plot_func = niplot.plot_stat_map
+
+    # load the image file
+    _img = niimg.load_img(img)
+
+    directions = ('x', 'y', 'z')
+
+    # calculate the shape of the figure
+    total_cuts = n_cuts * 3
+    if total_cuts > n_cols:
+        n_rows = 3
+        n_cols = 1
+        colorbard_idx = 0
+    else:
+        n_rows = 1
+        n_cols = 3
+        colorbard_idx = len(directions)-1
+
+    # calculate the cut coordinates for each direction
+    cuts = []
+    spacing = kwargs.get('spacing', 'auto')
+    for cut_dir in directions:
+        dir_cuts = niplot.find_cut_slices(_img, n_cuts=n_cuts,
+                                          direction=cut_dir,
+                                          spacing=spacing)
+        cuts.append((cut_dir, dir_cuts))
+
+    # instantiate the figure
+    figsize = figsize[0] * n_cols * n_cuts, figsize[1] * n_rows
+    fig = plt.figure(figsize=figsize, facecolor='black')
+    gs  = gridspec.GridSpec(n_rows, n_cols)
+
+    # put the title, if any
+    if title:
+        fig.suptitle(title, fontsize=title_fontsize, color='white')
+
+    # plot on the figure
+    for i, (cut_dir, cut_coords) in enumerate(cuts):
+        ax = plt.subplot(gs[i])
+
+        put_colorbar = True if i == colorbard_idx else False
+        try:
+            p = plot_func(_img,
+                          display_mode=cut_dir,
+                          cut_coords=cut_coords,
+                          colorbar=put_colorbar,
+                          figure=fig,
+                          axes=ax,
+                          **kwargs)
+        except IndexError:
+            logging.warning('Could not plot for coords {}.'.format(cut_coords))
 
     return fig
 
@@ -155,7 +247,7 @@ def plot_stat_overlay(stat_img, contour_img, bg_img, **kwargs):
 
 
 def plot_overlays(stat_imgs, contour_imgs, bg_img=None,
-                  figsize=(2.5, 3), title='', **kwargs):
+                  figsize=(2.5, 3), title_fontsize=32, title='', **kwargs):
     """Plots each contour_imgs as an overlay of its corresponding `stat_imgs`.
     `contour_imgs` and `stat_imgs` must have the same length."""
 
@@ -177,13 +269,12 @@ def plot_overlays(stat_imgs, contour_imgs, bg_img=None,
     fig = plt.figure(figsize=figsize, facecolor='black')
     gs  = gridspec.GridSpec(n_rows, 1)
 
-    plots = []
+    # put the title, if any
+    if title:
+        fig.suptitle(title, fontsize=title_fontsize, color='white')
+
     for i, (simg, cimg) in enumerate(zip(_stat_imgs, _cnts_imgs)):
         ax = plt.subplot(gs[i])
         p = plot_stat_overlay(simg, cimg, bg_img=bg_img, figure=fig, axes=ax, **kwargs)
-        plots.append(p)
-
-    for p in plots:
-        p.close()
 
     return fig

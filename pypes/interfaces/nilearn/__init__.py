@@ -9,3 +9,8 @@ from .image import (concat_imgs,
 from .canica import CanICAInterface
 
 from .connectivity import ConnectivityCorrelationInterface
+
+from .plot import (plot_all_components,
+                   plot_ica_components,
+                   plot_multi_slices,
+                   plot_ortho_slices)
