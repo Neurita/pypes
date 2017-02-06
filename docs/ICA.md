@@ -1,11 +1,15 @@
 
 # fMRI Independent Component Analysis (ICA)
-This pipeline performs ICA on fMRI images. It is based on nilearn, and you
-can choose between CanICA and DictLearning.
+The CanICA interface [`pypes.interfaces.CanICAInterface`](https://github.com/Neurita/pypes/blob/master/pypes/interfaces/nilearn/canica.py) 
+can be used to perform [Independent-Component Analysis (ICA)](https://en.wikipedia.org/wiki/Independent_component_analysis) 
+on fMRI images. 
+It uses the CanICA and the DictLearning implementation in [NiLearn](http://nilearn.github.io/).
+You can choose which implementation to use through the `canica.algorithm` setting.
+
+The helper functions to attach this interface to a workflow are in [`pypes.`]
 There is one version for one functional image, in `attach_canica` and
-another
-for a group ICA (GICA) in `attach_concat_canica`. However, probably the GICA
-approach should be further tested on real data.
+another for a group ICA (GICA) in `attach_concat_canica`. 
+However, probably the GICA approach should be further tested on real data.
 
 It depends on the RS-fMRI pipeline.
 This is implemented in
