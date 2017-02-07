@@ -14,3 +14,5 @@ from .plot import (plot_all_components,
                    plot_ica_components,
                    plot_multi_slices,
                    plot_ortho_slices)
+
+from .roi import spread_labels
