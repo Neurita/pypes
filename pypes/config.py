@@ -10,7 +10,7 @@ import os.path as op
 from   nipype import Node, MapNode, JoinNode
 from   kaptan import Kaptan
 
-from nipype.interfaces.utility import isdefined
+from nipype.interfaces.base import isdefined
 
 
 def _load_config(file_path):
