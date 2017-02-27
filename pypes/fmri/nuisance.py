@@ -191,9 +191,9 @@ def rest_noise_filter_wf(wf_name='rest_noise_removal'):
                 (rest_noise_input, tsnr, [("in_file", "in_file")]),
 
                 # artifact detection
-                (rest_noise_input, art, [("in_file",        "realigned_files"),
-                                         ("motion_params",  "realignment_parameters"),
-                                         ("brain_mask",     "mask_file"),
+                (rest_noise_input, art, [("in_file",       "realigned_files"),
+                                         ("motion_params", "realignment_parameters"),
+                                         ("brain_mask",    "mask_file"),
                                         ]),
 
                 # calculte motion regressors
@@ -203,24 +203,24 @@ def rest_noise_filter_wf(wf_name='rest_noise_removal'):
                 (art,           motart_pars, [("norm_files",    "comp_norm"),
                                               ("outlier_files", "outliers"),
                                              ]),
-                (motion_regs,   motart_pars, [("out_files",     "motion_params")]),
+                (motion_regs,   motart_pars, [("out_files", "motion_params")]),
 
                 # motion filtering
-                (rest_noise_input, motion_filter, [("in_file",                            "in_file"),
+                (rest_noise_input, motion_filter, [("in_file", "in_file"),
                                                    (("in_file", rename, "_filtermotart"), "out_res_name"),
                                                   ]),
-                (motart_pars,      motion_filter, [(("out_files", selectindex, [0]),      "design")]),
+                (motart_pars,      motion_filter, [(("out_files", selectindex, 0), "design")]),
 
                 # output
-                (tsnr,             rest_noise_output, [("tsnr_file",            "tsnr_file")]),
-                (motart_pars,      rest_noise_output, [("out_files",            "motion_regressors")]),
-                (motion_filter,    rest_noise_output, [("out_res",              "motion_corrected")]),
-                (art,              rest_noise_output, [("displacement_files",   "art_displacement_files"),
-                                                       ("intensity_files",      "art_intensity_files"),
-                                                       ("norm_files",           "art_norm_files"),
-                                                       ("outlier_files",        "art_outlier_files"),
-                                                       ("plot_files",           "art_plot_files"),
-                                                       ("statistic_files",      "art_statistic_files"),
+                (tsnr,             rest_noise_output, [("tsnr_file",          "tsnr_file")]),
+                (motart_pars,      rest_noise_output, [("out_files",          "motion_regressors")]),
+                (motion_filter,    rest_noise_output, [("out_res",            "motion_corrected")]),
+                (art,              rest_noise_output, [("displacement_files", "art_displacement_files"),
+                                                       ("intensity_files",    "art_intensity_files"),
+                                                       ("norm_files",         "art_norm_files"),
+                                                       ("outlier_files",      "art_outlier_files"),
+                                                       ("plot_files",         "art_plot_files"),
+                                                       ("statistic_files",    "art_statistic_files"),
                                                       ]),
                 ])
 
@@ -230,14 +230,14 @@ def rest_noise_filter_wf(wf_name='rest_noise_removal'):
     if filters['compcor_csf'] or filters['compcor_wm']:
         wf.connect([
                     # calculate compcor regressor and parameters file
-                    (motart_pars,      compcor_pars,      [(("out_files", selectindex, [0]), "extra_regressors"),]),
+                    (motart_pars,      compcor_pars,      [(("out_files", selectindex, 0),   "extra_regressors"),]),
                     (motion_filter,    compcor_pars,      [("out_res",                       "realigned_file"),]),
 
                     # the compcor filter
                     (motion_filter,    compcor_filter,    [("out_res",                        "in_file"),
                                                            (("out_res", rename, "_cleaned"),  "out_res_name"),
                                                           ]),
-                    (compcor_pars,     compcor_filter,    [(("out_files", selectindex, [0]),  "design")]),
+                    (compcor_pars,     compcor_filter,    [(("out_files", selectindex, 0),    "design")]),
                     #(compcor_pars,     compcor_filter,    [("components_file",  "design")]),
                     (rest_noise_input, compcor_filter,    [("brain_mask",                     "mask")]),
 
@@ -256,20 +256,18 @@ def rest_noise_filter_wf(wf_name='rest_noise_removal'):
 
             # the output file name
             (rest_noise_input, gsr_filter,  [("brain_mask", "mask")]),
-            (last_filter,       gsr_filter, [("out_res",                        "in_file"),
-                                             (("out_res", rename, "_gsr"),      "out_res_name"),
+            (last_filter,       gsr_filter, [("out_res", "in_file"),
+                                             (("out_res", rename, "_gsr"), "out_res_name"),
                                             ]),
-            (gsr_pars,          gsr_filter, [(("out_files", selectindex, [0]),  "design")]),
+            (gsr_pars,          gsr_filter, [(("out_files", selectindex, 0), "design")]),
 
             # output
-            (gsr_pars,   rest_noise_output, [("out_files",   "gsr_regressors")]),
+            (gsr_pars,   rest_noise_output, [("out_files", "gsr_regressors")]),
         ])
         last_filter = gsr_filter
 
     # connect the final nuisance correction output node
-    wf.connect([
-                (last_filter, rest_noise_output, [("out_res",     "nuis_corrected")]),
-                ])
+    wf.connect([(last_filter, rest_noise_output, [("out_res", "nuis_corrected")]),])
 
     if filters['compcor_csf'] and filters['compcor_wm']:
         mask_merge = setup_node(Merge(2), name="mask_merge")

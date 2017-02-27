@@ -17,8 +17,23 @@
 ## global configuration parameters
 spm_dir: "~/Software/matlab_tools/spm12"
 
+# anatomical image pre-processing
 normalize_atlas: True
 atlas_file: '' # this is being set from config.py
+
+# this is similar to the SPM+DiReCT method described here:
+# http://dx.doi.org/10.1016/j.nicl.2016.05.017
+anat_preproc.do_cortical_thickness: True
+
+# these are the KellyKapowski default parameters
+# also used in antsCorticalThickness
+direct.convergence: "[45,0.0,10]"
+direct.gradient_step: 0.025
+direct.smoothing_variance: 1.0
+direct.smoothing_velocity_field: 1.5
+direct.use_bspline_smoothing: False
+direct.number_integration_points: 10
+direct.thickness_prior_estimate: 10
 
 # If anat2pet is True, the registration process will be:
 # 1) anatomical to PET space,

@@ -134,20 +134,20 @@ def petpvc_mask(wf_name="petpvc_mask"):
     # Connect the nodes
     wf.connect([
                 # separate [GM, WM, CSF] into [GM] and [WM, CSF]
-                (pvcmask_input, tissues,    [(("tissues", selectindex, [0]), "gm"),
-                                             (("tissues", selectindex, [1]), "wm"),
-                                             (("tissues", selectindex, [2]), "csf"),
-                                            ]),
+                (pvcmask_input, tissues, [(("tissues", selectindex, 0), "gm"),
+                                          (("tissues", selectindex, 1), "wm"),
+                                          (("tissues", selectindex, 2), "csf"),
+                                         ]),
 
-                (tissues,       img_bkg,    [("gm", "gm" ), ("wm", "wm" ), ("csf", "csf"),]),
-                (tissues,       brain_mask, [("gm", "gm" ), ("wm", "wm" ), ("csf", "csf"),]),
-                (tissues,       merge_list, [("gm", "in1"), ("wm", "in2"), ("csf", "in3"),]),
+                (tissues, img_bkg,    [("gm", "gm" ), ("wm", "wm" ), ("csf", "csf"),]),
+                (tissues, brain_mask, [("gm", "gm" ), ("wm", "wm" ), ("csf", "csf"),]),
+                (tissues, merge_list, [("gm", "in1"), ("wm", "in2"), ("csf", "in3"),]),
 
                 # create a list of [GM, WM, CSF, BKG]
-                (img_bkg,       merge_list, [("out_file", "in4")]),
+                (img_bkg, merge_list, [("out_file", "in4")]),
 
                 # merge into 4D: [GM, WM, CSF, BKG]
-                (merge_list,    merge_tissues,  [("out", "in_files")]),
+                (merge_list, merge_tissues, [("out", "in_files")]),
 
                 # output
                 (merge_tissues, pvcmask_output, [("out_file", "petpvc_mask")]),
