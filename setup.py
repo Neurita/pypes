@@ -65,7 +65,7 @@ setup_dict = dict(
     # https://pypi.python.org/pypi?%3Aaction=list_classifiers
     classifiers=[
         'Programming Language :: Python',
-        'Development Status :: 1 - Alpha',
+        'Development Status :: 4 - Beta',
         'Natural Language :: English',
         'Environment :: Console',
         'Intended Audience ::  Neuroimage processing',
