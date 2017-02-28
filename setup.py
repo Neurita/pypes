@@ -69,7 +69,7 @@ setup_dict = dict(
         'Natural Language :: English',
         'Environment :: Console',
         'Intended Audience :: Science/Research',
-        'License :: OSI Approved :: ' + LICENSE,
+        'License :: OSI Approved :: Apache Software License',
         'Operating System :: OS Independent',
         'Topic :: Scientific/Engineering :: Information Analysis',
         'Topic :: Scientific/Engineering :: Medical Science Apps.',
@@ -79,6 +79,7 @@ setup_dict = dict(
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
     ],
 
     extras_require={'tests': [],
