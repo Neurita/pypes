@@ -26,7 +26,8 @@ from   ..utils   import (remove_ext,
 
 
 def spm_warp_fmri_wf(wf_name="spm_warp_fmri", register_to_grptemplate=False):
-    """ Run SPM to warp resting-state fMRI pre-processed data to MNI or a given template.
+    """ Run SPM to warp resting-state fMRI pre-processed data to MNI or a given 
+    template.
 
     Tasks:
     - Warping the inputs to MNI or a template, if `do_group_template` is True
@@ -180,8 +181,12 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", register_to_grptemplate=False):
         warp_files  = pe.Node(Merge(2), name='merge_for_warp')
         tpm_bbox.inputs.in_file = spm_tpm_priors_path()
 
+    # make the connections
     if register_to_grptemplate:
         wf.connect([
+                    # get template bounding box to apply to results
+                    (wfmri_input, tpm_bbox, [("epi_template", "in_file")]),
+
                     # unzip and forward the template file
                     (wfmri_input,     gunzip_template, [("epi_template", "in_file")]),
                     (gunzip_template, warp,            [("out_file",     "template")]),
@@ -192,9 +197,6 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", register_to_grptemplate=False):
         wf.connect([
                     # unzip the in_file input file
                     (wfmri_input, in_gunzip, [("avg_epi", "in_file")]),
-
-                    # get template bounding box to apply to results
-                    (wfmri_input, tpm_bbox, [("epi_template", "in_file")]),
 
                     # warp source file
                     (in_gunzip, warp, [("out_file", warp_source_arg)]),
