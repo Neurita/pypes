@@ -340,13 +340,19 @@ def attach_spm_warp_fmri_wf(main_wf, registration_wf_name="spm_warp_fmri", do_gr
                     (r"/wgrptmpl_corr_stc{fmri}_trim_filtermotart[\w_]*_bandpassed\.nii$", "/{fmri}_time_filtered_grptemplate.nii"),
                     (r"/wgrptmpl_corr_stc{fmri}_trim_filtermotart[\w_]*_smooth\.nii$",     "/{fmri}_smooth_grptemplate.nii"),
 
-                    (r"/wcorr_stc{fmri}_trim_mean\.nii$",                          "/avg_epi_mni.nii"),
-                    (r"/wcorr_stc{fmri}_trim\.nii$",                               "/{fmri}_trimmed_mni.nii"),
-                    (r"/wcorr_stc{fmri}_trim_filtermotart[\w_]*_cleaned\.nii$",    "/{fmri}_nuisance_corrected_mni.nii"),
-                    (r"/wcorr_stc{fmri}_trim_filtermotart[\w_]*_gsr\.nii$",        "/{fmri}_nuisance_corrected_mni.nii"),
-                    (r"/wcorr_stc{fmri}_trim_filtermotart[\w_]*_bandpassed\.nii$", "/{fmri}_time_filtered_mni.nii"),
-                    (r"/wcorr_stc{fmri}_trim_filtermotart[\w_]*_smooth\.nii$",     "/{fmri}_smooth_mni.nii"),
-                   ]
+                    (r"/w[r]?corr_stc{fmri}_trim_mean\.nii$",                          "/avg_epi_mni.nii"),
+                    (r"/w[r]?corr_stc{fmri}_trim\.nii$",                               "/{fmri}_trimmed_mni.nii"),
+                    (r"/w[r]?corr_stc{fmri}_trim_filtermotart[\w_]*_cleaned\.nii$",    "/{fmri}_nuisance_corrected_mni.nii"),
+                    (r"/w[r]?corr_stc{fmri}_trim_filtermotart[\w_]*_gsr\.nii$",        "/{fmri}_nuisance_corrected_mni.nii"),
+                    (r"/w[r]?corr_stc{fmri}_trim_filtermotart[\w_]*_bandpassed\.nii$", "/{fmri}_time_filtered_mni.nii"),
+                    (r"/w[r]?corr_stc{fmri}_trim_filtermotart[\w_]*_smooth\.nii$",     "/{fmri}_smooth_mni.nii"),
+
+                    (r"/w[r]?corr_stc{fmri}_trim[\w_]*_smooth\.nii$",       "/{fmri}_nofilt_smooth_mni.nii"),
+                    (r"/w[r]?corr_stc{fmri}_trim[\w_]*_cleaned\.nii$",      "/{fmri}_nofilt_nuisance_corrected_mni.nii"),
+                    (r"/w[r]?corr_stc{fmri}_trim[\w_]*_gsr\.nii$",          "/{fmri}_nofilt_nuisance_corrected_mni.nii"),
+                    (r"/w[r]?corr_stc{fmri}_trim[\w_]*_bandpassed\.nii$",   "/{fmri}_nofilt_time_filtered_mni.nii"),
+                    (r"/w[r]?corr_stc{fmri}_trim[\w_]*_smooth\.nii$",       "/{fmri}_nofilt_smooth_mni.nii"),
+                  ]
     regexp_subst = format_pair_list(regexp_subst, fmri=rest_fbasename, anat=anat_fbasename)
     regexp_subst += extension_duplicates(regexp_subst)
     datasink.inputs.regexp_substitutions = extend_trait_list(datasink.inputs.regexp_substitutions,
@@ -363,11 +369,11 @@ def attach_spm_warp_fmri_wf(main_wf, registration_wf_name="spm_warp_fmri", do_gr
                                                 ]),
                      # output
                      (warp_fmri_wf,  datasink,  [
-                                                 ("wfmri_output.warped_fmri",     "rest.{}.@warped_fmri".format(template_name)),
-                                                 ("wfmri_output.wtime_filtered",  "rest.{}.@time_filtered".format(template_name)),
-                                                 ("wfmri_output.smooth",          "rest.{}.@smooth".format(template_name)),
-                                                 ("wfmri_output.wavg_epi",        "rest.{}.@avg_epi".format(template_name)),
-                                                 ("wfmri_output.warp_field",      "rest.{}.@warp_field".format(template_name)),
+                                                 ("wfmri_output.warped_fmri",    "rest.{}.@warped_fmri".format(template_name)),
+                                                 ("wfmri_output.wtime_filtered", "rest.{}.@time_filtered".format(template_name)),
+                                                 #("wfmri_output.smooth",         "rest.{}.@smooth".format(template_name)),
+                                                 ("wfmri_output.wavg_epi",       "rest.{}.@avg_epi".format(template_name)),
+                                                 ("wfmri_output.warp_field",     "rest.{}.@warp_field".format(template_name)),
                                                 ]),
                     ])
 
