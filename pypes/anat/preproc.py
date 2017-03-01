@@ -221,7 +221,7 @@ def spm_anat_preprocessing(wf_name="spm_anat_preproc"):
                                          output_names=["out_file"],
                                          imports=['from pypes.interfaces.nilearn import ni2file']),
                                 name='gm-wm_image')
-        segm_img.inputs.out_file = "gm+wm.nii.gz"
+        segm_img.inputs.out_file = "gm_wm.nii.gz"
         segm_img.inputs.formula = '((gm >= 0.5)*2 + (wm > 0.5)*3).astype(np.uint8)'
 
         kk = setup_node(KellyKapowski(), name='direct')
@@ -290,8 +290,8 @@ def attach_spm_anat_preprocessing(main_wf, wf_name="spm_anat_preproc"):
                     (r"/c3{anat}.*nii$",               "/{anat}_csf.nii"),
                     (r"/c4{anat}.*nii$",               "/{anat}_nobrain.nii"),
                     (r"/c5{anat}.*nii$",               "/{anat}_nobrain_mask.nii"),
-                    (r"/gm+wm_cortical_thick*.nii$",   "/{anat}_gm_cortical_thickness.nii"),
-                    (r"/gm+wm_warped_white*.nii$",     "/{anat}_warped_white_matter.nii"),
+                    (r"/gm_wm_cortical_thick*.nii$",   "/{anat}_gm_cortical_thickness.nii"),
+                    (r"/gm_wm_warped_white*.nii$",     "/{anat}_warped_white_matter.nii"),
                    ]
     regexp_subst = format_pair_list(regexp_subst, anat=anat_fbasename)
 
