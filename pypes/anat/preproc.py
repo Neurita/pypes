@@ -4,15 +4,15 @@ Nipype workflows to process anatomical MRI.
 """
 import os.path as op
 
-import nipype.interfaces.spm     as spm
 import nipype.pipeline.engine    as pe
 from   nipype.algorithms.misc    import Gunzip
 from   nipype.interfaces.utility import IdentityInterface, Function
+from   nipype.interfaces.base    import isdefined
 
 from .utils import biasfield_correct, spm_segment
 
 from   ..interfaces.nilearn import math_img
-from   ..config  import setup_node, check_atlas_file
+from   ..config  import setup_node, check_atlas_file, get_config_setting
 from   ..preproc import (spm_apply_deformations,
                          get_bounding_box,)
 from   .._utils  import format_pair_list
@@ -35,12 +35,19 @@ def spm_anat_preprocessing(wf_name="spm_anat_preproc"):
     - SPM12 Warp of MPRAGE to MNI
 
     [Optional: from config]
-
+    - Atlas file warping to MPRAGE
+    - Cortical thickness (SPM+DiReCT)
 
     Nipype Inputs
     -------------
     anat_input.in_file: traits.File
-        path to the anatomical image
+        Path to the anatomical image.
+
+    anat_input.atlas_file: traits.File
+        Path to an atlas file in MNI space to be
+        warped to the anatomical space.
+        Can also be set through the configuration
+        setting `atlas_file`.
 
     Nipype Outputs
     --------------
@@ -51,7 +58,7 @@ def spm_anat_preprocessing(wf_name="spm_anat_preproc"):
         The tissue segmentation in MNI space from SPM.
 
     anat_output.tissues_native: traits.File
-        The tissue segmentation in native space from SPM
+        The tissue segmentation in native space from SPM.
 
     anat_output.affine_transform: traits.File
         The affine transformation file.
@@ -63,16 +70,27 @@ def spm_anat_preprocessing(wf_name="spm_anat_preproc"):
         The inverse (MNI to anat) warp field from SPM.
 
     anat_output.anat_biascorr: traits.File
-        The bias-field corrected anatomical image
-
-    anat_output.atlas_anat: traits.File
-        The atlas file warped to anatomical space,
-        if do_atlas and the atlas file is set in configuration.
+        The bias-field corrected anatomical image.
 
     anat_output.brain_mask: traits.File
         A brain mask file in anatomical space.
         This is calculated by summing up the maps of segmented tissues
         (CSF, WM, GM) and then binarised.
+
+    anat_output.atlas_anat: traits.File
+        If `atlas_file` is an existing file in MNI space.
+        The atlas file warped to anatomical space,
+        if do_atlas and the atlas file is set in configuration.
+
+    anat_output.cortical_thickness: traits.File
+        If `anat_preproc.do_cortical_thickness` is True.
+        The cortical thickness estimations calculated with the
+        SPM+DiReCT method (KellyKapowski).
+
+    anat_output.warped_white_matter: warped_white_matter
+        If `anat_preproc.do_cortical_thickness` is True.
+        The warped white matter image calculated with the
+        SPM+DiReCT method (KellyKapowski).
 
     Returns
     -------
@@ -93,17 +111,24 @@ def spm_anat_preprocessing(wf_name="spm_anat_preproc"):
                   "brain_mask",
                  ]
 
+    # check if we have to warp an atlas files too.
     do_atlas, atlas_file = check_atlas_file()
     if do_atlas:
         in_fields  += ["atlas_file"]
         out_fields += ["atlas_anat"]
+
+    # check if we have to do cortical thickness (SPM+DiReCT) method.
+    do_cortical_thickness = get_config_setting('anat_preproc.do_cortical_thickness', False)
+    if do_cortical_thickness:
+        out_fields += ["cortical_thickness",
+                       "warped_white_matter",]
 
     # input node
     anat_input = pe.Node(IdentityInterface(fields=in_fields, mandatory_inputs=True),
                          name="anat_input")
 
     # atlas registration
-    if do_atlas:
+    if do_atlas and not isdefined(anat_input.inputs.atlas_file):
         anat_input.inputs.set(atlas_file=atlas_file)
 
     # T1 preprocessing nodes
@@ -147,9 +172,9 @@ def spm_anat_preprocessing(wf_name="spm_anat_preproc"):
                 (tpm_bbox,  warp_anat,  [("bbox",                      "write_bounding_box")]),
 
                 # brain mask from tissues
-                (segment, tissues,  [(("native_class_images", selectindex, [0]), "gm"),
-                                     (("native_class_images", selectindex, [1]), "wm"),
-                                     (("native_class_images", selectindex, [2]), "csf"),
+                (segment, tissues,  [(("native_class_images", selectindex, 0), "gm"),
+                                     (("native_class_images", selectindex, 1), "wm"),
+                                     (("native_class_images", selectindex, 2), "csf"),
                                     ]),
 
                 (tissues,   brain_mask,  [("gm", "gm"), ("wm", "wm"), ("csf", "csf"),]),
@@ -185,6 +210,35 @@ def spm_anat_preprocessing(wf_name="spm_anat_preproc"):
                     (segment,       warp_atlas,   [("inverse_deformation_field",  "deformation_file")]),
                     (anat_bbox,     warp_atlas,   [("bbox",                       "write_bounding_box")]),
                     (warp_atlas,    anat_output,  [("normalized_files",           "atlas_anat")]),
+                  ])
+
+    # cortical thickness (SPM+DiReCT) method
+    if do_cortical_thickness:
+        from ..interfaces.ants import KellyKapowski
+
+        segm_img = setup_node(Function(function=math_img,
+                                         input_names=["formula", "out_file", "gm", "wm"],
+                                         output_names=["out_file"],
+                                         imports=['from pypes.interfaces.nilearn import ni2file']),
+                                name='gm-wm_image')
+        segm_img.inputs.out_file = "gm_wm.nii.gz"
+        segm_img.inputs.formula = '((gm >= 0.5)*2 + (wm > 0.5)*3).astype(np.uint8)'
+
+        kk = setup_node(KellyKapowski(), name='direct')
+
+        # connect the cortical thickness (SPM+DiReCT) method
+        wf.connect([
+                    # create segmentation GM+WM file
+                    (tissues,    segm_img, [("gm", "gm"),
+                                            ("wm", "wm")]),
+
+                    # kellykapowski
+                    (segm_img, kk, [("out_file", "segmentation_image")]),
+                    (tissues,  kk, [("gm", "gray_matter_prob_image"),
+                                    ("wm", "white_matter_prob_image")]),
+
+                    (kk,    anat_output,  [("cortical_thickness",  "cortical_thickness"),
+                                           ("warped_white_matter", "warped_white_matter")]),
                   ])
     return wf
 
@@ -236,6 +290,8 @@ def attach_spm_anat_preprocessing(main_wf, wf_name="spm_anat_preproc"):
                     (r"/c3{anat}.*nii$",               "/{anat}_csf.nii"),
                     (r"/c4{anat}.*nii$",               "/{anat}_nobrain.nii"),
                     (r"/c5{anat}.*nii$",               "/{anat}_nobrain_mask.nii"),
+                    (r"/gm_wm_cortical_thick*.nii$",   "/{anat}_gm_cortical_thickness.nii"),
+                    (r"/gm_wm_warped_white*.nii$",     "/{anat}_warped_white_matter.nii"),
                    ]
     regexp_subst = format_pair_list(regexp_subst, anat=anat_fbasename)
 
@@ -268,5 +324,12 @@ def attach_spm_anat_preprocessing(main_wf, wf_name="spm_anat_preproc"):
     # check optional outputs
     if do_atlas:
         main_wf.connect([(anat_wf, datasink, [("anat_output.atlas_anat", "anat.@atlas")]),])
+
+    do_cortical_thickness = get_config_setting('anat_preproc.do_cortical_thickness', False)
+    if do_cortical_thickness:
+        main_wf.connect([(anat_wf, datasink, [("anat_output.cortical_thickness",  "anat.@cortical_thickness"),
+                                              ("anat_output.warped_white_matter", "anat.@warped_white_matter"),
+                                             ]),
+                        ])
 
     return main_wf

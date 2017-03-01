@@ -10,6 +10,10 @@ This pipeline will bias-field correct, segment the tissues, and register a T1-we
 It is based in ANTS and SPM12.
 It is implemented in [`pypes.anat.attach_spm_anat_preprocessing`](https://github.com/Neurita/pypes/blob/master/pypes/anat.py).
 
+A cortical thickness method is enabled with the `anat_preproc.do_cortical_thickness` boolean field.
+This performs the SPM+DiReCT method described in [(Schwarz et al., 2016)](http://dx.doi.org/10.1016/j.nicl.2016.05.017),
+which will use ANTs' KellyKapowski tool on SPM12 tissue segmentations. 
+
 These are the steps:
 
 1. Bias-field correction using ANTS/N4BiasFieldCorrection.
@@ -20,16 +24,31 @@ These are the steps:
 [optional]
 
 5. Warp atlas (or any file in SPM12-MNI space) to anatomical space.
+6. Measure Cortical Thickness with the SPM+DiReCT method.
 
 ##### Related settings
 
 ```yaml
 spm_dir: "~/Software/matlab_tools/spm12"
 
+# anatomical image pre-processing
 normalize_atlas: True
-atlas_file: ''
-```
+atlas_file: '/home/hansel/data/std_brains/atlases/hammers/Hammers_mith_atlas_n30r83_SPM5.nii.gz'
 
+# this is similar to the SPM+DiReCT method described here:
+# http://dx.doi.org/10.1016/j.nicl.2016.05.017
+anat_preproc.do_cortical_thickness: True
+
+# these are the KellyKapowski default parameters
+# also used in antsCorticalThickness
+direct.convergence: "[45,0.0,10]"
+direct.gradient_step: 0.025
+direct.smoothing_variance: 1.0
+direct.smoothing_velocity_field: 1.5
+direct.use_bspline_smoothing: False
+direct.number_integration_points: 10
+direct.thickness_prior_estimate: 10
+```
 
 
 ## Resting-state fMRI (RS-fMRI)
