@@ -243,7 +243,7 @@ class MIALABICAResultsPlotter(ICAResultsPlotter):
     _tcs_fname       = '*_timecourses_ica*'
     _comps_fname     = '*_component_ica*'
     _subjects_fname  = '*Subject.mat'
-    _mask_fname      = '*Mask.hdr'
+    _mask_fname      = r'.*Mask.(hdr|nii)'
 
     def __init__(self, ica_result_dir):
         super(MIALABICAResultsPlotter, self).__init__(ica_result_dir=ica_result_dir)
@@ -336,7 +336,7 @@ class MIALABICAResultsPlotter(ICAResultsPlotter):
 
     def load_mask(self):
         """ Return the mask image. """
-        mask_file = fetch_one_file(self.ica_dir, self._mask_fname)
+        mask_file = fetch_one_file(self.ica_dir, self._mask_fname, pat_type='re.match')
         return niimg.load_img(mask_file)
 
     def load_subject_data(self, masked=False, **kwargs):
@@ -362,7 +362,7 @@ class MIALABICAResultsPlotter(ICAResultsPlotter):
         """
         if masked:
             sessions = self._input_data_sessions()
-            data = self._apply_mask_to_imgs(self._load_subject_data(), **kwargs)
+            data = self._apply_mask_to_imgs(self._load_subject_data(), sessions=sessions, **kwargs)
         else:
             data = self._load_subject_data()
 
@@ -439,7 +439,7 @@ class MIALABICAResultsPlotter(ICAResultsPlotter):
             Value of the Z-score thresholding.
         """
         if not mask_file:
-            mask_file = fetch_one_file(self.ica_dir, self._mask_fname)
+            mask_file = fetch_one_file(self.ica_dir, self._mask_fname, pat_type='re.match')
 
         super(MIALABICAResultsPlotter, self).fit(mask_file=mask_file,
                                                  mode=mode,
@@ -569,8 +569,8 @@ class GIFTICAResultsPlotter(MIALABICAResultsPlotter):
     ica_result_dir: str
         Path to the ICA output folder or the ICA components volume file.
     """
-    _tcs_fname   = '*_sub01_timecourses_ica_s1_.nii'
-    _comps_fname = '*_sub01_component_ica_s1_.nii'
+    _tcs_fname   = r'.*_sub[0]+1_timecourses_ica_s1_.nii'
+    _comps_fname = r'.*_sub[0]+1_component_ica_s1_.nii'
 
     def _check_output(self):
         comps_img = self._load_components()
@@ -595,12 +595,12 @@ class GIFTICAResultsPlotter(MIALABICAResultsPlotter):
     def _load_timecourses(self):
         """ Return the timecourses image file and checks if the shape is correct."""
         # load the timecourses file
-        tcsf = fetch_one_file(self.ica_dir, self._tcs_fname)
+        tcsf = fetch_one_file(self.ica_dir, self._tcs_fname, pat_type='re.match')
         tcs = niimg.load_img(tcsf).get_data()
         return tcs
 
     def _fetch_components_file(self):
-        return fetch_one_file(self.ica_dir, self._comps_fname)
+        return fetch_one_file(self.ica_dir, self._comps_fname, pat_type='re.match')
 
 
 class GIFTGroupICAResultsPlotter(MIALABICAResultsPlotter):

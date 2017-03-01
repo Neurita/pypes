@@ -10,6 +10,10 @@ This pipeline will bias-field correct, segment the tissues, and register a T1-we
 It is based in ANTS and SPM12.
 It is implemented in [`pypes.anat.attach_spm_anat_preprocessing`](https://github.com/Neurita/pypes/blob/master/pypes/anat.py).
 
+A cortical thickness method is enabled with the `anat_preproc.do_cortical_thickness` boolean field.
+This performs the SPM+DiReCT method described in [(Schwarz et al., 2016)](http://dx.doi.org/10.1016/j.nicl.2016.05.017),
+which will use ANTs' KellyKapowski tool on SPM12 tissue segmentations. 
+
 These are the steps:
 
 1. Bias-field correction using ANTS/N4BiasFieldCorrection.
@@ -20,16 +24,31 @@ These are the steps:
 [optional]
 
 5. Warp atlas (or any file in SPM12-MNI space) to anatomical space.
+6. Measure Cortical Thickness with the SPM+DiReCT method.
 
 ##### Related settings
 
 ```yaml
 spm_dir: "~/Software/matlab_tools/spm12"
 
+# anatomical image pre-processing
 normalize_atlas: True
-atlas_file: ''
-```
+atlas_file: '/home/hansel/data/std_brains/atlases/hammers/Hammers_mith_atlas_n30r83_SPM5.nii.gz'
 
+# this is similar to the SPM+DiReCT method described here:
+# http://dx.doi.org/10.1016/j.nicl.2016.05.017
+anat_preproc.do_cortical_thickness: True
+
+# these are the KellyKapowski default parameters
+# also used in antsCorticalThickness
+direct.convergence: "[45,0.0,10]"
+direct.gradient_step: 0.025
+direct.smoothing_variance: 1.0
+direct.smoothing_velocity_field: 1.5
+direct.use_bspline_smoothing: False
+direct.number_integration_points: 10
+direct.thickness_prior_estimate: 10
+```
 
 
 ## Resting-state fMRI (RS-fMRI)
@@ -179,17 +198,17 @@ nlmeans_denoise.N: 12 # number of channels in the head coil
 ```
 
 
-## FDG-PET
-This is a spatial normalization pipeline for FDG-PET images. Here I say specifically FDG-PET because I haven't tested
-this too much for other PET tracers.
+## PET
+This is a spatial normalization pipeline for PET images. This workflow
+has showed good results on FDG and FDOPA PET images.
 
-It is based on SPM12.
-It is implemented in [`pypes.pet.warp.attach_spm_pet_preprocessing`](https://github.com/Neurita/pypes/blob/master/pypes/pet/warp.py).
+It is based on SPM12. You can find its source code in 
+[`pypes.pet.warp.attach_spm_pet_preprocessing`](https://github.com/Neurita/pypes/blob/master/pypes/pet/warp.py).
 
 1. Use SPM12 Normalize to spatially normalize FDG-PET to MNI.
 
 There is a group-template option of this: first a group template
-is created, then all FDG-PET are images are normalized to this
+is created, then all PET images are normalized to this
 group template.
 
 ##### Related settings
@@ -200,10 +219,10 @@ spm_pet_grouptemplate_smooth.fwhm: 8
 spm_pet_grouptemplate.template_file: ""
 ```
 
-## MPRAGE + FDG-PET
+## MPRAGE + PET
 [<a href="https://github.com/Neurita/pypes/blob/master/docs/img/spm_anat_pet_preproc_workflow.png?raw=true" target="_blank">graph</a>]
 This is a partial volume correction and spatial normalization pipeline
-for FDG-PET images.
+for PET images.
 
 It is based on PETPVC, nilearn and SPM12.
 It is implemented in [`pypes.pet.mrpet.attach_spm_mrpet_preprocessing`](https://github.com/Neurita/pypes/blob/master/pypes/pet/mrpet.py).
@@ -216,10 +235,10 @@ setting the `registration.anat2pet` boolean option to `True` or `False`.
 1. Co-register anatomical and tissues to PET space.
 2. Partial volume effect correction (PVC) with PETPVC in PET space.
 This is done based on tissue segmentations from the anatomical pipeline.
-3. Use SPM12 Normalize to normalize FDG-PET to MNI.
+3. Use SPM12 Normalize to normalize PET to MNI.
 
 #### If registration.anat2pet: False
-1. Co-register FDG-PET to anatomical space.
+1. Co-register PET to anatomical space.
 2. PVC with PETPVC in anatomical space.
 3. Normalize PET to MNI with SPM12 Normalize applying the
 anatomical-to-MNI warp field.

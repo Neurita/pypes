@@ -190,7 +190,10 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", register_to_grptemplate=False):
                     # unzip and forward the template file
                     (wfmri_input,     gunzip_template, [("epi_template", "in_file")]),
                     (gunzip_template, warp,            [("out_file",     "template")]),
-                   ])
+
+                    # get template bounding box to apply to results
+                    (wfmri_input, tpm_bbox, [("epi_template", "in_file")]),
+                    ])
 
     if anat2fmri or register_to_grptemplate:
         # prepare the inputs
@@ -256,7 +259,7 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", register_to_grptemplate=False):
 
                     # outputs
                     (warp, rest_output,  [("normalized_files",  "warped_files"),]),
-                    (warp, rest_output,  [(("normalized_files", selectindex, [0]), "wavg_epi"),]),
+                    (warp, rest_output,  [(("normalized_files", selectindex, 0), "wavg_epi"),]),
 
                     (coreg, rest_output, [("coregistered_source", "coreg_avg_epi")]),
                     #(coreg, rest_output, [("coregistered_files",  "coreg_others")]),
@@ -265,12 +268,12 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", register_to_grptemplate=False):
     # smooth and sink
     wf.connect([
                 # smooth the final bandpassed image
-                (warp,   smooth,      [(("normalized_files", selectindex, [1]), "in_file")]),
+                (warp,   smooth,      [(("normalized_files", selectindex, 1), "in_file")]),
 
                 # output
                 (smooth, rest_output, [("out_file", "smooth")]),
-                (warp,   rest_output, [(("normalized_files", selectindex, [0]), "warped_fmri"),
-                                       (("normalized_files", selectindex, [1]), "wtime_filtered"),
+                (warp,   rest_output, [(("normalized_files", selectindex, 0), "warped_fmri"),
+                                       (("normalized_files", selectindex, 1), "wtime_filtered"),
                                       ]),
                ])
 

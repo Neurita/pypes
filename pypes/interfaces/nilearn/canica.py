@@ -6,8 +6,12 @@ import os.path as op
 
 import numpy as np
 
-from nipype.interfaces.base import BaseInterface, BaseInterfaceInputSpec, TraitedSpec
-from nipype.interfaces.utility import InputMultiPath, OutputMultiPath, traits
+from nipype.interfaces.base import (BaseInterface,
+                                    BaseInterfaceInputSpec,
+                                    TraitedSpec,
+                                    InputMultiPath,
+                                    OutputMultiPath,
+                                    traits)
 from nilearn.decomposition import CanICA, DictLearning
 
 from ...utils import get_trait_value

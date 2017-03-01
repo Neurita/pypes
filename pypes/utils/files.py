@@ -2,6 +2,8 @@
 """
 Helper functions to manage external files.
 """
+import os
+import re
 from   os          import path as op
 from   glob        import glob
 from   functools   import wraps
@@ -167,16 +169,86 @@ def rename(in_files, suffix=None):
     return list_to_filename(out_files)
 
 
-def fetch_one_file(dirpath, file_pattern, file_extension=None, extra_prefix=None, extra_suffix=None):
-    """ Return the unique file path in dirpath that matches fnmatch file_pattern. Raise IOError.
+def find_files_in(dirpath, file_pattern, pat_type='fnmatch'):
+    """ Find files in `dirpath` without recursivity.
+
+    Parameters
+    ----------
+    dirpath: str
+        Folder where to search for file names.
+
+    file_pattern: str
+        File pattern to be matched.
+
+    pat_type: str
+        The type of pattern in `file_pattern`.
+        Choices: 'fnmatch', 're.search', 're.match'.
+
+    Returns
+    -------
+    files: List[str]
+        List of paths to the files that match file_pattern.
+        `dirpath` is included in each of its items.
+    """
+    if pat_type == 'fnmatch':
+        files = glob(op.join(dirpath, file_pattern))
+    elif pat_type == 're.search':
+        regex = re.compile(file_pattern)
+        files = [f for f in glob(op.join(dirpath, '*')) if regex.search(f)]
+    elif pat_type == 're.match':
+        regex = re.compile(file_pattern)
+        files = [f for f in glob(op.join(dirpath, '*')) if regex.match(f)]
+    else:
+        raise ValueError("Expected one of ('fnmatch', 're.search' or 're.match') for "
+                         "`pat_type` parameter, got {}.".format(pat_type))
+
+    return files
+
+
+def fetch_one_file(dirpath, file_pattern, file_extension=None, extra_prefix=None,
+                   extra_suffix=None, pat_type='fnmatch'):
+    """ Return the unique file path in dirpath that matches fnmatch file_pattern.
     Add the extra_prefix to try the search again, if the file_pattern finds more than one file.
+
+    Parameters
+    ----------
+    dirpath:
+
+    file_pattern:
+        File pattern to be matched.
+
+    file_extension:
+        Extension of the file.
+
+    extra_prefix:
+
+    extra_suffix:
+
+    pat_type: str
+        The type of pattern in `file_pattern`.
+        Choices: 'fnmatch', 're.search', 're.match'.
+
+    Returns
+    -------
+    file_path: str
+        The path to the unique file that matches the conditions inside `dirpath`.
+        `dirpath` is included.
+
+    Raises
+    ------
+    IOError
+        If `dirpath` doesn't exist or the list of returned files is empty.
+
+    ValueError
+        IF the choice for `pat_type` is not valid.
+
     """
     if file_extension is not None:
         file_fnmatch = file_pattern + file_extension
     else:
         file_fnmatch = file_pattern
 
-    files = glob(op.join(dirpath, file_fnmatch))
+    files = find_files_in(dirpath, file_pattern, pat_type=pat_type)
 
     if not files:
         raise IOError('Expected at least one file that matched the '
@@ -194,7 +266,10 @@ def fetch_one_file(dirpath, file_pattern, file_extension=None, extra_prefix=None
                           'pattern {} in {}: {}'.format(file_fnmatch, dirpath, files))
 
         else:
-            return fetch_one_file(dirpath, extra_prefix + file_pattern + extra_suffix, file_extension=file_extension)
+            # TODO: be careful, this might only work with fnmatch
+            return fetch_one_file(dirpath, extra_prefix + file_pattern + extra_suffix,
+                                  file_extension=file_extension,
+                                  pat_type=pat_type)
 
     return files[0]
 

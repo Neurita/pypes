@@ -31,8 +31,12 @@ def flatten_list(list_of_lists):
     """
     if not list_of_lists:
         return []
+
     if isinstance(list_of_lists[0], list):
-        return [l.pop() for l in list_of_lists]
+        lst = []
+        for l in list_of_lists:
+            lst.extend(l)
+        return lst
     return list_of_lists
 
 

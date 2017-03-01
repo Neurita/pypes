@@ -6,7 +6,7 @@ Helper functions for joining, merging, managing the workflow nodes.
 from nipype import (Function, SelectFiles,
                     DataSink, DataGrabber,
                     IdentityInterface)
-from nipype.interfaces.base import (traits, isdefined)
+from nipype.interfaces.base import traits, isdefined
 import nipype.interfaces.fsl as fsl
 
 from ..crumb  import DataCrumb
@@ -33,12 +33,20 @@ def get_trait_value(traitspec, value_name, default=None):
     return default if not isdefined(val) else val
 
 
-def selectindex(files, idx):
+def selectindex(files, idx, flatten=True):
     """ Select the items in the list `files` in the indexes given by the list of
     integers `idx`."""
     import numpy as np
     from nipype.utils.filemanip import filename_to_list, list_to_filename
-    return list_to_filename(np.array(filename_to_list(files))[idx].tolist())
+    from pypes._utils import flatten_list
+
+    if flatten:
+        files = flatten_list(files)
+
+    if isinstance(idx, list):
+        return list_to_filename(np.array(filename_to_list(files))[idx].tolist())
+    else:
+        return files[idx]
 
 
 def get_node(wf, node_types, name=''):

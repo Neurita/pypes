@@ -9,8 +9,8 @@ import nipype.interfaces.fsl as fsl
 import nipype.interfaces.spm  as spm
 import nipype.pipeline.engine    as pe
 from   nipype.algorithms.misc    import Gunzip
-from   nipype.interfaces.base import traits
-from   nipype.interfaces.utility import IdentityInterface, Function, isdefined
+from   nipype.interfaces.base import traits, isdefined
+from   nipype.interfaces.utility import IdentityInterface, Function
 
 from ..interfaces.nilearn import mean_img, concat_imgs
 from .spatial import get_bounding_box

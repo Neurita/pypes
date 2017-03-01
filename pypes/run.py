@@ -27,7 +27,7 @@ def run_wf(wf, plugin='MultiProc', n_cpus=2, **plugin_kwargs):
     if plugin == "MultiProc" or n_cpus > 1:
         wf.run("MultiProc", plugin_args={"n_procs": n_cpus})
     elif not plugin or plugin is None or n_cpus <= 1:
-        wf.run()
+        wf.run(plugin=None)
     else:
         wf.run(plugin=plugin, **plugin_kwargs)
 
@@ -56,7 +56,8 @@ def run_debug(workflow, plugin="MultiProc", n_cpus=4, **plugin_kwargs):
         plot_workflow(workflow)
 
         # run it
-        run_wf(workflow, plugin, n_cpus, **plugin_kwargs)
+        run_wf(workflow, plugin=plugin, n_cpus=n_cpus,
+               **plugin_kwargs)
     except:
         import sys
         print(sys.exc_info())

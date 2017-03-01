@@ -15,6 +15,7 @@ from   ..utils import (get_trait_value,
                        get_datasink, )
 from   .plotting import plot_ica_results
 
+
 def attach_canica(main_wf, wf_name="canica", **kwargs):
     """ Attach a nilearn CanICA interface to `main_wf`.
 
