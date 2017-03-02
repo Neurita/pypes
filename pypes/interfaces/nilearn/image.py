@@ -114,7 +114,7 @@ def resample(in_file, **kwargs):
 
 
 @ni2file(suffix='_resampled')
-def resample_to_img(source, target, **kwargs):
+def resample_to_img(in_file, target, **kwargs):
     """ Use nilearn.image.resample_to_img.
 
     Returns
@@ -123,7 +123,7 @@ def resample_to_img(source, target, **kwargs):
         The absolute path to the output file.
     """
     import nilearn.image as niimg
-    return niimg.resample_to_img(source_img=source, target_img=target, **kwargs)
+    return niimg.resample_to_img(source_img=in_file, target_img=target, **kwargs)
 
 
 @ni2file(out_file='concat_img.nii.gz')

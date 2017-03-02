@@ -125,8 +125,17 @@ stc_input.time_repetition: 2
 #stc_input.num_slices: 33
 
 # fMRI PREPROCESSING
+# for any fmri warping, except group template creation (look below)
 fmri_warp.write_voxel_sizes: [2, 2, 2]
+
+# mid-process registration for group template creation
 fmri_grptemplate_warp.write_voxel_sizes: [2, 2, 2]
+
+# GROUP fMRI TEMPLATE
+spm_epi_grouptemplate_smooth.fwhm: 8
+
+# path to a common EPI template, if you don't want the average across subjects
+spm_epi_grouptemplate_smooth.template_file: ""
 
 # bandpass filter frequencies in Hz.
 rest_input.lowpass_freq: 0.1 # the numerical upper bound

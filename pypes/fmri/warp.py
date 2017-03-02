@@ -136,14 +136,7 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", register_to_grptemplate=False):
                                    output_names=["bbox"]),
                           name="tpm_bbox")
 
-    # smooth
-    # smooth = setup_node(Function(function=smooth_img,
-    #                              input_names=["in_file", "fwhm"],
-    #                              output_names=["out_file"],
-    #                              imports=['from pypes.interfaces.nilearn import ni2file']),
-    #                      name="smooth_fmri")
-    # smooth.inputs.fwhm = get_config_setting('fmri_smooth.fwhm', default=8)
-    # smooth.inputs.out_file = "smooth_{}.nii.gz".format(wf_name)
+    # smooth the final result
     smooth = setup_node(fsl.IsotropicSmooth(fwhm=8, output_type='NIFTI'), name="smooth_fmri")
 
     # output identities
@@ -170,13 +163,9 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", register_to_grptemplate=False):
         warp_outsource_arg = "normalized_image"
         warp_field_arg     = "deformation_field"
 
-        # wf.connect([
-        #             # warp source file
-        #             (wfmri_input, warp,   [("anat_fmri",  warp_source_arg)]),
-        #            ])
     else: # anat2fmri is False
         coreg       = setup_node(spm_coregister(cost_function="mi"), name="coreg_fmri")
-        warp        = setup_node(spm_apply_deformations(), name="apply_warp_fmri")
+        warp        = setup_node(spm_apply_deformations(), name="fmri_warp")
         coreg_files = pe.Node(Merge(3), name='merge_for_coreg')
         warp_files  = pe.Node(Merge(2), name='merge_for_warp')
         tpm_bbox.inputs.in_file = spm_tpm_priors_path()
@@ -262,7 +251,7 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", register_to_grptemplate=False):
                     (warp, rest_output,  [(("normalized_files", selectindex, 0), "wavg_epi"),]),
 
                     (coreg, rest_output, [("coregistered_source", "coreg_avg_epi")]),
-                    #(coreg, rest_output, [("coregistered_files",  "coreg_others")]),
+                    (coreg, rest_output, [("coregistered_files",  "coreg_others")]),
                    ])
 
     # smooth and sink
@@ -345,13 +334,19 @@ def attach_spm_warp_fmri_wf(main_wf, registration_wf_name="spm_warp_fmri", do_gr
                     (r"/wgrptmpl_corr_stc{fmri}_trim_filtermotart[\w_]*_bandpassed\.nii$", "/{fmri}_time_filtered_grptemplate.nii"),
                     (r"/wgrptmpl_corr_stc{fmri}_trim_filtermotart[\w_]*_smooth\.nii$",     "/{fmri}_smooth_grptemplate.nii"),
 
-                    (r"/wcorr_stc{fmri}_trim_mean\.nii$",                          "/avg_epi_mni.nii"),
-                    (r"/wcorr_stc{fmri}_trim\.nii$",                               "/{fmri}_trimmed_mni.nii"),
-                    (r"/wcorr_stc{fmri}_trim_filtermotart[\w_]*_cleaned\.nii$",    "/{fmri}_nuisance_corrected_mni.nii"),
-                    (r"/wcorr_stc{fmri}_trim_filtermotart[\w_]*_gsr\.nii$",        "/{fmri}_nuisance_corrected_mni.nii"),
-                    (r"/wcorr_stc{fmri}_trim_filtermotart[\w_]*_bandpassed\.nii$", "/{fmri}_time_filtered_mni.nii"),
-                    (r"/wcorr_stc{fmri}_trim_filtermotart[\w_]*_smooth\.nii$",     "/{fmri}_smooth_mni.nii"),
-                   ]
+                    (r"/w[r]?corr_stc{fmri}_trim_mean\.nii$",                          "/avg_epi_mni.nii"),
+                    (r"/w[r]?corr_stc{fmri}_trim\.nii$",                               "/{fmri}_trimmed_mni.nii"),
+                    (r"/w[r]?corr_stc{fmri}_trim_filtermotart[\w_]*_cleaned\.nii$",    "/{fmri}_nuisance_corrected_mni.nii"),
+                    (r"/w[r]?corr_stc{fmri}_trim_filtermotart[\w_]*_gsr\.nii$",        "/{fmri}_nuisance_corrected_mni.nii"),
+                    (r"/w[r]?corr_stc{fmri}_trim_filtermotart[\w_]*_bandpassed\.nii$", "/{fmri}_time_filtered_mni.nii"),
+                    (r"/w[r]?corr_stc{fmri}_trim_filtermotart[\w_]*_smooth\.nii$",     "/{fmri}_smooth_mni.nii"),
+
+                    (r"/w[r]?corr_stc{fmri}_trim[\w_]*_smooth\.nii$",       "/{fmri}_nofilt_smooth_mni.nii"),
+                    (r"/w[r]?corr_stc{fmri}_trim[\w_]*_cleaned\.nii$",      "/{fmri}_nofilt_nuisance_corrected_mni.nii"),
+                    (r"/w[r]?corr_stc{fmri}_trim[\w_]*_gsr\.nii$",          "/{fmri}_nofilt_nuisance_corrected_mni.nii"),
+                    (r"/w[r]?corr_stc{fmri}_trim[\w_]*_bandpassed\.nii$",   "/{fmri}_nofilt_time_filtered_mni.nii"),
+                    (r"/w[r]?corr_stc{fmri}_trim[\w_]*_smooth\.nii$",       "/{fmri}_nofilt_smooth_mni.nii"),
+                  ]
     regexp_subst = format_pair_list(regexp_subst, fmri=rest_fbasename, anat=anat_fbasename)
     regexp_subst += extension_duplicates(regexp_subst)
     datasink.inputs.regexp_substitutions = extend_trait_list(datasink.inputs.regexp_substitutions,
@@ -368,11 +363,11 @@ def attach_spm_warp_fmri_wf(main_wf, registration_wf_name="spm_warp_fmri", do_gr
                                                 ]),
                      # output
                      (warp_fmri_wf,  datasink,  [
-                                                 ("wfmri_output.warped_fmri",     "rest.{}.@warped_fmri".format(template_name)),
-                                                 ("wfmri_output.wtime_filtered",  "rest.{}.@time_filtered".format(template_name)),
-                                                 ("wfmri_output.smooth",          "rest.{}.@smooth".format(template_name)),
-                                                 ("wfmri_output.wavg_epi",        "rest.{}.@avg_epi".format(template_name)),
-                                                 ("wfmri_output.warp_field",      "rest.{}.@warp_field".format(template_name)),
+                                                 ("wfmri_output.warped_fmri",    "rest.{}.@warped_fmri".format(template_name)),
+                                                 ("wfmri_output.wtime_filtered", "rest.{}.@time_filtered".format(template_name)),
+                                                 ("wfmri_output.smooth",         "rest.{}.@smooth".format(template_name)),
+                                                 ("wfmri_output.wavg_epi",       "rest.{}.@avg_epi".format(template_name)),
+                                                 ("wfmri_output.warp_field",     "rest.{}.@warp_field".format(template_name)),
                                                 ]),
                     ])
 
@@ -383,8 +378,8 @@ def attach_spm_warp_fmri_wf(main_wf, registration_wf_name="spm_warp_fmri", do_gr
                                                  ]),
                         # output
                         (warp_fmri_wf,  datasink,  [
-                                                    ("wfmri_output.coreg_avg_epi",  "rest.@coreg_fmri_anat"),
-                                                    #("wfmri_output.coreg_others",  "rest.@coreg_others"),
+                                                    ("wfmri_output.coreg_avg_epi", "rest.@coreg_fmri_anat"),
+                                                    ("wfmri_output.coreg_others",  "rest.@coreg_others"),
                                                    ]),
                         ])
 

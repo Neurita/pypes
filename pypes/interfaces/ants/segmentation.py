@@ -5,7 +5,6 @@ Nipype interface for ANTs.
 The implementation of this interface is motivated by this study:
 http://dx.doi.org/10.1016/j.nicl.2016.05.017
 """
-import os
 
 from nipype.interfaces.base import TraitedSpec, File, traits, isdefined
 from nipype.interfaces.ants.base import ANTSCommand, ANTSCommandInputSpec
@@ -14,12 +13,10 @@ from nipype.external.due import BibTeX
 
 
 class KellyKapowskiInputSpec(ANTSCommandInputSpec):
-    dimension = traits.Enum(3, 2, argstr='--image-dimensionality %d',
-                            usedefault=True,
+    dimension = traits.Enum(3, 2, argstr='--image-dimensionality %d', usedefault=True,
                             desc='image dimension (2 or 3)')
 
-    segmentation_image = File(exists=True, argstr='--segmentation-image "%s"',
-                              mandatory=True,
+    segmentation_image = File(exists=True, argstr='--segmentation-image "%s"', mandatory=True,
                               desc="A segmentation image must be supplied labeling the gray and white matters.\n"
                                    "Default values = 2 and 3, respectively.",)
 
@@ -71,10 +68,13 @@ class KellyKapowskiInputSpec(ANTSCommandInputSpec):
                                                      desc="Maximum number of iterations for estimating the invert \n"
                                                           "displacement field.")
 
-    cortical_thickness = File(argstr='--output "%s"', genfile=True,
+    cortical_thickness = File(argstr='--output "%s"', genfile=True, keep_extension=True,
+                              name_source=["segmentation_image"], name_template='%s_cortical_thickness',
                               desc='Filename for the cortical thickness.', hash_files=False)
 
-    warped_white_matter = File(desc='Filename for the warped white matter file.', hash_files=False)
+    warped_white_matter = File(name_source=["segmentation_image"], keep_extension=True,
+                               name_template='%s_warped_white_matter',
+                               desc='Filename for the warped white matter file.', hash_files=False)
 
 
 class KellyKapowskiOutputSpec(TraitedSpec):
@@ -91,12 +91,10 @@ class KellyKapowski(ANTSCommand):
 
     Examples
     --------
-    >>> from pypes.interfaces.ants import KellyKapowski
+    >>> from nipype.interfaces.ants.segmentation import KellyKapowski
     >>> kk = KellyKapowski()
     >>> kk.inputs.dimension = 3
-    >>> kk.inputs.segmentation_image = "anat_hc_gm_wm.nii.gz"
-    >>> kk.inputs.gray_matter_prob_image = "anat_hc_gm.nii.gz"
-    >>> kk.inputs.white_matter_prob_image = "anat_hc_wm.nii.gz"
+    >>> kk.inputs.segmentation_image = "segmentation0.nii.gz"
     >>> kk.inputs.convergence = "[45,0.0,10]"
     >>> kk.inputs.gradient_step = 0.025
     >>> kk.inputs.smoothing_variance = 1.0
@@ -105,12 +103,12 @@ class KellyKapowski(ANTSCommand):
     >>> kk.inputs.number_integration_points = 10
     >>> kk.inputs.thickness_prior_estimate = 10
     >>> kk.cmdline # doctest: +ALLOW_UNICODE
-    'KellyKapowski --convergence "[45,0.0,10]"
-    --output "[anat_hc_gm_wm_cortical_thickness.nii.gz,anat_hc_gm_wm_warped_white_matter.nii.gz]"
-    --image-dimensionality 3 --gradient-step 0.025000 --gray-matter-probability-image "anat_hc_gm.nii.gz"
-    --number-of-integration-points 10 --segmentation-image "[anat_hc_gm_wm.nii.gz,2,3]" --smoothing-variance 1.000000
-    --smoothing-velocity-field-parameter 1.500000 --thickness-prior-estimate 10.000000
-    --white-matter-probability-image "anat_hc_wm.nii.gz"'
+    u'KellyKapowski --convergence "[45,0.0,10]" \
+--output "[segmentation0_cortical_thickness.nii.gz,segmentation0_warped_white_matter.nii.gz]" \
+--image-dimensionality 3 --gradient-step 0.025000 --number-of-integration-points 10 \
+--segmentation-image "[segmentation0.nii.gz,2,3]" --smoothing-variance 1.000000 \
+--smoothing-velocity-field-parameter 1.500000 --thickness-prior-estimate 10.000000'
+
     """
     _cmd = "KellyKapowski"
     input_spec = KellyKapowskiInputSpec
@@ -137,12 +135,6 @@ class KellyKapowski(ANTSCommand):
             skip = []
         skip += ['warped_white_matter', 'gray_matter_label', 'white_matter_label']
         return super(KellyKapowski, self)._parse_inputs(skip=skip)
-
-    def _list_outputs(self):
-        outputs = self._outputs().get()
-        outputs['cortical_thickness']  = os.path.abspath(self._gen_filename('cortical_thickness'))
-        outputs['warped_white_matter'] = os.path.abspath(self._gen_filename('warped_white_matter'))
-        return outputs
 
     def _gen_filename(self, name):
         if name == 'cortical_thickness':
