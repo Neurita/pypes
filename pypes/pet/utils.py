@@ -195,7 +195,7 @@ def intensity_norm(wf_name='intensity_norm'):
 
     # fix the affine matrix (it's necessary for some cases)
     resample = setup_node(Function(function=resample_to_img,
-                                   input_names=["source", "target", "interpolation"],
+                                   input_names=["in_file", "target", "interpolation"],
                                    output_names=["out_file"],
                                    imports=['from pypes.interfaces.nilearn import ni2file']),
                           name="resample_mask")
@@ -227,7 +227,7 @@ def intensity_norm(wf_name='intensity_norm'):
     wf.connect([
                 # resample
                 (intnorm_input, resample,  [("source",    "target"),
-                                            ("mask",      "source")]),
+                                            ("mask",      "in_file")]),
 
                 # normalize
                 (intnorm_input, mean_val,  [("source",    "img" )]),
