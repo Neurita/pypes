@@ -74,8 +74,8 @@ def spm_anat_preprocessing(wf_name="spm_anat_preproc"):
 
     anat_output.brain_mask: traits.File
         A brain mask file in anatomical space.
-        This is calculated by summing up the maps of segmented tissues
-        (CSF, WM, GM) and then binarised.
+        This is calculated by summing up the maps of
+        segmented tissues (CSF, WM, GM) and then binarised.
 
     anat_output.atlas_anat: traits.File
         If `atlas_file` is an existing file in MNI space.
@@ -245,7 +245,8 @@ def spm_anat_preprocessing(wf_name="spm_anat_preproc"):
 
 
 def attach_spm_anat_preprocessing(main_wf, wf_name="spm_anat_preproc"):
-    """ Attach the SPM12 anatomical MRI pre-processing workflow to the `main_wf`.
+    """ Attach the SPM12 anatomical MRI pre-processing workflow to
+    the `main_wf`.
 
     Parameters
     ----------
@@ -256,7 +257,8 @@ def attach_spm_anat_preprocessing(main_wf, wf_name="spm_anat_preproc"):
 
     Nipype Inputs for `main_wf`
     ---------------------------
-    Note: The `main_wf` workflow is expected to have an `input_files` and a `datasink` nodes.
+    Note: The `main_wf` workflow is expected to have an
+    `input_files` and a `datasink` nodes.
 
     input_files.anat: input node
 
