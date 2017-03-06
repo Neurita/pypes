@@ -160,8 +160,9 @@ def spm_anat_preprocessing(wf_name="spm_anat_preproc"):
 
     # Connect the nodes
     wf.connect([
-                # input
+                # input to biasfieldcorrection
                 (anat_input,   biascor    , [("in_file",      "input_image")]),
+
                 # new segment
                 (biascor,      gunzip_anat, [("output_image", "in_file")]),
                 (gunzip_anat,  segment,     [("out_file",     "channel_files")]),
