@@ -46,13 +46,15 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", register_to_grptemplate=False):
         The slice time and motion corrected fMRI file.
 
     wfmri_input.reference_file: traits.File
-        The anatomical image in its native space. For registration reference.
+        The anatomical image in its native space
+        for registration reference.
 
     wfmri_input.anat_fmri: traits.File
         The anatomical image in fMRI space.
 
     wfmri_input.anat_to_mni_warp: traits.File
-        The warp field from the transformation of the anatomical image to the standard MNI space.
+        The warp field from the transformation of the
+        anatomical image to the standard MNI space.
 
     wfmri_input.time_filtered: traits.File
         The bandpass time filtered fMRI file.
@@ -62,6 +64,7 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", register_to_grptemplate=False):
 
     wfmri_input.epi_template: traits.File
         Reference EPI template file for inter subject registration.
+
         If `do_group_template` is True you must specify this input.
 
     wfmri_input.brain_mask: traits.File
@@ -70,22 +73,39 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", register_to_grptemplate=False):
     Nipype Outputs
     --------------
     wfmri_output.warped_fmri: traits.File
-        The slice time, motion, and nuisance corrected fMRI file registered to the template.
+        The slice time, motion, and nuisance corrected fMRI
+        file registered to the template.
 
     wfmri_output.wtime_filtered: traits.File
-        The bandpass time filtered fMRI file registered to the template.
+        The bandpass time filtered fMRI file
+        registered to the template.
 
     wfmri_output.smooth: traits.File
-        The smooth bandpass time filtered fMRI file registered to the template.
+        The smooth bandpass time filtered fMRI file
+        registered to the template.
 
     wfmri_output.wavg_epi: traits.File
-        The average EPI from the fMRI file registered to the template.
+        The average EPI from the fMRI file
+        registered to the template.
 
     wfmri_output.warp_field: traits.File
         The fMRI to template warp field.
 
     wfmri_output.coreg_avg_epi: traits.File
         The average EPI image in anatomical space.
+
+        Only if registration.anat2fmri is false.
+
+    wfmri_output.coreg_others: traits.File
+        Other mid-preprocessing fmri images registered to
+        anatomical space:
+
+        - wfmri_input.in_file,
+
+        - wfmri_input.brain_mask,
+
+        - wfmri_input.time_filtered.
+
         Only if registration.anat2fmri is false
 
     wfmri_output.wbrain_mask: traits.File
@@ -113,7 +133,8 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", register_to_grptemplate=False):
                   "wavg_epi",
                   "wbrain_mask",
                   "warp_field",
-                  "coreg_avg_epi"
+                  "coreg_avg_epi",
+                  "coreg_others"
                   ]
 
     if register_to_grptemplate:
