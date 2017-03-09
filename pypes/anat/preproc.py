@@ -27,7 +27,8 @@ from   ..utils   import (remove_ext,
 
 
 def spm_anat_preprocessing(wf_name="spm_anat_preproc"):
-    """ Run the T1 pre-processing workflow against the anat_hc files in `data_dir`.
+    """ Run the T1 pre-processing workflow against the anat_hc
+    files in `data_dir`.
 
     It does:
     - N4BiasFieldCorrection

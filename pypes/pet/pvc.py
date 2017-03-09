@@ -129,10 +129,10 @@ def petpvc_workflow(wf_name="petpvc"):
     if anat2pet:
         wf.connect([
                     # inputs
-                    (pet_input,   coreg_pet,   [("reference_file",     "source")]),
+                    (pet_input,   coreg_pet,   [("reference_file", "source")]),
 
                     # unzip to coregister the reference file (anatomical image) to PET space.
-                    (gunzip_pet,  coreg_pet,  [("out_file",            "target")]),
+                    (gunzip_pet,  coreg_pet,  [("out_file", "target")]),
 
                     (tissues_sel, flat_list,  [("out", "list_of_lists")]),
                     (flat_list,   coreg_pet,  [("out", "apply_to_files")]),
