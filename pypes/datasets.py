@@ -176,8 +176,7 @@ def _clinical_wf_setup(wf_name):
 
     # the input files crumb patterns
     files_crumb_args = {}
-    if 'anat' in wf_name:
-        files_crumb_args.update({'anat':  [('image', 'anat_hc.nii.gz')]})
+    files_crumb_args.update({'anat':  [('image', 'anat_hc.nii.gz')]})
 
     if 'pet' in wf_name:
         files_crumb_args.update({'pet':  [('image', 'pet_fdg.nii.gz')],})

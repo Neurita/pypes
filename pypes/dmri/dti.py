@@ -61,12 +61,18 @@ def attach_spm_fsl_dti_preprocessing(main_wf, wf_name="spm_fsl_dti_preprocessing
     # dataSink output substitutions
     ## The base name of the 'diff' file for the substitutions
     diff_fbasename = remove_ext(op.basename(get_input_file_name(in_files, 'diff')))
+    anat_fbasename = remove_ext(op.basename(get_input_file_name(in_files, 'anat')))
 
     regexp_subst = [
                     (r"/brain_mask_{diff}_space\.nii$", "/brain_mask.nii"),
                     (r"/eddy_corrected\.nii$",          "/{diff}_eddycor.nii"),
+                    (r"/rc1anat_hc_corrected\.nii$",    "/gm_diff.nii"),
+                    (r"/rc2anat_hc_corrected\.nii$",    "/wm_diff.nii"),
+                    (r"/rc3anat_hc_corrected\.nii$",    "/csf_diff.nii"),
+                    (r"/rmanat_hc_corrected\.nii$",     "/{anat}_diff.nii"),
                    ]
-    regexp_subst = format_pair_list(regexp_subst, diff=diff_fbasename)
+    regexp_subst = format_pair_list(regexp_subst, diff=diff_fbasename,
+                                                  anat=anat_fbasename)
 
     # prepare substitution for atlas_file, if any
     do_atlas, atlas_file = check_atlas_file()
@@ -85,19 +91,19 @@ def attach_spm_fsl_dti_preprocessing(main_wf, wf_name="spm_fsl_dti_preprocessing
 
     # input and output diffusion MRI workflow to main workflow connections
     main_wf.connect([
-                     (dti_art_output, coreg_dti_wf, [("avg_b0",          "dti_co_input.avg_b0"),]),
-                     (anat_output,    coreg_dti_wf, [("tissues_native",  "dti_co_input.tissues"),
-                                                     ("anat_biascorr",   "dti_co_input.anat")
+                     (dti_art_output, coreg_dti_wf, [("avg_b0",         "dti_co_input.avg_b0"),]),
+                     (anat_output,    coreg_dti_wf, [("tissues_native", "dti_co_input.tissues"),
+                                                     ("anat_biascorr",  "dti_co_input.anat")
                                                     ]),
-                     (coreg_dti_wf, datasink, [("dti_co_output.anat_diff",         "diff.@anat_diff"),
-                                               ("dti_co_output.tissues_diff",      "diff.@tissues_diff"),
-                                               ("dti_co_output.brain_mask_diff",   "diff.@brain_mask"),
+                     (coreg_dti_wf, datasink, [("dti_co_output.anat_diff",       "diff.@anat_diff"),
+                                               ("dti_co_output.tissues_diff",    "diff.tissues.@tissues_diff"),
+                                               ("dti_co_output.brain_mask_diff", "diff.@brain_mask"),
                                               ]),
                     ])
 
     if do_atlas:
-            main_wf.connect([(anat_output,  coreg_dti_wf, [("atlas_anat",   "dti_co_input.atlas_anat")]),
-                             (coreg_dti_wf, datasink,     [("dti_co_output.atlas_diff",    "diff.@atlas")]),
+            main_wf.connect([(anat_output,  coreg_dti_wf, [("atlas_anat", "dti_co_input.atlas_anat")]),
+                             (coreg_dti_wf, datasink,     [("dti_co_output.atlas_diff", "diff.@atlas")]),
                             ])
 
     return main_wf

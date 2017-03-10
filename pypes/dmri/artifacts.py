@@ -5,10 +5,12 @@ Nipype workflow to detect and remove ardifacts in diffusion MRI.
 import os.path as op
 
 import nipype.pipeline.engine as pe
-from   nipype.interfaces.fsl import Eddy, BET, ExtractROI
+from   nipype.interfaces.fsl import BET, ExtractROI
 from   nipype.interfaces.utility import Function, IdentityInterface
 from   nipype.workflows.dmri.fsl.utils import eddy_rotate_bvecs, b0_average, b0_indices
 from   nipype.workflows.dmri.fsl import hmc_pipeline
+
+from ..interfaces import Eddy
 
 from .utils import (dti_acquisition_parameters,
                     nlmeans_denoise, reslice,
