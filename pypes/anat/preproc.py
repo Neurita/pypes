@@ -280,22 +280,22 @@ def attach_spm_anat_preprocessing(main_wf, wf_name="spm_anat_preproc"):
 
     # dataSink output substitutions
     regexp_subst = [
-                    (r"/{anat}_.*corrected_seg8.mat$",     "/{anat}_to_mni_affine.mat"),
-                    (r"/m{anat}.*_corrected.nii$",         "/{anat}_biascorrected.nii"),
-                    (r"/wm{anat}.*_corrected.nii$",        "/{anat}_mni.nii"),
-                    (r"/y_{anat}.*nii$",                   "/{anat}_to_mni_field.nii"),
-                    (r"/iy_{anat}.*nii$",                  "/{anat}_to_mni_inv_field.nii"),
-                    (r"/mwc1{anat}.*nii$",                 "/{anat}_gm_mod_mni.nii"),
-                    (r"/mwc2{anat}.*nii$",                 "/{anat}_wm_mod_mni.nii"),
-                    (r"/mwc3{anat}.*nii$",                 "/{anat}_csf_mod_mni.nii"),
-                    (r"/mwc4{anat}.*nii$",                 "/{anat}_nobrain_mod_mni.nii"),
-                    (r"/c1{anat}.*nii$",                   "/{anat}_gm.nii"),
-                    (r"/c2{anat}.*nii$",                   "/{anat}_wm.nii"),
-                    (r"/c3{anat}.*nii$",                   "/{anat}_csf.nii"),
-                    (r"/c4{anat}.*nii$",                   "/{anat}_nobrain.nii"),
-                    (r"/c5{anat}.*nii$",                   "/{anat}_nobrain_mask.nii"),
-                    (r"/gm_wm_cortical_thickness.nii.gz",  "/{anat}_gm_cortical_thickness.nii.gz"),
-                    (r"/gm_wm_warped_white_matter.nii.gz", "/{anat}_warped_white_matter.nii.gz"),
+                    (r"/{anat}_.*corrected_seg8.mat$",      "/{anat}_to_mni_affine.mat"),
+                    (r"/m{anat}.*_corrected.nii$",          "/{anat}_biascorrected.nii"),
+                    (r"/wm{anat}.*_corrected.nii$",         "/{anat}_mni.nii"),
+                    (r"/y_{anat}.*nii$",                    "/{anat}_to_mni_field.nii"),
+                    (r"/iy_{anat}.*nii$",                   "/{anat}_to_mni_inv_field.nii"),
+                    (r"/mwc1{anat}.*nii$",                  "/{anat}_gm_mod_mni.nii"),
+                    (r"/mwc2{anat}.*nii$",                  "/{anat}_wm_mod_mni.nii"),
+                    (r"/mwc3{anat}.*nii$",                  "/{anat}_csf_mod_mni.nii"),
+                    (r"/mwc4{anat}.*nii$",                  "/{anat}_nobrain_mod_mni.nii"),
+                    (r"/c1{anat}.*nii$",                    "/{anat}_gm.nii"),
+                    (r"/c2{anat}.*nii$",                    "/{anat}_wm.nii"),
+                    (r"/c3{anat}.*nii$",                    "/{anat}_csf.nii"),
+                    (r"/c4{anat}.*nii$",                    "/{anat}_nobrain.nii"),
+                    (r"/c5{anat}.*nii$",                    "/{anat}_nobrain_mask.nii"),
+                    (r"/gm_wm_cortical_thickness.nii.gz$",  "/{anat}_gm_cortical_thickness.nii.gz"),
+                    (r"/gm_wm_warped_white_matter.nii.gz$", "/{anat}_warped_white_matter.nii.gz"),
                    ]
     regexp_subst = format_pair_list(regexp_subst, anat=anat_fbasename)
 
