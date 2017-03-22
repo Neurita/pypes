@@ -44,35 +44,40 @@ def plot_ica_components(components_img, **kwargs):
 
 
 def plot_multi_slices(img, cut_dir="z", n_cuts=20, n_cols=4, figsize=(2.5, 3),
-                      title="", title_fontsize=32, plot_func=None, **kwargs):
+                      title="", title_fontsize=32, plot_func=None, black_bg=True, **kwargs):
     """ Create a plot of `n_cuts` of `img` organized distributed in `n_cols`.
     Parameters
     ----------
     img: niimg-like
 
-    cut_dir: str
+    cut_dir: str, optional
         Sectional direction; possible values are "x", "y" or "z".
 
-    n_cuts: int
+    n_cuts: int, optional
         Number of cuts in the plot.
 
-    n_cols: int
+    n_cols: int, optional
         Maximum number of image columns in the plot.
 
-    figsize: 2-tuple of int
+    figsize: 2-tuple of int, optional
         (w, h) size in inches of the figure.
 
-    title: str
+    title: str, optional
         The superior title of the figure.
 
-    title_fontsize: int
+    title_fontsize: int, optional
         The size of the title font.
 
-    plot_func: function
+    plot_func: function, optional
        Function to plot each slice.
        Default: nilearn.plotting.plot_stat_map
 
-    kwargs: keyword arguments
+    black_bg: boolean, optional
+        If True, the background of the image is set to be black.
+        If you wish to save figures with a black background, you will need to pass
+        "facecolor='k', edgecolor='k'" to matplotlib.pyplot.savefig.
+
+    kwargs: keyword arguments, optional
         Input arguments for plot_func.
 
     Returns
@@ -108,12 +113,21 @@ def plot_multi_slices(img, cut_dir="z", n_cuts=20, n_cols=4, figsize=(2.5, 3),
                                   direction=cut_dir,
                                   spacing=spacing)
 
+    # instantiate the figure
+    if black_bg:
+        facecolor = 'black'
+        titlecolor = 'white'
+    else:
+        facecolor = 'white'
+        titlecolor = 'black'
+
     figsize = figsize[0] * n_cols, figsize[1] * n_rows
-    fig = plt.figure(figsize=figsize, facecolor='black')
+    fig = plt.figure(figsize=figsize, facecolor=facecolor)
     gs  = gridspec.GridSpec(n_rows, 1)
 
     if title:
-        fig.suptitle(title, fontsize=title_fontsize, color='white')
+        fig.suptitle(title, fontsize=title_fontsize,
+                     color=titlecolor)
 
     # for the superior plot
     put_colorbar = True
@@ -131,6 +145,7 @@ def plot_multi_slices(img, cut_dir="z", n_cuts=20, n_cols=4, figsize=(2.5, 3),
                           colorbar=put_colorbar,
                           figure=fig,
                           axes=ax,
+                          black_bg=black_bg,
                           **kwargs)
         except IndexError:
             logging.warning('Could not plot for coords {}.'.format(cut_chunks))
@@ -141,32 +156,38 @@ def plot_multi_slices(img, cut_dir="z", n_cuts=20, n_cols=4, figsize=(2.5, 3),
 
 
 def plot_ortho_slices(img, n_cuts=4, n_cols=6, figsize=(2.5, 3),
-                      title="", title_fontsize=32, plot_func=None, **kwargs):
+                      title="", title_fontsize=32, plot_func=None,
+                      black_bg=True, **kwargs):
     """
     Parameters
     ----------
     img: niimg-like
 
-    n_cuts: int
+    n_cuts: int, optional
         Number of cuts for each dimension (X, Y, and Z) in the plot.
 
-    n_cols: int
+    n_cols: int, optional
         Maximum number of image columns in the plot.
 
-    figsize: 2-tuple of int
+    figsize: 2-tuple of int, optional
         (w, h) size in inches of one slice image.
 
-    title: str
+    title: str, optional
         The superior title of the figure.
 
-    title_fontsize: int
+    title_fontsize: int, optional
         The size of the title font.
 
-    plot_func: function
+    plot_func: function, optional
        Function to plot each slice.
        Default: nilearn.plotting.plot_stat_map
 
-    kwargs: keyword arguments
+    black_bg: boolean, optional
+        If True, the background of the image is set to be black.
+        If you wish to save figures with a black background, you will need to pass
+        "facecolor='k', edgecolor='k'" to matplotlib.pyplot.savefig.
+
+    kwargs: keyword arguments, optional
         Input arguments for plot_func.
 
     Returns
@@ -207,13 +228,21 @@ def plot_ortho_slices(img, n_cuts=4, n_cols=6, figsize=(2.5, 3),
         cuts.append((cut_dir, dir_cuts))
 
     # instantiate the figure
+    if black_bg:
+        facecolor = 'black'
+        titlecolor = 'white'
+    else:
+        facecolor = 'white'
+        titlecolor = 'black'
+
     figsize = figsize[0] * n_cols * n_cuts, figsize[1] * n_rows
-    fig = plt.figure(figsize=figsize, facecolor='black')
+    fig = plt.figure(figsize=figsize, facecolor=facecolor)
     gs  = gridspec.GridSpec(n_rows, n_cols)
 
     # put the title, if any
     if title:
-        fig.suptitle(title, fontsize=title_fontsize, color='white')
+        fig.suptitle(title, fontsize=title_fontsize,
+                     color=titlecolor)
 
     # plot on the figure
     for i, (cut_dir, cut_coords) in enumerate(cuts):
@@ -227,6 +256,7 @@ def plot_ortho_slices(img, n_cuts=4, n_cols=6, figsize=(2.5, 3),
                           colorbar=put_colorbar,
                           figure=fig,
                           axes=ax,
+                          black_bg=black_bg,
                           **kwargs)
         except IndexError:
             logging.warning('Could not plot for coords {}.'.format(cut_coords))
