@@ -6,10 +6,9 @@ import os.path as op
 import logging as log
 
 import nipype.pipeline.engine as pe
-from   nipype.interfaces.io   import DataSink
-
-from hansel.utils import joint_value_map, valuesmap_to_dict
-from nipype.interfaces.utility import IdentityInterface
+from   nipype.interfaces.io import DataSink
+from   nipype.interfaces.utility import IdentityInterface
+from   hansel.utils import joint_value_map, valuesmap_to_dict
 
 from .crumb  import DataCrumb
 from .utils  import extend_trait_list, joinstrings

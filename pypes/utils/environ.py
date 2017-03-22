@@ -5,7 +5,7 @@ Helper functions to check for value configurations in the system and the externa
 import os
 from os import path as op
 
-from nipype.interfaces import spm as spm
+from nipype.interfaces import spm
 
 from ..config import get_config_setting
 

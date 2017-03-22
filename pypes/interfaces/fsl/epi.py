@@ -16,15 +16,9 @@ from __future__ import print_function, division, unicode_literals, absolute_impo
 from builtins import str
 
 import os
-import numpy as np
-import nibabel as nb
 import warnings
 
-from nipype.utils.filemanip import split_filename
-from nipype.utils import NUMPY_MMAP
-
-from nipype.interfaces.base import (traits, TraitedSpec, InputMultiPath, File,
-                                    isdefined)
+from nipype.interfaces.base import (traits, TraitedSpec, File, isdefined)
 from nipype.interfaces.fsl.base import FSLCommand, FSLCommandInputSpec
 
 

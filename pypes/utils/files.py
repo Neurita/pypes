@@ -2,7 +2,6 @@
 """
 Helper functions to manage external files.
 """
-import os
 import re
 from   os          import path as op
 from   glob        import glob
@@ -39,6 +38,9 @@ def niftiimg_out(f):
     """ Picks a function whose first argument is an `img` or a sequence of imgs, processes its
     data and returns a numpy array. This decorator wraps this numpy array
     into a nibabel.Nifti1Image."""
+    import nibabel as nib
+    import nilearn.image as niimg
+
     @wraps(f)
     def wrapped(*args, **kwargs):
         r = f(*args, **kwargs)

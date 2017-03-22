@@ -2,11 +2,12 @@
 """
 Nipype workflows to process resting-state functional MRI.
 """
-import nipype.pipeline.engine    as pe
 import os.path as op
+
+import nipype.pipeline.engine    as pe
 from   nipype.algorithms.misc    import Gunzip
-from   nipype.interfaces         import spm, fsl
 from   nipype.interfaces.utility import Function, Merge, IdentityInterface
+from   nipype.interfaces import spm, fsl
 
 from   .._utils  import format_pair_list
 from   ..config  import setup_node, get_config_setting

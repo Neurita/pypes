@@ -4,8 +4,8 @@ A PETPVC workflow
 """
 import os.path as op
 
-import nipype.pipeline.engine    as pe
-from   nipype.algorithms.misc    import Gunzip
+import nipype.pipeline.engine as pe
+from   nipype.algorithms.misc import Gunzip
 from   nipype.interfaces.utility import Select, IdentityInterface, Function
 
 from  .utils     import (petpvc_cmd,

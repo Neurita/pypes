@@ -7,10 +7,9 @@ The global configuration registry is declared in the bottom of this file.
 """
 import os.path as op
 
-from   nipype import Node, MapNode, JoinNode
+from   nipype.pipeline.engine import Node, MapNode, JoinNode
+from   nipype.interfaces.base import isdefined
 from   kaptan import Kaptan
-
-from nipype.interfaces.base import isdefined
 
 
 def _load_config(file_path):

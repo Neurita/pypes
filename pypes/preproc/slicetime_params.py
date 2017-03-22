@@ -7,8 +7,8 @@
 """
 import os.path as op
 
-import nibabel as nib
 import numpy as np
+import nibabel as nib
 from nipype.interfaces.base import (BaseInterface,
                                     TraitedSpec,
                                     InputMultiPath,

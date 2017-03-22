@@ -6,8 +6,8 @@ import os.path as op
 
 import nipype.pipeline.engine    as pe
 from   nipype.algorithms.misc    import Gunzip
-from   nipype.interfaces         import spm
 from   nipype.interfaces.utility import Merge, IdentityInterface, Function
+from   nipype.interfaces         import spm
 
 from   .pvc      import petpvc_workflow
 from   ..config  import (setup_node,
@@ -31,7 +31,8 @@ from   ..utils import (get_datasink,
 from   .._utils import format_pair_list, flatten_list
 
 
-# TODO: merge the two workflows below, maybe splitting them in two wf steps: pre-processing then registration.
+# TODO: merge the two workflows below, maybe splitting them in
+# two wf steps: pre-processing then registration.
 def spm_mrpet_preprocessing(wf_name="spm_mrpet_preproc"):
     """ Run the PET pre-processing workflow against the
     gunzip_pet.in_file files.

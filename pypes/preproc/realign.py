@@ -6,7 +6,7 @@ from nipype import Workflow, MapNode
 from nipype.interfaces.utility import IdentityInterface
 from nipype.interfaces.base import traits
 from nipype.interfaces.nipy import SpaceTimeRealigner
-from nipype.interfaces.fsl  import MCFLIRT, Split, Merge, ApplyWarp
+from nipype.interfaces.fsl import MCFLIRT, Split, Merge, ApplyWarp
 
 from ..config import setup_node
 

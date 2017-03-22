@@ -20,7 +20,12 @@ def plot_workflow(wf, detailed=False):
         This takes a very long time if the number of subjects if large.
     """
     # print the graph of the workflow in the working directory
-    wf.write_graph("{}_colored_workflow".format(wf.name), graph2use="colored")
-
-    if detailed:
-        wf.write_graph("{}_exec_workflow".format(wf.name),    graph2use="exec")
+    try:
+        wf.write_graph("{}_colored_workflow".format(wf.name),
+                       graph2use="colored")
+    except RuntimeError as re:
+        print('Error plotting colored workflow: {}.'.format(str(re)))
+    else:
+        if detailed:
+            wf.write_graph("{}_exec_workflow".format(wf.name),
+                           graph2use="exec")

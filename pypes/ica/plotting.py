@@ -2,17 +2,18 @@
 """
 Helper functions to plot results.
 """
+import re
+import os.path as op
+
 import nilearn.image      as niimg
 import numpy              as np
-import os.path as op
 import pandas             as pd
-import re
 import scipy.io           as sio
-from   boyle.nifti.utils  import filter_icc
 from   nilearn.input_data import NiftiMasker
 from   nilearn.image      import iter_img
 from   nilearn.masking    import apply_mask
 from   nilearn._utils.niimg_conversions import check_niimg, _index_img
+from   boyle.nifti.utils  import filter_icc
 
 from .utils import (get_largest_blobs,
                     build_raw_loadings_table,

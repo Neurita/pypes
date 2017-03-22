@@ -3,9 +3,9 @@
 Nipype interfaces to perform signal decomposition.
 """
 
-import nipype.pipeline.engine    as pe
-from   nipype.interfaces         import io
-from   nipype.interfaces.utility import IdentityInterface, Function
+import nipype.pipeline.engine as pe
+from   nipype.interfaces.io import DataSink
+from   nipype.interfaces import IdentityInterface, Function
 
 from   .._utils import _check_list
 from   ..config import setup_node, get_config_setting
@@ -49,8 +49,8 @@ def attach_canica(main_wf, wf_name="canica", **kwargs):
     datasink = get_datasink(main_wf, name='datasink')
 
     base_outdir  = datasink.inputs.base_directory
-    ica_datasink = pe.Node(io.DataSink(parameterization=False,
-                                       base_directory=base_outdir,),
+    ica_datasink = pe.Node(DataSink(parameterization=False,
+                                    base_directory=base_outdir,),
                            name="{}_datasink".format(wf_name))
 
     # the list of the subjects files
@@ -113,8 +113,8 @@ def attach_concat_canica(main_wf, wf_name="canica", **kwargs):
     datasink = get_datasink(main_wf, name='datasink')
 
     base_outdir  = datasink.inputs.base_directory
-    ica_datasink = pe.Node(io.DataSink(parameterization=False,
-                                       base_directory=base_outdir,),
+    ica_datasink = pe.Node(DataSink(parameterization=False,
+                                    base_directory=base_outdir,),
                            name="ica_datasink".format(wf_name))
     ica_datasink.inputs.container = 'ica_{}'.format(wf_name)
 

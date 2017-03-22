@@ -4,9 +4,9 @@ PET group template registration nipype workflow.
 """
 import os.path as op
 
-import nipype.pipeline.engine    as pe
-from   nipype.interfaces         import io
-from   nipype.interfaces.utility import IdentityInterface
+import nipype.pipeline.engine as pe
+from   nipype.interfaces.io import DataSink
+from   nipype.interfaces import IdentityInterface
 
 from   .mrpet import attach_spm_mrpet_preprocessing
 from   ..preproc import (spm_create_group_template_wf,
@@ -69,9 +69,9 @@ def attach_spm_pet_grouptemplate(main_wf, wf_name="spm_pet_template"):
 
     # the group template datasink
     base_outdir  = datasink.inputs.base_directory
-    grp_datasink = pe.Node(io.DataSink(parameterization=False,
-                                       base_directory=base_outdir,),
-                                       name='{}_grouptemplate_datasink'.format(pet_fbasename))
+    grp_datasink = pe.Node(DataSink(parameterization=False,
+                                    base_directory=base_outdir,),
+                                    name='{}_grouptemplate_datasink'.format(pet_fbasename))
     grp_datasink.inputs.container = '{}_grouptemplate'.format(pet_fbasename)
 
     # the list of the raw pet subjects

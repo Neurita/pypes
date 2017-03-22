@@ -3,9 +3,8 @@
 Helper functions for joining, merging, managing the workflow nodes.
 """
 
-from nipype import (Function, SelectFiles,
-                    DataSink, DataGrabber,
-                    IdentityInterface)
+from nipype.interfaces.utility import Function, IdentityInterface
+from nipype.interfaces.io import SelectFiles, DataSink, DataGrabber
 from nipype.interfaces.base import traits, isdefined
 import nipype.interfaces.fsl as fsl
 
@@ -173,7 +172,7 @@ def sum2args():
 
     Returns
     -------
-    fi: nipype.interfaces.utility.Function
+    fi: nipype.interfaces.Function
     """
     func = 'def func(arg1, arg2): return arg1 + arg2'
     fi = Function(input_names=['arg1', 'arg2'], output_names=['out'])
@@ -192,7 +191,7 @@ def joinstrings(n_args=2):
 
     Returns
     -------
-    fi: nipype.interfaces.utility.Function
+    fi: nipype.interfaces.Function
     """
     arg_names = ['arg{}'.format(n) for n in range(1, n_args+1)]
 

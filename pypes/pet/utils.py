@@ -2,7 +2,7 @@
 """
 PET image preprocessing utilities nipype function helpers.
 """
-from   nipype.interfaces.base    import traits
+from   nipype.interfaces.base import traits
 from   nipype.interfaces.utility import Merge, Function, IdentityInterface
 from   nipype.pipeline import Workflow
 

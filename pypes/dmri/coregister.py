@@ -3,8 +3,8 @@
 Nipype workflows to co-register anatomical MRI to diffusion MRI.
 """
 import nipype.pipeline.engine as pe
-from   nipype.interfaces.fsl     import MultiImageMaths
-from   nipype.interfaces.utility import IdentityInterface, Select, Split
+from   nipype.interfaces.fsl import MultiImageMaths, Split
+from   nipype.interfaces.utility import IdentityInterface, Select
 from   nipype.algorithms.misc import Gunzip
 
 from .._utils  import flatten_list
@@ -78,8 +78,8 @@ def spm_anat_to_diff_coregistration(wf_name="spm_anat_to_diff_coregistration"):
     coreg_b0  = setup_node(spm_coregister(cost_function="mi"), name="coreg_b0")
 
     # co-registration
-    brain_sel    = pe.Node   (Select(index=[0, 1, 2]),            name="brain_sel")
-    coreg_split  = pe.Node   (Split(splits=[1, 2], squeeze=True), name="coreg_split")
+    brain_sel    = pe.Node(Select(index=[0, 1, 2]),            name="brain_sel")
+    coreg_split  = pe.Node(Split(splits=[1, 2], squeeze=True), name="coreg_split")
 
     brain_merge  = setup_node(MultiImageMaths(), name="brain_merge")
     brain_merge.inputs.op_string = "-add '%s' -add '%s' -abs -kernel gauss 4 -dilM -ero -kernel gauss 1 -dilM -bin"

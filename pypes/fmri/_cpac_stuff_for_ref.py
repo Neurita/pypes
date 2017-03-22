@@ -5,7 +5,7 @@ fMRI pre-processing workflows
 
 import nipype.pipeline.engine as pe
 import nipype.interfaces.fsl as fsl
-import nipype.interfaces.utility as util
+import nipype.interfaces as util
 from   nipype.interfaces.afni import preprocess
 
 

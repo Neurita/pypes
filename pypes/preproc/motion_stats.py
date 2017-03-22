@@ -5,25 +5,10 @@ This file is refactored from C-PAC:
 https://github.com/FCP-INDI/C-PAC
 """
 
-import nipype.pipeline.engine    as pe
-from   nipype.interfaces.utility import Function, Select, IdentityInterface
+import nipype.pipeline.engine as pe
+from   nipype.interfaces import Function, IdentityInterface
 
-from   ..preproc import (auto_spm_slicetime,
-                         nipy_motion_correction,
-                         spm_coregister,
-                         spm_normalize,
-                         get_bounding_box,
-                         spm_tpm_priors_path,
-                         )
-
-from   ..config import setup_node, get_config_setting, check_atlas_file
-from   .._utils import format_pair_list, flatten_list
-from   ..utils  import (remove_ext,
-                        extend_trait_list,
-                        get_input_node,
-                        get_datasink,
-                        get_input_file_name,
-                        extension_duplicates)
+from   ..config import setup_node
 
 
 def calc_friston_twenty_four(in_file):
