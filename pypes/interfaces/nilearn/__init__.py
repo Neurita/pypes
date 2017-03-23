@@ -2,6 +2,7 @@ from .image import (concat_imgs,
                     math_img,
                     mean_img,
                     smooth_img,
+                    copy_header,
                     resample,
                     resample_to_img,
                     ni2file)

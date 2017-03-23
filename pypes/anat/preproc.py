@@ -11,7 +11,7 @@ from   nipype.interfaces.base    import isdefined
 
 from .utils import biasfield_correct, spm_segment
 
-from   ..interfaces.nilearn import math_img
+from   ..interfaces.nilearn import math_img, copy_header
 from   ..config  import setup_node, check_atlas_file, get_config_setting
 from   ..preproc import (spm_apply_deformations,
                          get_bounding_box,)
@@ -219,23 +219,39 @@ def spm_anat_preprocessing(wf_name="spm_anat_preproc"):
         from ..interfaces.ants import KellyKapowski
 
         segm_img = setup_node(Function(function=math_img,
-                                         input_names=["formula", "out_file", "gm", "wm"],
-                                         output_names=["out_file"],
-                                         imports=['from pypes.interfaces.nilearn import ni2file']),
-                                name='gm-wm_image')
+                                       input_names=["formula", "out_file", "gm", "wm"],
+                                       output_names=["out_file"],
+                                       imports=['from pypes.interfaces.nilearn import ni2file']),
+                              name='gm-wm_image')
         segm_img.inputs.out_file = "gm_wm.nii.gz"
         segm_img.inputs.formula = '((gm >= 0.5)*2 + (wm > 0.5)*3).astype(np.uint8)'
 
+        # copy the header from the GM tissue image to the result from `gm-wm_image`.
+        # this is necessary because the `gm-wm_image` operation sometimes modifies the
+        # offset of the image, which will provoke an ANTs exception due to
+        # ITK tolerance in ImageToImageFilter
+        # https://github.com/stnava/ANTs/issues/74
+        cp_hdr = setup_node(Function(function=copy_header,
+                                     input_names=["in_file", "data_file"],
+                                     output_names=["out_file"],
+                                     imports=['from pypes.interfaces.nilearn import ni2file']),
+                            name='copy_header')
+
         kk = setup_node(KellyKapowski(), name='direct')
+        kk.inputs.cortical_thickness  = 'direct_cortical_thickness.nii.gz'
+        kk.inputs.warped_white_matter = 'direct_warped_white_matter.nii.gz'
 
         # connect the cortical thickness (SPM+DiReCT) method
         wf.connect([
                     # create segmentation GM+WM file
-                    (tissues,    segm_img, [("gm", "gm"),
-                                            ("wm", "wm")]),
+                    (tissues, segm_img, [("gm", "gm"),
+                                         ("wm", "wm")]),
+
+                    (segm_img, cp_hdr, [("out_file", "data_file")]),
+                    (tissues,  cp_hdr, [("gm",       "in_file")]),
 
                     # kellykapowski
-                    (segm_img, kk, [("out_file", "segmentation_image")]),
+                    (cp_hdr,   kk, [("out_file", "segmentation_image")]),
                     (tissues,  kk, [("gm", "gray_matter_prob_image"),
                                     ("wm", "white_matter_prob_image")]),
 
@@ -280,22 +296,22 @@ def attach_spm_anat_preprocessing(main_wf, wf_name="spm_anat_preproc"):
 
     # dataSink output substitutions
     regexp_subst = [
-                    (r"/{anat}_.*corrected_seg8.mat$",      "/{anat}_to_mni_affine.mat"),
-                    (r"/m{anat}.*_corrected.nii$",          "/{anat}_biascorrected.nii"),
-                    (r"/wm{anat}.*_corrected.nii$",         "/{anat}_mni.nii"),
-                    (r"/y_{anat}.*nii$",                    "/{anat}_to_mni_field.nii"),
-                    (r"/iy_{anat}.*nii$",                   "/{anat}_to_mni_inv_field.nii"),
-                    (r"/mwc1{anat}.*nii$",                  "/{anat}_gm_mod_mni.nii"),
-                    (r"/mwc2{anat}.*nii$",                  "/{anat}_wm_mod_mni.nii"),
-                    (r"/mwc3{anat}.*nii$",                  "/{anat}_csf_mod_mni.nii"),
-                    (r"/mwc4{anat}.*nii$",                  "/{anat}_nobrain_mod_mni.nii"),
-                    (r"/c1{anat}.*nii$",                    "/{anat}_gm.nii"),
-                    (r"/c2{anat}.*nii$",                    "/{anat}_wm.nii"),
-                    (r"/c3{anat}.*nii$",                    "/{anat}_csf.nii"),
-                    (r"/c4{anat}.*nii$",                    "/{anat}_nobrain.nii"),
-                    (r"/c5{anat}.*nii$",                    "/{anat}_nobrain_mask.nii"),
-                    (r"/gm_wm_cortical_thickness.nii.gz$",  "/{anat}_gm_cortical_thickness.nii.gz"),
-                    (r"/gm_wm_warped_white_matter.nii.gz$", "/{anat}_warped_white_matter.nii.gz"),
+                    (r"/{anat}_.*corrected_seg8.mat$",    "/{anat}_to_mni_affine.mat"),
+                    (r"/m{anat}.*_corrected.nii$",        "/{anat}_biascorrected.nii"),
+                    (r"/wm{anat}.*_corrected.nii$",       "/{anat}_mni.nii"),
+                    (r"/y_{anat}.*nii$",                  "/{anat}_to_mni_field.nii"),
+                    (r"/iy_{anat}.*nii$",                 "/{anat}_to_mni_inv_field.nii"),
+                    (r"/mwc1{anat}.*nii$",                "/{anat}_gm_mod_mni.nii"),
+                    (r"/mwc2{anat}.*nii$",                "/{anat}_wm_mod_mni.nii"),
+                    (r"/mwc3{anat}.*nii$",                "/{anat}_csf_mod_mni.nii"),
+                    (r"/mwc4{anat}.*nii$",                "/{anat}_nobrain_mod_mni.nii"),
+                    (r"/c1{anat}.*nii$",                  "/{anat}_gm.nii"),
+                    (r"/c2{anat}.*nii$",                  "/{anat}_wm.nii"),
+                    (r"/c3{anat}.*nii$",                  "/{anat}_csf.nii"),
+                    (r"/c4{anat}.*nii$",                  "/{anat}_nobrain.nii"),
+                    (r"/c5{anat}.*nii$",                  "/{anat}_nobrain_mask.nii"),
+                    (r"/direct_cortical_thickness.nii$",  "/{anat}_gm_cortical_thickness.nii"),
+                    (r"/direct_warped_white_matter.nii$", "/{anat}_warped_white_matter.nii"),
                    ]
     regexp_subst = format_pair_list(regexp_subst, anat=anat_fbasename)
 

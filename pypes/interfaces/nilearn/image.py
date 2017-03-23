@@ -192,3 +192,20 @@ def smooth_img(in_file, fwhm, out_file=None):
     """
     import nilearn.image as niimg
     return niimg.smooth_img(in_file, fwhm=fwhm)
+
+
+@ni2file(suffix='')
+def copy_header(in_file, data_file, out_file=None):
+    """ Use nilearn.image.new_img_like to copy the header
+    from `in_file` to `data_file` and return the result.
+    Returns
+    -------
+    out_file: str
+        The absolute path to the output file.
+    """
+    import nilearn.image as niimg
+
+    img = niimg.load_img(data_file)
+
+    return niimg.new_img_like(in_file, img.get_data(),
+                              affine=img.affine, copy_header=True)
