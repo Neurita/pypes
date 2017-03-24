@@ -3,8 +3,8 @@
 Nipype workflows to co-register anatomical MRI to diffusion MRI.
 """
 import nipype.pipeline.engine as pe
-from   nipype.interfaces.fsl import MultiImageMaths, Split
-from   nipype.interfaces.utility import IdentityInterface, Select
+from   nipype.interfaces.fsl import MultiImageMaths
+from   nipype.interfaces.utility import IdentityInterface, Select, Split
 from   nipype.algorithms.misc import Gunzip
 
 from .._utils  import flatten_list
