@@ -439,6 +439,6 @@ def attach_spm_warp_fmri_wf(main_wf, registration_wf_name="spm_warp_fmri", do_gr
 
     if do_atlas:
         main_wf.connect([(anat_wf,      warp_fmri_wf, [("anat_output.atlas_anat",   "wfmri_input.atlas_anat")]),
-                         (warp_fmri_wf, datasink,     [("wfmri_output.atlas_anat",  "rest.@atlas")]),
+                         (warp_fmri_wf, datasink,     [("wfmri_output.atlas_fmri",  "rest.@atlas")]),
                          ])
     return main_wf
