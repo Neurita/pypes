@@ -179,7 +179,7 @@ def spm_anat_preprocessing(wf_name="spm_anat_preproc"):
                                      (("native_class_images", selectindex, 2), "csf"),
                                     ]),
 
-                (tissues,   brain_mask,  [("gm", "gm"), ("wm", "wm"), ("csf", "csf"),]),
+                (tissues, brain_mask, [("gm", "gm"), ("wm", "wm"), ("csf", "csf"),]),
 
                 # output
                 (warp_anat, anat_output, [("normalized_files",           "anat_mni")]),
@@ -194,7 +194,7 @@ def spm_anat_preprocessing(wf_name="spm_anat_preproc"):
 
     # atlas warping nodes
     if do_atlas:
-        gunzip_atlas = pe.Node   (Gunzip(),                 name="gunzip_atlas")
+        gunzip_atlas = pe.Node(Gunzip(), name="gunzip_atlas")
         warp_atlas   = setup_node(spm_apply_deformations(), name="warp_atlas")
         anat_bbox    = setup_node(Function(function=get_bounding_box,
                                            input_names=["in_file"],
