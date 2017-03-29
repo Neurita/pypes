@@ -1,8 +1,19 @@
 Changelog
 =========
 
-Version 0.3.3 (master)
+Version 0.3.5 (master)
 ----------------------
+
+
+
+Version 0.3.4
+-------------
+
+- Fix connection naming in the fMRI pipeline atlas output.
+
+
+Version 0.3.3
+-------------
 
 - Fix output renaming in SPM+DiReCT pipeline.
 
