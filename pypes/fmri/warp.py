@@ -10,7 +10,7 @@ from   nipype.interfaces.utility import Function, Merge, IdentityInterface
 from   nipype.interfaces import spm, fsl
 
 from   .._utils  import format_pair_list
-from   ..config  import setup_node, get_config_setting
+from   ..config  import setup_node, get_config_setting, check_atlas_file
 from   ..preproc import (spm_normalize,
                          get_bounding_box,
                          spm_tpm_priors_path,
@@ -65,11 +65,13 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", register_to_grptemplate=False):
 
     wfmri_input.epi_template: traits.File
         Reference EPI template file for inter subject registration.
-
         If `do_group_template` is True you must specify this input.
 
     wfmri_input.brain_mask: traits.File
         Brain mask in fMRI space.
+
+    wfmri_input.atlas_anat: traits.File
+        Atlas in subject anatomical space.
 
     Nipype Outputs
     --------------
@@ -140,6 +142,11 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", register_to_grptemplate=False):
 
     if register_to_grptemplate:
         in_fields += ['epi_template']
+
+    do_atlas, _ = check_atlas_file()
+    if do_atlas:
+        in_fields  += ["atlas_anat"]
+        out_fields += ["atlas_fmri"]
 
     # input identities
     wfmri_input = setup_node(IdentityInterface(fields=in_fields, mandatory_inputs=True),
@@ -276,6 +283,20 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", register_to_grptemplate=False):
                     (coreg, rest_output, [("coregistered_files",  "coreg_others")]),
                    ])
 
+    # atlas file in fMRI space
+    if anat2fmri:
+        coreg_atlas = setup_node(spm_coregister(cost_function="mi"), name="coreg_atlas2fmri")
+
+        # set the registration interpolation to nearest neighbour.
+        coreg_atlas.inputs.write_interp = 0
+        wf.connect([
+                    (wfmri_input, coreg_atlas, [("reference_file", "source"),
+                                                ("atlas_anat", "apply_to_files"),
+                                               ]),
+                    (in_gunzip,   coreg_atlas, [("out_file",           "target")]),
+                    (coreg_atlas, rest_output, [("coregistered_files", "atlas_fmri")]),
+                  ])
+
     # smooth and sink
     wf.connect([
                 # smooth the final bandpassed image
@@ -370,6 +391,17 @@ def attach_spm_warp_fmri_wf(main_wf, registration_wf_name="spm_warp_fmri", do_gr
                     (r"/w[r]?corr_stc{fmri}_trim[\w_]*_smooth\.nii$",       "/{fmri}_nofilt_smooth_mni.nii"),
                   ]
     regexp_subst = format_pair_list(regexp_subst, fmri=rest_fbasename, anat=anat_fbasename)
+
+    # prepare substitution for atlas_file, if any
+    do_atlas, atlas_file = check_atlas_file()
+    if do_atlas:
+        atlas_basename = remove_ext(op.basename(atlas_file))
+        regexp_subst.extend([
+                             (r"/[\w]*{atlas}.*\.nii$", "/{atlas}_{fmri}_space.nii"),
+                            ])
+        regexp_subst = format_pair_list(regexp_subst, atlas=atlas_basename,
+                                                      fmri=rest_fbasename)
+
     regexp_subst += extension_duplicates(regexp_subst)
     datasink.inputs.regexp_substitutions = extend_trait_list(datasink.inputs.regexp_substitutions,
                                                              regexp_subst)
@@ -405,4 +437,8 @@ def attach_spm_warp_fmri_wf(main_wf, registration_wf_name="spm_warp_fmri", do_gr
                                                    ]),
                         ])
 
+    if do_atlas:
+        main_wf.connect([(anat_wf,      warp_fmri_wf, [("anat_output.atlas_anat",   "wfmri_input.atlas_anat")]),
+                         (warp_fmri_wf, datasink,     [("dti_co_output.atlas_anat", "rest.@atlas")]),
+                         ])
     return main_wf
