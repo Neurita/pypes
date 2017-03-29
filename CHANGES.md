@@ -1,6 +1,20 @@
 Changelog
 =========
 
+Version 0.3.2
+-------------
+
+- Fix output renaming in SPM+DiReCT pipeline.
+
+- Add motion_stats_sheet to fmri utils.
+
+- Add `black_bg` parameter to multi slices plotting functions.
+
+- General fix on import ordering which was raising errors from new Nipype. 
+
+- Add atlas warping to fMRI pipeline.
+
+
 Version 0.3 - 0.3.1
 -------------------
 - Add motion statistics measures in DTI pipeline.
