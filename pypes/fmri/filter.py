@@ -47,7 +47,7 @@ def bandpass_filter(files, lowpass_freq=0.1, highpass_freq=0.01, tr=2):
         highidx = 0
         if highpass_freq > 0:
             highidx = np.round(float(highpass_freq) / fs * timepoints)
-        F[highidx:lowidx] = 1
+        F[int(highidx):int(lowidx)] = 1
         F = ((F + F[::-1]) > 0).astype(int)
         data = img.get_data()
         if np.all(F == 1):
