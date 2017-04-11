@@ -6,10 +6,13 @@ import os.path as op
 
 import nipype.pipeline.engine    as pe
 from   nipype.algorithms.misc    import Gunzip
-from   nipype.interfaces.utility import Merge, IdentityInterface, Function
 from   nipype.interfaces         import spm
+from   nipype.interfaces.utility import Merge, Select, IdentityInterface, Function
 
 from   .pvc      import petpvc_workflow
+from  .utils     import (petpvc_cmd,
+                         petpvc_mask,
+                         intensity_norm)
 from   ..config  import (setup_node,
                         check_atlas_file,
                         get_config_setting)
@@ -31,24 +34,25 @@ from   ..utils import (get_datasink,
 from   .._utils import format_pair_list, flatten_list
 
 
-# TODO: merge the two workflows below, maybe splitting them in
-# two wf steps: pre-processing then registration.
+# WIP: merge the two workflows below, maybe splitting them in two wf steps: pre-processing then registration.
 def spm_mrpet_preprocessing(wf_name="spm_mrpet_preproc"):
     """ Run the PET pre-processing workflow against the
     gunzip_pet.in_file files.
     It depends on the anat_preproc_workflow, so if this
     has not been run, this function will run it too.
 
-    # TODO: organize the anat2pet hack/condition somehow:
+    # WIP: organize the anat2pet hack/condition somehow:
+    - Becquerel quantification (TODO)
     If anat2pet:
-    - SPM12 Coregister T1 and tissues to PET
-    - PVC the PET image in PET space
-    - SPM12 Warp PET to MNI
+    - SPM12 Coregister T1 and tissues to PET (TODO)
+    - PVC the PET image in PET space (TODO)
+    - Normalize GM (TODO)
+    - SPM12 Warp PET to MNI (TODO)
     else:
-    - SPM12 Coregister PET to T1
-    - PVC the PET image in anatomical space
+    - SPM12 Coregister PET to T1 (TODO)
+    - PVC the PET image in anatomical space (TODO)
     - SPM12 Warp PET in anatomical space to MNI through the
-    `anat_to_mni_warp`.
+    `anat_to_mni_warp`. (TODO)
 
     Parameters
     ----------
@@ -74,7 +78,8 @@ def spm_mrpet_preprocessing(wf_name="spm_mrpet_preproc"):
 
     pet_input.tissues: list of traits.File
         List of tissues files from the New Segment process.
-        At least the first 3 tissues must be present.
+        At least the first 3 tissues must be in this order:
+        GM, WM, and CSF
 
     Nipype outputs
     --------------
@@ -134,13 +139,42 @@ def spm_mrpet_preprocessing(wf_name="spm_mrpet_preproc"):
         in_fields  += ["atlas_anat"]
         out_fields += ["atlas_pet" ]
 
+    # check settings
+    do_tissue_pvc = get_config_setting('mrpet.do_tissue_pvc', True)
+    do_gm_norm    = get_config_setting('mrpet.do_gm_normalization', True)
+    # TODO: need to get the Slope and Intercept from the DICOM file for:
+    # do_becq_quant = get_config_setting('mrpet.do_becq_quant', False)
+
     # input
     pet_input = setup_node(IdentityInterface(fields=in_fields, mandatory_inputs=True),
                            name="pet_input")
 
-    # workflow to perform partial volume correction
-    petpvc    = petpvc_workflow(wf_name="petpvc")
+    # coreg pet
+    gunzip_pet  = setup_node(Gunzip(), name="gunzip_pet")
+    coreg_pet   = setup_node(spm_coregister(cost_function="mi"), name="coreg_pet")
 
+    # pick GM, WM and CSF
+    flat_list = pe.Node(Function(input_names=['list_of_lists'], output_names=['out'],
+                                 function=flatten_list),
+                        name='flatten_tissue_list')
+    tissues_sel = setup_node(Select(index=[0, 1, 2]), name="tissues")
+
+    # PETPVC
+    if do_tissue_pvc:
+        pvc = setup_node(petpvc_cmd(pvc_method='RBV'), name="petpvc")
+
+        # workflow to create the mask
+        mask_wf = petpvc_mask(wf_name="petpvc_mask")
+
+    if do_gm_norm:
+        # intensity normalization
+        select_gm = setup_node(Select(index=[0]), name="select_gm")
+        norm_wf = intensity_norm(wf_name="intensity_norm_gm")
+
+    if do_gm_norm and do_tissue_pvc:
+        norm_pvc_wf = intensity_norm(wf_name="intensity_norm_pvc_gm")
+
+    # warp files to MNI
     merge_list = setup_node(Merge(4), name='merge_for_unzip')
     gunzipper = pe.MapNode(Gunzip(), name="gunzip", iterfield=['in_file'])
 
@@ -159,47 +193,123 @@ def spm_mrpet_preprocessing(wf_name="spm_mrpet_preproc"):
     wf = pe.Workflow(name=wf_name)
 
     # check how to perform the registration, to decide how to build the pipeline
-    anat2pet = get_config_setting('registration.anat2pet', False)
+    anat2pet = get_config_setting('registration.anat2pet', True)
+
     if anat2pet:
         wf.connect([
                     # inputs
-                    (pet_input, petpvc,     [("in_file", "pvc_input.in_file"),
-                                             ("anat",    "pvc_input.reference_file"),
-                                             ("tissues", "pvc_input.tissues")]),
+                    (pet_input, gunzip_pet,  [("in_file", "in_file")]),
+                    (pet_input, tissues_sel, [("tissues", "inlist")]),
 
+                    (pet_input, coreg_pet,   [("reference_file", "source")]),
+
+                    # unzip to coregister the reference file (anatomical image) to PET space.
+                    (gunzip_pet, coreg_pet,  [("out_file", "target")]),
+
+                    (tissues_sel, flat_list, [("out", "list_of_lists")]),
+                    (flat_list,   coreg_pet, [("out", "apply_to_files")]),
+
+                    # TODO: to check below
                     # gunzip some files for SPM Normalize
-                    (petpvc,    merge_list, [("pvc_output.pvc_out",    "in1"),
-                                             ("pvc_output.brain_mask", "in2"),
-                                             ("pvc_output.gm_norm",    "in3")]),
-                    (pet_input, merge_list, [("in_file",               "in4")]),
+                    (pet_input,  merge_list, [("in_file", "in4")]),
 
                     (merge_list, gunzipper, [("out", "in_file")]),
 
                     # warp the PET PVCed to MNI
-                    (petpvc,    warp_pet,   [("pvc_output.coreg_ref", "image_to_align")]),
+                    (pvc,    warp_pet,      [("pvc_output.coreg_ref", "image_to_align")]),
                     (gunzipper, warp_pet,   [("out_file",             "apply_to_files")]),
                     (tpm_bbox,  warp_pet,   [("bbox",                 "write_bounding_box")]),
 
+                    # normalize voxel values of PET PVCed by demeaning it entirely by GM PET voxel values
+                    # (rbvpvc,      norm_wf,    [("out_file", "intnorm_input.source")]),
+                    # (select_gm,   norm_wf,    [("out",      "intnorm_input.mask")]),
+
+                    # the list of tissues to the mask wf and the GM for PET intensity normalization
+                    (pet_input, mask_wf, [("tissues", "pvcmask_input.tissues")]),
+
+                    # the PET in native space to PVC correction
+                    (pet_input,  pvc,    [("in_file", "in_file")]),
+
+                    # the merged file with 4 tissues to PCV correction
+                    (mask_wf, pvc, [("pvcmask_output.petpvc_mask", "mask_file")]),
+
                     # output
-                    (petpvc,    pet_output, [("pvc_output.pvc_out",      "pvc_out"),
-                                             ("pvc_output.brain_mask",   "brain_mask"),
-                                             ("pvc_output.coreg_ref",    "coreg_ref"),
-                                             ("pvc_output.coreg_others", "coreg_others"),
-                                             ("pvc_output.gm_norm",      "gm_norm")]),
+                    #(coreg_pet,   pvc_output, [("coregistered_source",        "coreg_ref")]),
+                    #(coreg_pet,   pvc_output, [("coregistered_files",         "coreg_others")]),
+                    (pvc,         pet_output, [("out_file",                   "pvc_out")]),
+                    (mask_wf,     pet_output, [("pvcmask_output.brain_mask",  "brain_mask")]),
+                    (mask_wf,     pet_output, [("pvcmask_output.petpvc_mask", "petpvc_mask")]),
+                    #(norm_wf,     pvc_output, [("intnorm_output.out_file",    "gm_norm")]),
 
                     # output
                     (warp_pet,  pet_output, [("normalized_files",  "pvc_warped"),
                                              ("deformation_field", "warp_field")]),
                    ])
+
+        if do_tissue_pvc:
+            wf.connect([
+
+                        # normalize voxel values of PET PVCed by demeaning it entirely by GM PET voxel values
+                        # (rbvpvc,      norm_wf,    [("out_file", "intnorm_input.source")]),
+                        # (select_gm,   norm_wf,    [("out",      "intnorm_input.mask")]),
+
+                        # the list of tissues to the mask wf and the GM for PET intensity normalization
+                        (pet_input, mask_wf, [("tissues", "pvcmask_input.tissues")]),
+
+                        # the PET in native space to PVC correction
+                        (pet_input,  pvc,    [("in_file", "in_file")]),
+
+                        # the merged file with 4 tissues to PCV correction
+                        (mask_wf, pvc, [("pvcmask_output.petpvc_mask", "mask_file")]),
+
+                        # output
+                        #(coreg_pet,   pvc_output, [("coregistered_source",        "coreg_ref")]),
+                        #(coreg_pet,   pvc_output, [("coregistered_files",         "coreg_others")]),
+                        (pvc,         pet_output, [("out_file",                   "pvc_out")]),
+                        (mask_wf,     pet_output, [("pvcmask_output.brain_mask",  "brain_mask")]),
+                        (mask_wf,     pet_output, [("pvcmask_output.petpvc_mask", "petpvc_mask")]),
+                        #(norm_wf,     pvc_output, [("intnorm_output.out_file",    "gm_norm")]),
+                       ])
+
+        if do_gm_norm:
+            wf.connect([
+                        # normalize voxel values of PET PVCed by demeaning it entirely by GM PET voxel values
+                        # (rbvpvc,      norm_wf,    [("out_file", "intnorm_input.source")]),
+                        # (select_gm,   norm_wf,    [("out",      "intnorm_input.mask")]),
+                        #(norm_wf,     pvc_output, [("intnorm_output.out_file",    "gm_norm")]),
+                       ])
+
+        if do_gm_norm and do_tissue_pvc:
+            wf.connect([
+                        # normalize voxel values of PET PVCed by demeaning it entirely by GM PET voxel values
+                        # (rbvpvc,      norm_wf,    [("out_file", "intnorm_input.source")]),
+                        # (select_gm,   norm_wf,    [("out",      "intnorm_input.mask")]),
+                        #(norm_wf,     pvc_output, [("intnorm_output.out_file",    "gm_norm")]),
+                       ])
+
+
     else: # PET 2 ANAT
         collector  = setup_node(Merge(2), name='merge_for_warp')
         apply_warp = setup_node(spm_apply_deformations(), name="warp_pet")
 
         wf.connect([
                     # inputs
-                    (pet_input, petpvc,     [("in_file", "pvc_input.in_file"),
-                                             ("anat",    "pvc_input.reference_file"),
-                                             ("tissues", "pvc_input.tissues")]),
+                    (pet_input,   coreg_pet,   [("reference_file",     "target")]),
+
+                    # unzip PET image and set as a source to register it to anatomical space.
+                    (gunzip_pet,  coreg_pet,  [("out_file",            "source")]),
+
+                    (tissues_sel, flat_list,  [("out", "list_of_lists")]),
+                    (flat_list,   coreg_pet,  [("out", "apply_to_files")]),
+
+                    # the list of tissues to the mask wf and the GM for PET intensity normalization
+                    (tissues_sel, select_gm,  [("out", "inlist")]),
+                    (flat_list,   mask_wf,    [("out", "pvcmask_input.tissues")]),
+
+                    # # inputs
+                    # (pet_input, petpvc,     [("in_file", "pvc_input.in_file"),
+                    #                          ("anat",    "pvc_input.reference_file"),
+                    #                          ("tissues", "pvc_input.tissues")]),
 
                     # gunzip some files for SPM Normalize
                     (petpvc,    merge_list, [("pvc_output.pvc_out",    "in1"),
@@ -288,6 +398,7 @@ def spm_mrpet_grouptemplate_preprocessing(wf_name="spm_mrpet_grouptemplate_prepr
     --------------
     pet_output.pvc_out: existing file
         The results of the PVC process.
+        If `mrpet.do_tissue_pvc` is True.
 
     pet_output.brain_mask: existing file
         A brain mask calculated with the tissues file.
@@ -305,6 +416,7 @@ def spm_mrpet_grouptemplate_preprocessing(wf_name="spm_mrpet_grouptemplate_prepr
         The outputs of the PETPVC workflow normalized to the group template.
         The result of every internal pre-processing step is normalized to the
         group template here.
+        If `mrpet.do_tissue_pvc` is True.
 
     pet_output.warp_field: existing files
         Spatial normalization parameters .mat files.
@@ -312,6 +424,12 @@ def spm_mrpet_grouptemplate_preprocessing(wf_name="spm_mrpet_grouptemplate_prepr
     pet_output.gm_norm: existing file
         The output of the grey matter intensity normalization process.
         This is the last step in the PET signal correction, before registration.
+        If `mrpet.do_gm_norm` is True.
+
+    pet_output.pvc_norm: existing file
+        The output of the grey matter intensity normalization process.
+        This is the last step in the PET signal correction, before registration.
+        If `mrpet.do_gm_norm` and `mrpet.do_tissue_pvc` are True.
 
     pet_output.atlas_pet: existing file
         Atlas image warped to PET space.
@@ -506,9 +624,25 @@ def attach_spm_mrpet_preprocessing(main_wf, wf_name="spm_mrpet_preproc",
                      (r"/rc1{anat}_corrected.nii$",       "/gm_{pet}.nii"),
                      (r"/rc2{anat}_corrected.nii$",       "/wm_{pet}.nii"),
                      (r"/rc3{anat}_corrected.nii$",       "/csf_{pet}.nii"),
-                   ]
+
+                     # PETPVC
+                     (r"/{pet}_.*_pvc.nii.gz$", "/{pet}_pvc.nii.gz"),
+                     (r"/{pet}_.*_pvc_maths.nii.gz$", "/{pet}_pvc_norm.nii.gz"),
+                     (r"/rm{anat}_corrected.nii$", "/{anat}_{pet}.nii"),
+                     (r"/rc1{anat}_corrected.nii$", "/gm_{pet}.nii"),
+                     (r"/rc2{anat}_corrected.nii$", "/wm_{pet}.nii"),
+                     (r"/rc3{anat}_corrected.nii$", "/csf_{pet}.nii"),
+                     (r"/tissues_brain_mask.nii$", "/brain_mask_anat.nii.gz"),
+                     ]
     regexp_subst = format_pair_list(regexp_subst, pet=pet_fbasename, anat=anat_fbasename,
                                     template=template_name)
+
+    # check settings
+    do_atlas, atlas_file = check_atlas_file()
+    do_tissue_pvc = get_config_setting('mrpet.do_tissue_pvc', True)
+    do_gm_norm    = get_config_setting('mrpet.do_gm_normalization', True)
+    # TODO: need to get the Slope and Intercept from the DICOM file for:
+    # do_becq_quant = get_config_setting('mrpet.do_becq_quant', False)
 
     # prepare substitution for atlas_file, if any
     do_atlas, atlas_file = check_atlas_file()
@@ -546,6 +680,25 @@ def attach_spm_mrpet_preprocessing(main_wf, wf_name="spm_mrpet_preproc",
                                          ("pet_output.pet_warped",   "mrpet.{}.@pet_warped".format(output_subfolder)),
                                         ]),
                      ])
+
+    if do_gm_norm:
+            main_wf.connect([
+                             (pet_wf, datasink, [("pet_output.gm_norm", "mrpet.@norm"),]),
+                             ])
+
+    if do_tissue_pvc:
+        main_wf.connect([
+                         (pet_wf, datasink, [
+                                             ("pet_output.pvc_mask",   "mrpet.@pvc_mask"),
+                                             ("pet_output.pvc_out",    "mrpet.@pvc"),
+                                             ("pet_output.pvc_warped", "mrpet.{}.@pvc".format(output_subfolder)),
+                                            ]),
+                          ])
+
+    if do_gm_norm and do_tissue_pvc:
+            main_wf.connect([
+                             (pet_wf, datasink, [("pet_output.pvc_gm_norm", "mrpet.@pvc_norm"),]),
+                             ])
 
     if not do_group_template:
         # Connect the nodes

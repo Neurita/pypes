@@ -46,8 +46,8 @@ def petpvc_workflow(wf_name="petpvc"):
         The anatomical image in its native space. For registration reference.
 
     pvc_input.tissues: list of traits.File
-        List of tissues files from the New Segment process. At least the first
-        3 tissues must be present.
+        List of tissues files from the New Segment process.
+        GM
 
     Nipype outputs
     --------------
@@ -104,7 +104,7 @@ def petpvc_workflow(wf_name="petpvc"):
     tissues_sel = setup_node(Select(index=[0, 1, 2]),            name="tissues")
     select_gm   = setup_node(Select(index=[0]),                  name="select_gm")
     rbvpvc      = setup_node(petpvc_cmd(fwhm_mm=psf_fwhm,
-                                        pvc_method='RBV'),       name="rbvpvc")
+                                        pvc_method='RBV'),       name="pvc")
 
     # output
     pvc_output = setup_node(IdentityInterface(fields=out_fields), name="pvc_output")
@@ -126,6 +126,7 @@ def petpvc_workflow(wf_name="petpvc"):
 
     # check how to perform the registration, to decide how to build the pipeline
     anat2pet = get_config_setting('registration.anat2pet', False)
+
     if anat2pet:
         wf.connect([
                     # inputs
@@ -147,7 +148,8 @@ def petpvc_workflow(wf_name="petpvc"):
                     # the merged file with 4 tissues to PCV correction
                     (mask_wf,     rbvpvc,     [("pvcmask_output.petpvc_mask", "mask_file")]),
 
-                    # normalize voxel values of PET PVCed by demeaning it entirely by GM PET voxel values
+                    # normalize voxel values of PET PVCed by demeaning it entirely by
+                    # GM PET voxel values
                     (rbvpvc,      norm_wf,    [("out_file", "intnorm_input.source")]),
                     (select_gm,   norm_wf,    [("out",      "intnorm_input.mask")]),
 
@@ -193,86 +195,90 @@ def petpvc_workflow(wf_name="petpvc"):
                     (mask_wf,     pvc_output, [("pvcmask_output.petpvc_mask",  "petpvc_mask")]),
                     (norm_wf,     pvc_output, [("intnorm_output.out_file",     "gm_norm")]),
                    ])
-
     return wf
 
 
-def attach_petpvc_workflow(main_wf, wf_name="spm_petpvc"):
-    """ Attach a PETPVC workflow.
+def no_warp_petpvc(wf_name="petpvc"):
+    """ Run the PET pre-processing workflow against the gunzip_pet.in_file files.
 
-    This will also attach the anat preprocessing workflow to `main_wf`. The reason
-    for this is that the PET pre-processing steps here make use of anatomical MR
-    pre-processing outputs.
-
-    Nipype Inputs for `main_wf`
-    ---------------------------
-    Note: The `main_wf` workflow is expected to have an `input_files` and a `datasink` nodes.
-
-    input_files.select.pet: input node
-
-    datasink: nipype Node
+    It does:
+    - PVC the PET image in PET space
 
     Parameters
     ----------
-    main_wf: nipype Workflow
-
     wf_name: str
-        Name of the preprocessing workflow
+        Name of the workflow.
 
-    Nipype Workflow Dependencies
-    ----------------------------
-    This workflow depends on:
-    - spm_anat_preproc
+    Nipype Inputs
+    -------------
+    pvc_input.in_file: traits.File
+        The PET image file.
+
+    pvc_input.tissues: list of traits.File
+        List of tissues files from the in PET space.
+
+
+    Nipype outputs
+    --------------
+    pvc_output.pvc_out: existing file
+        The output of the PETPVC process.
+
+    pvc_output.petpvc_mask: existing file
+        The mask built for the PETPVC.
+
+    pvc_output.brain_mask: existing file
+        A brain mask calculated with the tissues file.
 
     Returns
     -------
-    main_wf: nipype Workflow
+    wf: nipype Workflow
     """
-    # Dependency workflows
-    anat_wf  = main_wf.get_node("spm_anat_preproc")
-    in_files = get_input_node(main_wf)
-    datasink = get_datasink  (main_wf)
+    # fixed parameters of the NUK mMR
+    psf_fwhm = (4.3, 4.3, 4.3)
 
-    # The base name of the 'pet' file for the substitutions
-    anat_fbasename = remove_ext(op.basename(get_input_file_name(in_files, 'anat')))
-    pet_fbasename  = remove_ext(op.basename(get_input_file_name(in_files, 'pet')))
+    # specify input and output fields
+    in_fields  = ["in_file",
+                  "tissues"]
 
-    # get the PET preprocessing pipeline
-    pet_wf = petpvc_workflow(wf_name=wf_name)
+    out_fields = ["pvc_out",
+                  "petpvc_mask",]
 
-    # dataSink output substitutions
-    regexp_subst = [
-                     (r"/{pet}_.*_pvc.nii.gz$",       "/{pet}_pvc.nii.gz"),
-                     (r"/{pet}_.*_pvc_maths.nii.gz$", "/{pet}_pvc_norm.nii.gz"),
-                     (r"/rm{anat}_corrected.nii$",    "/{anat}_{pet}.nii"),
-                     (r"/rc1{anat}_corrected.nii$",   "/gm_{pet}.nii"),
-                     (r"/rc2{anat}_corrected.nii$",   "/wm_{pet}.nii"),
-                     (r"/rc3{anat}_corrected.nii$",   "/csf_{pet}.nii"),
-                     (r"/tissues_brain_mask.nii$",    "/brain_mask_anat.nii.gz"),
-                   ]
-    regexp_subst = format_pair_list(regexp_subst, pet=pet_fbasename, anat=anat_fbasename)
-    regexp_subst += extension_duplicates(regexp_subst)
-    datasink.inputs.regexp_substitutions = extend_trait_list(datasink.inputs.regexp_substitutions,
-                                                             regexp_subst)
+    # input
+    pvc_input = setup_node(IdentityInterface(fields=in_fields, mandatory_inputs=True),
+                           name="pvc_input")
 
-    # Connect the nodes
-    main_wf.connect([
-                     # pet file input
-                     (in_files, pet_wf, [("pet", "pvc_input.in_file")]),
+    # coreg pet
+    pvc = setup_node(petpvc_cmd(fwhm_mm=psf_fwhm,
+                                pvc_method='RBV'),  name="petpvc")
 
-                     # pet to anat registration
-                     (anat_wf,  pet_wf, [("new_segment.bias_corrected_images", "pet_input.reference_file"),
-                                         ("new_segment.native_class_images",   "pet_input.tissues"),
-                                        ]),
+    # workflow to create the mask
+    mask_wf = petpvc_mask(wf_name="petpvc_mask")
 
-                     (pet_wf, datasink, [
-                                         ("pvc_output.coreg_others", "mrpet.tissues"),
-                                         ("pvc_output.coreg_ref",    "mrpet.@anat"),
-                                         ("pvc_output.pvc_out",      "mrpet.@pvc"),
-                                         ("pvc_output.petpvc_mask",  "mrpet.@petpvc_mask"),
-                                         ("pvc_output.brain_mask",   "mrpet.@brain_mask"),
-                                         ("pvc_output.gm_norm",      "mrpet.@gm_norm"),
-                                        ]),
-                     ])
+    # output
+    pvc_output = setup_node(IdentityInterface(fields=out_fields), name="pvc_output")
 
-    return main_wf
+
+    # Create the workflow object
+    wf = pe.Workflow(name=wf_name)
+
+    wf.connect([
+                # the list of tissues to the mask wf and the GM for PET intensity normalization
+                (pvc_input, mask_wf, [("tissues", "pvcmask_input.tissues")]),
+
+                # the PET in native space to PVC correction
+                (pvc_input,  pvc,    [("in_file", "in_file")]),
+
+                # the merged file with 4 tissues to PCV correction
+                (mask_wf, pvc, [("pvcmask_output.petpvc_mask", "mask_file")]),
+
+                # output
+                #(coreg_pet,   pvc_output, [("coregistered_source",        "coreg_ref")]),
+                #(coreg_pet,   pvc_output, [("coregistered_files",         "coreg_others")]),
+                (pvc,         pvc_output, [("out_file",                   "pvc_out")]),
+                (mask_wf,     pvc_output, [("pvcmask_output.brain_mask",  "brain_mask")]),
+                (mask_wf,     pvc_output, [("pvcmask_output.petpvc_mask", "petpvc_mask")]),
+                #(norm_wf,     pvc_output, [("intnorm_output.out_file",    "gm_norm")]),
+               ])
+
+
+    return wf

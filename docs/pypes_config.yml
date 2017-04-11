@@ -59,6 +59,14 @@ registration.anat2pet: False
 # 5) normalize fMRI to MNI using the anatomical to MNI transformation.
 registration.anat2fmri: False
 
+# PET/MR
+mrpet.do_tissue_pvc: True
+mrpet.do_gm_normalization: True
+
+# TODO: need to get the Slope and Intercept from the DICOM file for:
+mrpet.do_becq_quant: False
+
+
 # DTI
 extract_b0.max_b: 0.0 # maximum b-value to be considered a b0, for brain mask calculation.
 dmri.artifact_detect: True # to compute motion statistics for post-hoc outliers exclusion.
@@ -180,10 +188,10 @@ spm_mrpet_grouptemplate.do_petpvc: True
 spm_mrpet_grouptemplate.template_file: ""
 
 # PET PVC
-rbvpvc.pvc: RBV
-rbvpvc.fwhm_x: 4.3
-rbvpvc.fwhm_y: 4.3
-rbvpvc.fwhm_z: 4.3
+petpvc.pvc: RBV
+petpvc.fwhm_x: 4.3
+petpvc.fwhm_y: 4.3
+petpvc.fwhm_z: 4.3
 
 # Cortical Thickness
 # read: http://nipype.readthedocs.io/en/latest/interfaces/generated/nipype.interfaces.ants.segmentation.html#corticalthickness

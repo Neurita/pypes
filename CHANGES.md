@@ -1,11 +1,13 @@
 Changelog
 =========
 
-Version 0.3 - 0.3.1
+Version 0.3 - 0.3.2
 -------------------
 - Add motion statistics measures in DTI pipeline.
 
 - Improve documentation.
+
+- Add ANTs' KellyKapowski interface.
 
 - Add SPM+DiReCT option to anatomical preprocessing.
 
@@ -16,6 +18,18 @@ Version 0.3 - 0.3.1
 - Fix imports for latest `nipype` version.
 
 - Add `plot_ortho_slices` function to `nilearn` interface.
+
+- Add anatomical co-registered files to the DTI pre-processing
+workflow output.
+
+- Add `motion_stats_sheet` function to `fmri.utils`.
+
+- Refactor PET/MR pre-processing.
+
+- Add options: `mrpet.do_tissue_pvc` and `mrpet.do_gm_normalization`.
+
+- Set `fmri_grptemplate_warp.write_voxel_sizes` and `fmri_warp.write_voxel_sizes`
+configuration settings to [2, 2, 2].
 
 
 Version 0.2.0 - 0.2.1

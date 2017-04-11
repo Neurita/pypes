@@ -153,7 +153,6 @@ def petpvc_mask(wf_name="petpvc_mask"):
                 (merge_tissues, pvcmask_output, [("out_file", "petpvc_mask")]),
                 (brain_mask,    pvcmask_output, [("out_file", "brain_mask")]),
               ])
-
     return wf
 
 
