@@ -26,8 +26,8 @@ Pypes: Workflows for Processing Multimodal Neuroimaging Data
 Front. Neuroinform., April 2017, vol 11, 2017, pages 25
 issn: 1662-5196
 doi: 10.3389/finf.2017.00025
-[https://doi.org/10.3389/fninf.2017.00025](https://doi.org/10.3389/fninf.2017.00025)
 ```
+[https://doi.org/10.3389/fninf.2017.00025](https://doi.org/10.3389/fninf.2017.00025)
 
 ...or the BibTeX:
 ```
