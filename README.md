@@ -16,6 +16,33 @@ The objectives of this projects are:
 
 Please have a look at the documentation [here](http://neuro-pypes.readthedocs.io).
 
+## Citation
+
+If you use Pypes please cite it:
+
+```
+Alexandre M. Savio, Michael Schutte, Manuel Graña and Igor Yakushev
+Pypes: Workflows for Processing Multimodal Neuroimaging Data
+Front. Neuroinform., April 2017, vol 11, 2017, pages 25
+issn: 1662-5196
+doi: 10.3389/finf.2017.00025
+[https://doi.org/10.3389/fninf.2017.00025](https://doi.org/10.3389/fninf.2017.00025)
+```
+
+...or the BibTeX:
+```
+@ARTICLE{10.3389/fninf.2017.00025,
+AUTHOR={Savio, Alexandre M. and Schutte, Michael and Graña, Manuel and Yakushev, Igor},
+TITLE={Pypes: Workflows for Processing Multimodal Neuroimaging Data},
+JOURNAL={Frontiers in Neuroinformatics},
+VOLUME={11},
+PAGES={25},
+YEAR={2017},
+URL={http://journal.frontiersin.org/article/10.3389/fninf.2017.00025},
+DOI={10.3389/fninf.2017.00025},
+ISSN={1662-5196}
+}
+```
 
 ## License
 
