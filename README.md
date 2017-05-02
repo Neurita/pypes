@@ -43,6 +43,7 @@ DOI={10.3389/fninf.2017.00025},
 ISSN={1662-5196}
 }
 ```
+Also considering citing [Nipype](http://nipype.readthedocs.io) and all the other open source tools you use.
 
 ## License
 
