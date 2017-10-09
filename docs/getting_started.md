@@ -6,6 +6,7 @@ In this document we show how to build and run neuroimaging pipelines using
 
 <!-- TOC depthFrom:2 depthTo:6 withLinks:1 updateOnSave:1 orderedList:0 -->
 
+- [Full example](#full-example)
 - [Organize the data files](#organize-the-data-files)
 - [Declaring the data](#declaring-the-data)
 - [Choosing the pipelines](#choosing-the-pipelines)
@@ -14,6 +15,64 @@ In this document we show how to build and run neuroimaging pipelines using
 - [Run](#run)
 
 <!-- /TOC -->
+
+## Full example
+
+```python
+import os
+
+from hansel import Crumb
+from pypes.run import run_debug
+from pypes.config import update_config
+from pypes.io import build_crumb_workflow
+from pypes.anat import attach_spm_anat_preprocessing
+from pypes.fmri import attach_rest_preprocessing
+
+# root path to my data
+base_dir = "/home/pyper/data/cobre/raw"
+
+# the configuration file path
+config_file = "/home/pyper/data/cobre_config.yml"
+
+# define the Crumb filetree of my image database
+data_path = os.path.join(base_dir, "{subject_id}", "session_1", "{modality}", "{image}")
+
+# create the filetree Crumb object
+data_crumb = Crumb(data_path, ignore_list=[".*"])
+
+# the different worflows that I will use with any given name
+attach_functions = {"spm_anat_preproc": attach_spm_anat_preprocessing,
+                    "spm_rest_preproc": attach_rest_preprocessing,}
+
+# the specific parts of the `data_crumb` that define a given modality.
+# **Note**: the key values of this `crumb_arguments` must be the same as expected
+# in the functions in `attach_functions`.
+crumb_arguments = {'anat': [('modality', 'anat_1'),
+                            ('image',    'mprage.nii.gz')],
+                   'rest': [('modality', 'rest_1'),
+                            ('image',    'rest.nii.gz')],
+                  }
+
+# the pypes configuration file with workflow parameter values
+update_config(config_file_path)
+
+# output and working directory paths
+output_dir = os.path.join(os.path.dirname(base_dir), "out")
+cache_dir  = os.path.join(os.path.dirname(base_dir), "wd")
+
+# build the workflow
+wf = build_crumb_workflow(attach_funcs,
+                          data_crumb=data_crumb,
+                          in_out_kwargs=crumb_arguments,
+                          output_dir=output_dir,
+                          cache_dir=cache_dir,)
+
+# plot the workflow and then run it
+run_wf(wf, plugin="MultiProc", n_cpus=4)
+```
+
+This example is explained step-by-step in the following sections.
+
 
 ## Organize the data files
 First, you should organize your dataset.
@@ -31,7 +90,7 @@ The first step is to declare and explain the file tree for the pipeline input.
 Some imports first:
 
 ```python
-import os.path as path
+import os
 
 from hansel import Crumb
 ```
@@ -43,13 +102,13 @@ base_dir = "/home/pyper/data/cobre/raw"
 ```
 
 Now we specify the tree data structure using `hansel.Crumb`.
-We are going to use `path.join` to build the path until the input files of the pipeline.
+We use `os.path.join` to build the path until the input files of the pipeline.
 Each part (subfolder) in this path that has many values, you enclose it with curly braces
 and put a sensible name for it. For example, in the level where all the folder named as
 subject identifiers, I will put `"{subject_id}"`.
 
 ```python
-data_path = path.join(base_dir, "{subject_id}", "session_1", "{modality}", "{image}")
+data_path = os.path.join(base_dir, "{subject_id}", "session_1", "{modality}", "{image}")
 
 data_crumb = Crumb(data_path, ignore_list=[".*"])
 #
@@ -79,7 +138,6 @@ Then we specify and give names to the pipelines:
 ```python
 attach_functions = {"spm_anat_preproc": attach_spm_anat_preprocessing,
                     "spm_rest_preproc": attach_rest_preprocessing,}
-
 ```
 
 One last thing, we have to link each file type to the corresponding pipeline.
@@ -96,13 +154,17 @@ crumb_arguments = {'anat': [('modality', 'anat_1'),
 
 ## Configuration
 
-From pypes you can set up the internal parameters of the pipelines.
-You can either have a separate configuration file (in JSON, YAML, .ini, etc...),
+From `pypes` you can set up the internal parameters of the pipelines.
+
+You can either have a **separate configuration file** (in JSON, YAML, .ini, etc...),
 dealt by [Kaptan](https://github.com/emre/kaptan).
+
 You can also set configuration parameters with a Python `dict`.
+
 Pypes provides a function named `update_config` where you can input a `dict`
-or a file path to update the global configuration state before building the pipelines.
-I recommend YAML, have a look at the [example config file](pypes_config.yml).
+or a file path to update the **global configuration state** before building the pipelines.
+
+We recommend YAML: have a look at the [example config file](pypes_config.yml).
 
 ```python
 from pypes.config import update_config
@@ -150,3 +212,7 @@ from pypes.run import run_debug
 
 run_debug(wf, plugin="MultiProc", n_cpus=4)
 ```
+
+Great, you are done!
+
+Now, check the first part of the Nipype console output, and if everything went fine go for a coffee, and wait for your results.

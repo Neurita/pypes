@@ -1,8 +1,13 @@
 # Datasets
 
-Pypes already has a few sets of workflows which you can use. You would only have
-to download the raw dataset or organize your data in the same way explained below,
-and setup the [pipeline parameters](pypes_config.yml).
+Pypes already includes sets of workflows to against specific datasets
+(listed in the sub-sections below).
+
+For preparation you have to:
+
+- download the raw dataset or,
+- organize your data in the same way explained below, and
+- setup the [pipeline parameters](pypes_config.yml).
 
 <!-- TOC depthFrom:2 depthTo:6 withLinks:1 updateOnSave:1 orderedList:0 -->
 
@@ -13,16 +18,15 @@ and setup the [pipeline parameters](pypes_config.yml).
 
 
 ## COBRE
-The [COBRE dataset](http://fcon_1000.projects.nitrc.org/indi/retro/cobre.html)
-consists of raw anatomical and functional MR data from 72 patients with Schizophrenia
-and 75 healthy controls.
+The **[COBRE dataset](http://fcon_1000.projects.nitrc.org/indi/retro/cobre.html)**
+consists of raw **anatomical and functional MR** data from **72 patients with Schizophrenia
+and 75 healthy controls**.
 
 Once you [download](http://fcon_1000.projects.nitrc.org/indi/retro/cobre.html)
-this dataset, you will find a file structure tree as this:
+it, you will find a file structure tree as this:
 `{base_dir}/cobre/{subject_id}/session_1/{modality}/{image}`.
 
-In pypes we provide a function readily prepared to run anatomical and
-resting-state fMRI preprocessing on this database:
+Run a **T1-weighted and resting-state fMRI pre-processing** for this database with:
 [`pypes.datasets.cobre_crumb_workflow`](https://github.com/Neurita/pypes/blob/master/pypes/datasets.py).
 
 ### How to use it

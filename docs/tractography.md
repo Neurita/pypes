@@ -1,15 +1,19 @@
 
 ## Diffusion Tractography
 [<a href="https://github.com/Neurita/pypes/blob/master/docs/img/spm_pet_anat_dti_camino_workflow.png?raw=true" target="_blank">graph</a>]
-This pipeline performs DTI tensor model fitting and tractography.
+This pipeline performs **DTI tensor model fitting and tractography**.
 
-It is based on UCL Camino.
-It depends on the MPRAGE and the DTI pipeline.
+It is based on **UCL Camino**.
 
-1. DTI fit.
-2. ROIxROI atlas-based deterministic tractography.
-3. Connectivity matrices: one with the number of tracts for each pair of
-ROIs, the other with average tract FA values for each pair.
+It depends on the anatomical and the DTI pre-processing pipelines.
+
+**Steps:**
+
+1. **DTI fit**.
+2. ROIxROI atlas-based **deterministic tractography**.
+3. **Connectivity matrices**:
+    1. one with the number of tracts for each pair of ROIs, and
+    1. the other with average tract FA values for each pair.
 
 ##### Related settings
 ```yaml

@@ -2,8 +2,11 @@
 # Resting-state fMRI connectivity analysis
 **This pipeline is under development.**
 
-This pipeline would need to warp an atlas file with the fMRI image, and then
-perform the connectivity measures.
+This pipeline warps an atlas file to the fMRI space, and then
+perform the connectivity measures with the pre-processed rs-fMRI data.
+
+This pipeline depends on the anatomical and rs-fMRI pre-processing pipelines.
+
 There is already an interface almost done in [`pypes.interfaces.nilearn.connectivity`](https://github.com/Neurita/pypes/blob/master/pypes/interfaces/nilearn/connectivity.py) for this.
 
 ##### Related settings
@@ -21,4 +24,3 @@ rest_connectivity.smoothing_fwhm: 8
 #rest_connectivity.resampling_target: # choices: "mask", "maps" or undefined.
 rest_connectivity.atlas_type: labels # choices: "labels", "probabilistic".
 ```
-
