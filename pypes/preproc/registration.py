@@ -58,14 +58,13 @@ def spm_apply_deformations(in_file=traits.Undefined, trans_field=traits.Undefine
         Normalized file that needed to be aligned
 
     """
-    if voxel_sizes is None:
-        voxel_sizes = [1, 1, 1]
-
     norm12 = spm.Normalize12(jobtype='write')
+
+    if voxel_sizes is not None:
+        norm12.inputs.write_voxel_sizes = voxel_sizes
 
     norm12.inputs.deformation_file   = trans_field
     norm12.inputs.image_to_align     = in_file
-    norm12.inputs.write_voxel_sizes  = voxel_sizes
     norm12.inputs.write_bounding_box = bbox
 
     #norm12.run()
