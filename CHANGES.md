@@ -1,8 +1,14 @@
 Changelog
 =========
 
-Version 0.3.5 (master)
-----------------------
+Version 0.3.6
+-------------
+
+- Documentation update.
+
+
+Version 0.3.5
+-------------
 
 - Fix connection naming in the fMRI pipeline atlas output.
 
