@@ -1,6 +1,13 @@
 Changelog
 =========
 
+Version 1.0.1
+-------------
+
+- Bug fix: some wrong import names with the module name change.
+- Bug fix: added missing requirements.
+
+
 Version 1.0.0
 -------------
 
