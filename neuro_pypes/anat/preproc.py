@@ -151,7 +151,7 @@ def spm_anat_preprocessing(wf_name="spm_anat_preproc"):
     brain_mask = setup_node(Function(function=math_img,
                                      input_names=["formula", "out_file", "gm", "wm", "csf"],
                                      output_names=["out_file"],
-                                     imports=['from neuro_neuro_pypes.interfaces.nilearn import ni2file']),
+                                     imports=['from neuro_pypes.interfaces.nilearn import ni2file']),
                             name='brain_mask')
     brain_mask.inputs.out_file = "tissues_brain_mask.nii.gz"
     brain_mask.inputs.formula  = "np.abs(gm + wm + csf) > 0"
@@ -221,7 +221,7 @@ def spm_anat_preprocessing(wf_name="spm_anat_preproc"):
         segm_img = setup_node(Function(function=math_img,
                                        input_names=["formula", "out_file", "gm", "wm"],
                                        output_names=["out_file"],
-                                       imports=['from neuro_neuro_pypes.interfaces.nilearn import ni2file']),
+                                       imports=['from neuro_pypes.interfaces.nilearn import ni2file']),
                               name='gm-wm_image')
         segm_img.inputs.out_file = "gm_wm.nii.gz"
         segm_img.inputs.formula = '((gm >= 0.5)*2 + (wm > 0.5)*3).astype(np.uint8)'
@@ -234,7 +234,7 @@ def spm_anat_preprocessing(wf_name="spm_anat_preproc"):
         cp_hdr = setup_node(Function(function=copy_header,
                                      input_names=["in_file", "data_file"],
                                      output_names=["out_file"],
-                                     imports=['from neuro_neuro_pypes.interfaces.nilearn import ni2file']),
+                                     imports=['from neuro_pypes.interfaces.nilearn import ni2file']),
                             name='copy_header')
 
         kk = setup_node(KellyKapowski(), name='direct')

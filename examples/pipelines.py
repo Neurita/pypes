@@ -19,7 +19,7 @@ from hansel import Crumb
 from invoke import task
 from boyle.files.search  import recursive_glob
 
-from neuro_neuro_pypes.run import run_debug, run_wf
+from neuro_pypes.run import run_debug, run_wf
 
 
 log = logging.getLogger()
