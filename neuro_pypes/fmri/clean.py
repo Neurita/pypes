@@ -8,7 +8,7 @@ from   nipype.algorithms.misc import Gunzip
 from   nipype.interfaces import fsl
 from   nipype.interfaces.nipy.preprocess import Trim, ComputeMask
 from   nipype.interfaces.utility import Function, Select, IdentityInterface
-from   pypes.interfaces.nilearn import mean_img, smooth_img
+from   neuro_pypes.interfaces.nilearn import mean_img, smooth_img
 
 from   .filter import bandpass_filter
 from   .nuisance import rest_noise_filter_wf
@@ -165,7 +165,7 @@ def fmri_cleanup_wf(wf_name="fmri_cleanup"):
 
     # average
     average = setup_node(Function(function=mean_img, input_names=["in_file"], output_names=["out_file"],
-                                  imports=['from pypes.interfaces.nilearn import ni2file']),
+                                  imports=['from neuro_pypes.interfaces.nilearn import ni2file']),
                          name='average_epi')
 
     mean_gunzip = setup_node(Gunzip(), name="mean_gunzip")
@@ -204,7 +204,7 @@ def fmri_cleanup_wf(wf_name="fmri_cleanup"):
     smooth = setup_node(Function(function=smooth_img,
                                  input_names=["in_file", "fwhm"],
                                  output_names=["out_file"],
-                                 imports=['from pypes.interfaces.nilearn import ni2file']),
+                                 imports=['from neuro_pypes.interfaces.nilearn import ni2file']),
                          name="smooth")
     smooth.inputs.fwhm = get_config_setting('fmri_smooth.fwhm', default=8)
     smooth.inputs.out_file = "smooth_std_{}.nii.gz".format(wf_name)

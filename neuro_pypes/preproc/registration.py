@@ -290,14 +290,14 @@ def spm_create_group_template_wf(wf_name="spm_create_group_template"):
         concat = setup_node(Function(function=concat_imgs,
                                      input_names=["in_files"],
                                      output_names=["out_file"],
-                                     imports=['from pypes.interfaces.nilearn import ni2file']),
+                                     imports=['from neuro_pypes.interfaces.nilearn import ni2file']),
                             name='merge_time')
 
         # average
         average = setup_node(Function(function=mean_img,
                                       input_names=["in_file", "out_file"],
                                       output_names=["out_file"],
-                                      imports=['from pypes.interfaces.nilearn import ni2file']),
+                                      imports=['from neuro_pypes.interfaces.nilearn import ni2file']),
                             name='group_average')
         average.inputs.out_file = 'group_average.nii.gz'
 
@@ -306,7 +306,7 @@ def spm_create_group_template_wf(wf_name="spm_create_group_template"):
     #smooth = setup_node(Function(function=smooth_img,
     #                             input_names=["in_file", "fwhm"],
     #                             output_names=["out_file"],
-    #                             imports=['from pypes.interfaces.nilearn import ni2file']),
+    #                             imports=['from neuro_pypes.interfaces.nilearn import ni2file']),
     #                     name="{}_smooth".format(wf_name))
     smooth = setup_node(fsl.IsotropicSmooth(fwhm=8), name="{}_smooth".format(wf_name))
 

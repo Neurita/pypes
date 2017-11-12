@@ -1,9 +1,10 @@
 Changelog
 =========
 
-Version 0.3.6
+Version 1.0.0
 -------------
 
+- API break: Change module name from `pypes` to `neuro_pypes`.
 - Documentation update.
 
 

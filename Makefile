@@ -1,6 +1,6 @@
 .PHONY: help clean clean-pyc clean-build list test test-dbg test-cov test-all coverage docs release sdist install deps develop tag
 
-project-name = pypes
+project-name = neuro_pypes
 
 version-var := "__version__ = "
 version-string := $(shell grep $(version-var) $(project-name)/version.py)
@@ -80,7 +80,7 @@ tag: clean
 	git tag v$(version)
 	git push --tags
 
-release: clean tag
+release: clean
 	python setup.py sdist upload
 	python setup.py bdist_wheel upload
 

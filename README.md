@@ -1,4 +1,4 @@
-# pypes
+# neuro_pypes
 
 [![image](https://readthedocs.org/projects/neuro-pypes/badge/?version=latest)](http://neuro-pypes.readthedocs.io)
 [![DOI](https://zenodo.org/badge/46623736.svg)](https://zenodo.org/badge/latestdoi/46623736)

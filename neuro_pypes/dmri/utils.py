@@ -17,12 +17,12 @@ def rapidart_dti_artifact_detection():
 
 
 def nlmeans_denoise(in_file, mask_file, out_file='', N=12):
-    """ Filepath interface to the nlmeans_denoise_img in pypes.preproc."""
+    """ Filepath interface to the nlmeans_denoise_img in neuro_pypes.preproc."""
     import os.path as op
     import nibabel as nib
 
-    from pypes.preproc import nlmeans_denoise_img
-    from pypes.utils import rename
+    from neuro_pypes.preproc import nlmeans_denoise_img
+    from neuro_pypes.utils import rename
 
     den = nlmeans_denoise_img(nib.load(in_file), mask=nib.load(mask_file), N=N)
 
@@ -42,8 +42,8 @@ def reslice(in_file, new_zooms=None, order=3, out_file=''):
 
     import nibabel as nib
 
-    from pypes.preproc import reslice_img
-    from pypes.utils import rename
+    from neuro_pypes.preproc import reslice_img
+    from neuro_pypes.utils import rename
 
     img = reslice_img(nib.load(in_file), new_zooms=new_zooms, order=order)
 

@@ -128,7 +128,7 @@ def attach_concat_canica(main_wf, wf_name="canica", **kwargs):
     concat = setup_node(Function(function=concat_3D_imgs,
                                  input_names=["in_files"],
                                  output_names=["out_file"],
-                                 imports=['from pypes.interfaces.nilearn import ni2file']),
+                                 imports=['from neuro_pypes.interfaces.nilearn import ni2file']),
                         name="concat")
 
     # warp each subject to the group template

@@ -103,7 +103,7 @@ def petpvc_mask(wf_name="petpvc_mask"):
     img_bkg = setup_node(Function(function=math_img,
                                   input_names=["formula", "out_file", "gm", "wm", "csf"],
                                   output_names=["out_file"],
-                                  imports=['from pypes.interfaces.nilearn import ni2file']),
+                                  imports=['from neuro_pypes.interfaces.nilearn import ni2file']),
                           name='background')
     img_bkg.inputs.out_file = "tissue_bkg.nii.gz"
     img_bkg.inputs.formula  = "np.maximum((-((gm + wm + csf) - 1)), 0)"
@@ -112,7 +112,7 @@ def petpvc_mask(wf_name="petpvc_mask"):
     brain_mask = setup_node(Function(function=math_img,
                                      input_names=["formula", "out_file", "gm", "wm", "csf"],
                                      output_names=["out_file"],
-                                     imports=['from pypes.interfaces.nilearn import ni2file']),
+                                     imports=['from neuro_pypes.interfaces.nilearn import ni2file']),
                             name='brain_mask')
     brain_mask.inputs.out_file = "tissues_brain_mask.nii.gz"
     brain_mask.inputs.formula  = "np.abs(gm + wm + csf) > 0"
@@ -121,7 +121,7 @@ def petpvc_mask(wf_name="petpvc_mask"):
     merge_tissues = setup_node(Function(function=concat_imgs,
                                         input_names=["in_files"],
                                         output_names=["out_file"],
-                                        imports=['from pypes.interfaces.nilearn import ni2file']),
+                                        imports=['from neuro_pypes.interfaces.nilearn import ni2file']),
                                name='merge_tissues')
     merge_tissues.inputs.out_file = "petpvc_mask.nii.gz"
 
@@ -197,7 +197,7 @@ def intensity_norm(wf_name='intensity_norm'):
     resample = setup_node(Function(function=resample_to_img,
                                    input_names=["in_file", "target", "interpolation"],
                                    output_names=["out_file"],
-                                   imports=['from pypes.interfaces.nilearn import ni2file']),
+                                   imports=['from neuro_pypes.interfaces.nilearn import ni2file']),
                           name="resample_mask")
     resample.inputs.interpolation = "nearest"
 
@@ -205,7 +205,7 @@ def intensity_norm(wf_name='intensity_norm'):
     mean_val = setup_node(Function(function=math_img,
                                    input_names=["formula", "img", "mask"],
                                    output_names=["out_value"],
-                                   imports=['from pypes.interfaces.nilearn import ni2file']),
+                                   imports=['from neuro_pypes.interfaces.nilearn import ni2file']),
                           name='mean_value')
     mean_val.inputs.formula = "np.mean(np.nonzero(img[mask > 0]))"
 
@@ -213,7 +213,7 @@ def intensity_norm(wf_name='intensity_norm'):
     norm_img = setup_node(Function(function=math_img,
                                    input_names=["formula", "out_file", "img", "val"],
                                    output_names=["out_file"],
-                                   imports=['from pypes.interfaces.nilearn import ni2file']),
+                                   imports=['from neuro_pypes.interfaces.nilearn import ni2file']),
                           name='norm_img')
     norm_img.inputs.formula = "img / val"
 

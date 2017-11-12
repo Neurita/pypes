@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-PyInvoke tasks examples for usage of workflows from Pypes.
+PyInvoke tasks examples for usage of workflows from neuro_pypes.
 """
 
 from __future__ import (absolute_import,
@@ -19,7 +19,7 @@ from hansel import Crumb
 from invoke import task
 from boyle.files.search  import recursive_glob
 
-from pypes.run import run_debug, run_wf
+from neuro_neuro_pypes.run import run_debug, run_wf
 
 
 log = logging.getLogger()
@@ -172,7 +172,7 @@ def clinical_pype(ctx, wf_name="spm_anat_preproc", base_dir="",
 
     n_cpus: int
     """
-    from pypes.datasets import clinical_crumb_workflow
+    from neuro_neuro_pypes.datasets import clinical_crumb_workflow
 
     data_path = op.join(op.expanduser(base_dir), '{year}', '{subject_id}', '{session_id}', '{image}')
     data_crumb = Crumb(data_path, ignore_list=['.*'])
@@ -223,9 +223,9 @@ def run_canica(ctx, input_crumb, output_dir, cache_dir="", mask_file="", algorit
     """
     from functools import partial
 
-    from pypes.config import update_config
-    from pypes.io     import build_crumb_workflow
-    from pypes.ica    import attach_concat_canica
+    from neuro_pypes.config import update_config
+    from neuro_pypes.io     import build_crumb_workflow
+    from neuro_pypes.ica    import attach_concat_canica
 
 
     # set the configuration parameters
@@ -310,7 +310,7 @@ def run_gift(ctx, input_dir, output_dir, mask_file, zscore_plot=2):
     import subprocess
 
     from jinja2 import Template
-    from pypes.ica import plot_ica_results
+    from neuro_pypes.ica import plot_ica_results
 
     tmp_file = 'gift_batch_template.m'
     tmp_str = Template(io.open(tmp_file).read())
@@ -362,7 +362,7 @@ def run_sbm(ctx, input_dir, output_dir, mask_file, zscore_plot=2):
     import subprocess
 
     from jinja2 import Template
-    from pypes.ica import plot_ica_results
+    from neuro_pypes.ica import plot_ica_results
 
     input_glob = op.join(input_dir, '*.nii')
 
@@ -409,7 +409,7 @@ def cobre_pype(ctx, wf_name="spm_anat_rest_preproc", base_dir="", cache_dir="", 
 
     n_cpus: int
     """
-    from pypes.datasets import cobre_crumb_workflow
+    from neuro_pypes.datasets import cobre_crumb_workflow
 
     data_path = op.join(op.expanduser(base_dir), '{subject_id}', 'session_1', '{modality}', '{image}')
     data_crumb = Crumb(data_path, ignore_list=['.*'])
@@ -453,7 +453,7 @@ def plot_ica_results(ctx, ica_result, application, mask_file='', mode='+-', zsco
         Path to a background image.
         If empty will use the SPM canonical brain image at 2mm.
     """
-    from pypes.ica import plot_ica_results
+    from neuro_pypes.ica import plot_ica_results
 
     if bg_img is None:
         bg_img = op.expanduser(SPM_CANONICAL_BRAIN_2MM)
@@ -562,7 +562,7 @@ def ica_sbm_loadings_sheet(ctx, ica_out_dir, labels_file="", mask="", bg_img=Non
         This will be used to search for subject_id in the file paths
         contained in the Subjects.mat file.
     """
-    from pypes.ica.plotting import SBMICAResultsPlotter
+    from neuro_pypes.ica.plotting import SBMICAResultsPlotter
 
     rawloadings_filename   = 'subject_loadings.xls'
     grouploadings_filename = 'subject_weighted_loadings.xls'

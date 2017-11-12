@@ -13,7 +13,6 @@ from hansel import Crumb
 
 
 def get_info(dicom_files):
-    from dcmstack.extract import default_extractor
     """Given a Siemens dicom file return metadata
 
     Returns
@@ -22,6 +21,12 @@ def get_info(dicom_files):
     Slice Acquisition Times
     Spacing between slices
     """
+    try:
+        from dcmstack.extract import default_extractor
+    except:
+        raise ImportError("To use this function install dcmstack: pip install "
+                          "git+https://github.com/moloney/dcmstack.git@c12d27d2c802d75a33ad70110124500a83e851ee#egg=dcmstack")
+
     meta = default_extractor(read_file(filename_to_list(dicom_files)[0],
                                        stop_before_pixels=True,
                                        force=True))

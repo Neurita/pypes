@@ -34,9 +34,10 @@ VERSION_PYFILE = op.join(MODULE_NAME, 'version.py')
 # set __version__ variable
 exec(compile(read(VERSION_PYFILE), VERSION_PYFILE, 'exec'))
 
-
-# INSTALL_REQUIRES = list(parse_requirements('requirements.txt'))
-# req_files = ['requirements.txt', 'pip_requirements.txt']
+dependencies = read('requirements.txt').split()
+requires = [dep for dep in dependencies if not dep.startswith(('git', 'http'))]
+links = [dep for dep in dependencies if dep.startswith(('git', 'http'))]
+requires += [req.split('#egg=')[1] for req in links]
 
 LICENSE = 'Apache License, Version 2.0'
 
@@ -44,7 +45,7 @@ LICENSE = 'Apache License, Version 2.0'
 setup_dict = dict(
     name=MODULE_NAME,
     version=__version__,
-    description='Reusable neuroimaging pipelines with Nipype.',
+    description='Reusable and configurable neuroimaging pipelines with Nipype.',
 
     license=LICENSE,
     author='Alexandre Savio',
@@ -54,7 +55,9 @@ setup_dict = dict(
 
     packages=find_packages(),
 
-    install_requires=[],
+    install_requires=requires,
+
+    dependency_links=links,
 
     scripts=[],
 

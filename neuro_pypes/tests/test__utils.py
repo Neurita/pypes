@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from pypes._utils import format_pair_list
+from neuro_pypes._utils import format_pair_list
 
 
 def test_format_pair_list():

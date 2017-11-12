@@ -2,7 +2,7 @@
 """
 Helper functions to build base workflow and run them
 """
-from pypes.plot import plot_workflow
+from neuro_pypes.plot import plot_workflow
 
 
 def run_wf(wf, plugin='MultiProc', n_cpus=2, **plugin_kwargs):

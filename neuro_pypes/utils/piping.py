@@ -37,7 +37,7 @@ def selectindex(files, idx, flatten=True):
     integers `idx`."""
     import numpy as np
     from nipype.utils.filemanip import filename_to_list, list_to_filename
-    from pypes._utils import flatten_list
+    from neuro_pypes._utils import flatten_list
 
     if flatten:
         files = flatten_list(files)

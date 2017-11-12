@@ -22,11 +22,11 @@ In this document we show how to build and run neuroimaging pipelines using
 import os
 
 from hansel import Crumb
-from pypes.run import run_debug
-from pypes.config import update_config
-from pypes.io import build_crumb_workflow
-from pypes.anat import attach_spm_anat_preprocessing
-from pypes.fmri import attach_rest_preprocessing
+from neuro_pypes.run import run_debug
+from neuro_pypes.config import update_config
+from neuro_pypes.io import build_crumb_workflow
+from neuro_pypes.anat import attach_spm_anat_preprocessing
+from neuro_pypes.fmri import attach_rest_preprocessing
 
 # root path to my data
 base_dir = "/home/pyper/data/cobre/raw"
@@ -129,8 +129,8 @@ Let's imagine we want to run the anatomical and the function pre-processing pipe
 First we import the attach functions to build those pipelines:
 
 ```python
-from pypes.anat import attach_spm_anat_preprocessing
-from pypes.fmri import attach_rest_preprocessing
+from neuro_pypes.anat import attach_spm_anat_preprocessing
+from neuro_pypes.fmri import attach_rest_preprocessing
 ```
 
 Then we specify and give names to the pipelines:
@@ -167,7 +167,7 @@ or a file path to update the **global configuration state** before building the 
 We recommend YAML: have a look at the [example config file](pypes_config.yml).
 
 ```python
-from pypes.config import update_config
+from neuro_pypes.config import update_config
 
 if config_file_path:
     update_config(config_file_path)
@@ -192,7 +192,7 @@ cache_dir = path.join(path.dirname(base_dir), "wd")
 And we instantiate the workflow with the variables we created before:
 
 ```python
-from pypes.io import build_crumb_workflow
+from neuro_pypes.io import build_crumb_workflow
 
 wf = build_crumb_workflow(attach_funcs,
                           data_crumb=data_crumb,
@@ -204,11 +204,11 @@ wf = build_crumb_workflow(attach_funcs,
 ## Run
 
 To run the workflow we can use two functions, with or without debugging.
-The one in debug mode will call a debugger if any exception is raised in the end. These functions are: `pypes.run.run_debug` and `pypes.run.run_wf`.
+The one in debug mode will call a debugger if any exception is raised in the end. These functions are: `neuro_pypes.run.run_debug` and `neuro_pypes.run.run_wf`.
 They have the same arguments as the workflow `wf.run()` function.
 
 ```python
-from pypes.run import run_debug
+from neuro_pypes.run import run_debug
 
 run_debug(wf, plugin="MultiProc", n_cpus=4)
 ```

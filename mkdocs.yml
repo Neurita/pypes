@@ -1,4 +1,4 @@
-site_name: pypes
+site_name: neuro_pypes
 pages:
     - Home: index.md
     - Getting started: getting_started.md

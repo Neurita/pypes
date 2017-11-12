@@ -22,7 +22,7 @@ anat_warp.bias_regularization: 0.1
 ```
 
 The most direct way of checking the names of the nodes defined in
-`Pypes`, is by looking into the source code.
+`Neuro_Pypes`, is by looking into the source code.
 You can also have a look at the
 [default configuration file](https://github.com/Neurita/pypes/blob/master/docs/pypes_config.yml)
 where we list the settings for the main nodes in each workflow.

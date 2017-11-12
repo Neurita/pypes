@@ -5,7 +5,7 @@ We provide Nipype interfaces and functions to create Nodes that use [`nilearn`](
 
 ## CanICAInterface
 
-Found in [`pypes.interfaces.nilearn.canica`](https://github.com/Neurita/pypes/blob/master/pypes/interfaces/nilearn/canica.py).
+Found in [`neuro_pypes.interfaces.nilearn.canica`](https://github.com/Neurita/pypes/blob/master/neuro_pypes/interfaces/nilearn/canica.py).
 
 
 

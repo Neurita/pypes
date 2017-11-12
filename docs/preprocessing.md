@@ -18,7 +18,7 @@ This pipeline will bias-field correct, segment the tissues, and register a
 **T1-weighted image** to MNI.
 
 It is based in **ANTS and SPM12**.
-It is implemented in [`pypes.anat.attach_spm_anat_preprocessing`](https://github.com/Neurita/pypes/blob/master/pypes/anat.py).
+It is implemented in [`neuro_neuro_pypes.anat.attach_spm_anat_preprocessing`](https://github.com/Neurita/pypes/blob/master/neuro_pypes/anat.py).
 
 A cortical thickness method is enabled with the `anat_preproc.do_cortical_thickness` boolean field.
 This performs the **SPM+DiReCT** method described in [(Schwarz et al., 2016)](http://dx.doi.org/10.1016/j.nicl.2016.05.017),
@@ -69,11 +69,11 @@ It depends on the T1-weighted preprocessing pipeline.
 It is based on **SPM12, nipype ArtifactDetect and TSNR, Nipy motion correction, and nilearn.**
 
 It consists on two parts:
-1. fMRI data cleaning ( [`pypes.fmri.clean.attach_fmri_cleanup_wf`](https://github.com/Neurita/pypes/blob/master/pypes/fmri/clean.py)) and
-2. warping and smoothing ([`pypes.fmri.warp.attach_spm_warp_fmri_wf`](https://github.com/Neurita/pypes/blob/master/pypes/fmri/warp.py)).
+1. fMRI data cleaning ( [`neuro_pypes.fmri.clean.attach_fmri_cleanup_wf`](https://github.com/Neurita/pypes/blob/master/neuro_pypes/fmri/clean.py)) and
+2. warping and smoothing ([`neuro_pypes.fmri.warp.attach_spm_warp_fmri_wf`](https://github.com/Neurita/pypes/blob/master/neuro_pypes/fmri/warp.py)).
 
 The connection of both parts is in
-[`pypes.fmri.rest._attach_rest_preprocessing`](https://github.com/Neurita/pypes/blob/master/pypes/fmri/rest.py).
+[`neuro_pypes.fmri.rest._attach_rest_preprocessing`](https://github.com/Neurita/pypes/blob/master/neuro_pypes/fmri/rest.py).
 
 It's also possible to create a **group template** if you set that in the
 configuration file.
@@ -239,7 +239,7 @@ This is a **spatial normalization** pipeline for Positron-Emission Tomography (*
 This workflow has showed good registration results on FDG and FDOPA PET images.
 
 It is based on **SPM12**. You can find its source code in
-[`pypes.pet.warp.attach_spm_pet_preprocessing`](https://github.com/Neurita/pypes/blob/master/pypes/pet/warp.py).
+[`neuro_pypes.pet.warp.attach_spm_pet_preprocessing`](https://github.com/Neurita/pypes/blob/master/neuro_pypes/pet/warp.py).
 
 **Steps:**
 
@@ -262,7 +262,7 @@ spm_pet_grouptemplate.template_file: ""
 This is a **partial volume correction (PVC) and spatial normalization pipeline for PET images**.
 
 It is based on **PETPVC, nilearn and SPM12**.
-It is implemented in [`pypes.pet.mrpet.attach_spm_mrpet_preprocessing`](https://github.com/Neurita/pypes/blob/master/pypes/pet/mrpet.py).
+It is implemented in [`neuro_pypes.pet.mrpet.attach_spm_mrpet_preprocessing`](https://github.com/Neurita/pypes/blob/master/neuro_pypes/pet/mrpet.py).
 
 This pipeline **depends** on the anatomical preprocessing pipeline.
 There is **2 different ways of co-registration**, you can configure that by

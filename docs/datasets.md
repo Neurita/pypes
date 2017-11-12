@@ -27,7 +27,7 @@ it, you will find a file structure tree as this:
 `{base_dir}/cobre/{subject_id}/session_1/{modality}/{image}`.
 
 Run a **T1-weighted and resting-state fMRI pre-processing** for this database with:
-[`pypes.datasets.cobre_crumb_workflow`](https://github.com/Neurita/pypes/blob/master/pypes/datasets.py).
+[`neuro_pypes.datasets.cobre_crumb_workflow`](https://github.com/Neurita/pypes/blob/master/neuro_pypes/datasets.py).
 
 ### How to use it
 
@@ -35,8 +35,8 @@ Run a **T1-weighted and resting-state fMRI pre-processing** for this database wi
 import os.path as path
 
 from hansel import Crumb
-from pypes.datasets import cobre_crumb_workflow
-from pypes.run import run_debug
+from neuro_pypes.datasets import cobre_crumb_workflow
+from neuro_pypes.run import run_debug
 
 # we downloaded the database in:
 base_dir = '/home/pyper/data/cobre/raw'
@@ -76,8 +76,8 @@ Sadly, this is not public available.
 The dataset we are working in our department has a very similar folder structure
 as COBRE:  `{base_dir}/{subject_id}/{session_id}/{image}`.
 If you organize your data in the same way, you can directly use the function
-[`pypes.datasets.clinical_crumb_workflow`](https://github.com/Neurita/pypes/blob/master/pypes/datasets.py).
-Have a look at the [_clinical_wf_setup](https://github.com/Neurita/pypes/blob/master/pypes/datasets.py)
+[`neuro_pypes.datasets.clinical_crumb_workflow`](https://github.com/Neurita/pypes/blob/master/neuro_pypes/datasets.py).
+Have a look at the [_clinical_wf_setup](https://github.com/Neurita/pypes/blob/master/neuro_pypes/datasets.py)
 function to see all the sets of pipelines you can pick.
 
 
@@ -85,8 +85,8 @@ function to see all the sets of pipelines you can pick.
 import os.path as path
 
 from hansel import Crumb
-from pypes.datasets import clinical_crumb_workflow
-from pypes.run import run_debug
+from neuro_pypes.datasets import clinical_crumb_workflow
+from neuro_pypes.run import run_debug
 
 # we downloaded the database in:
 base_dir = '/home/pyper/data/nuk/raw'

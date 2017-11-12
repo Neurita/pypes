@@ -6,7 +6,7 @@ plotting functions to be able to plot slices in a matrix pattern such as in:
 
 These functions are used in some of our pipelines, however you can also
 use them on your own. To do that, have a look at the functions in
-`pypes.interfaces.nilearn.plot`.
+`neuro_pypes.interfaces.nilearn.plot`.
 
 **Example**:
 
