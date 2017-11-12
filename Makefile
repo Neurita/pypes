@@ -77,7 +77,7 @@ docs:
 
 tag: clean
 	@echo "Creating git tag v$(version)"
-	git tag v$(version)
+	git tag -f v$(version)
 	git push --tags
 
 release: clean tag
