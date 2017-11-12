@@ -1,11 +1,13 @@
 numpy==1.13.3
 scipy==1.0.0
 hansel>=0.9.5
+scikit_learn==0.19.1
 matplotlib==2.1.0
 nilearn==0.3.1
 kaptan==0.5.9
 nibabel==2.2.0
 nipype==0.13.1
 boyle==0.2.0
+pandas==0.21.0
 git+https://github.com/darcymason/pydicom@1d525bea082ecc7fe70dfa15b38d132db7cfa0c7#egg=pydicom
 git+https://github.com/nipy/nipy.git@e84acca16fe392722c4b091e8501856a51aa46a4#egg=nipy
