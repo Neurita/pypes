@@ -81,8 +81,8 @@ tag: clean
 	git push --tags
 
 release: clean tag
-	python setup.py sdist upload
-	python setup.py bdist_wheel upload
+	python setup.py sdist
+	twine upload dist/*
 
 sdist: clean
 	python setup.py sdist
