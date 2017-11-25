@@ -5,7 +5,7 @@ scikit_learn==0.19.1
 matplotlib==2.1.0
 nilearn==0.3.1
 kaptan==0.5.9
-nibabel==2.2.0
+nibabel==2.2.1
 nipype==0.13.1
 boyle==0.2.0
 pandas==0.21.0
