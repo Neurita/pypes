@@ -32,9 +32,7 @@ def spm_tpm_priors_path(spm_dir=None):
     FileNotFoundError
         If `template` is `None` and can't find the TPM.nii file from SPM.
     """
-    matlab_cmd = os.environ.get('SPMMCRCMD')
-    spm_version = spm.Info.version(matlab_cmd=matlab_cmd,
-                                   use_mcr='FORCE_SPMMCR' in os.environ)
+    spm_version = spm.Info.version()
 
     if spm_version is None:
         raise RuntimeError("Nipype could not find a valid Matlab or SPM configuration.")
