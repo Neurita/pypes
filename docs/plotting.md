@@ -11,7 +11,7 @@ use them on your own. To do that, have a look at the functions in
 **Example**:
 
 ```python
-from pypes import plot_ortho_slices
+from neuro_pypes import plot_ortho_slices
 
 (TODO)
 
