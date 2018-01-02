@@ -98,13 +98,12 @@ class DataCrumb(IOBase):
             if first_arg_name not in info:
                 raise KeyError('Crumb path is not absolute and could not find input for {}.'.format(first_arg_name))
             elif not op.isabs(info[first_arg_name]):
-                raise IOError('Expected an absolute path for {} argument in {} but got {}.'.format(first_arg_name,
-                                                                                                   self._crumb,
-                                                                                                   info[first_arg_name],
-                                                                                                   ))
+                raise IOError('Expected an absolute path for {} argument in {} but got {}.'.format(first_arg_name, self._crumb, info[first_arg_name]))
+
         force_lists = self.inputs.force_lists
         if isinstance(force_lists, bool):
             force_lists = self._outfields if force_lists else []
+
         bad_fields = set(force_lists) - set(self._outfields)
         if bad_fields:
             bad_fields = ", ".join(list(bad_fields))
@@ -134,7 +133,7 @@ class DataCrumb(IOBase):
             if list(focrumb.open_args()):
                 raise ValueError('Expected a full specification of the Crumb path by now, got {}.'.format(focrumb))
 
-            filelist = [cr.path for cr in focrumb.unfold()]
+            filelist = [cr.path for cr in focrumb.unfold() if cr.exists()]
             # Handle the case where nothing matched
             if not filelist:
                 msg = "No files were found unfolding %s crumb path: %s" % (
@@ -143,6 +142,7 @@ class DataCrumb(IOBase):
                     raise IOError(msg)
                 else:
                     warn(msg)
+                    continue
 
             # Possibly sort the list
             if self.inputs.sort_filelist:
