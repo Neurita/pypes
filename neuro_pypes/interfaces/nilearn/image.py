@@ -6,6 +6,7 @@ Utilities to use nilearn.image from nipype
 
 def ni2file(**presuffixes):
     from functools import wraps
+    from warnings import warn
 
     """ Pick the nibabel image container output from `f` and stores it in a file.
     If the shape attribute of the container is True, will save it into a file, otherwise
@@ -45,8 +46,8 @@ def ni2file(**presuffixes):
             out_file = kwargs.get('out_file', presuffixes.pop('out_file', None))
             if out_file is not None:
                 if not presuffixes and op.exists(out_file):
-                    raise IOError('The file {} already exists, please add a presuffix to the'
-                                  'decorator.'.format(out_file))
+                    warn('The file {} already exists and will be overwritten, please add a presuffix to'
+                         ' the decorator.'.format(out_file))
 
                 out_file = fname_presuffix(out_file, **presuffixes)
             else:
