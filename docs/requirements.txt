@@ -1,2 +1,2 @@
-mkdocs>=0.16
+mkdocs>=0.16,<0.17
 recommonmark>=0.4.0
