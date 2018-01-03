@@ -1,6 +1,6 @@
-# Welcome to Pypes
+# Welcome to Neuro-Pypes
 
-**Pypes** is a Python module **for brain PET and multimodal MRI pre- and post-processing**.
+**Neuro-Pypes** is a Python module **for brain PET and multimodal MRI pre- and post-processing**.
 
 It uses [Nipy](http://nipy.org/) tools and others (mainly [Nipype](http://nipype.readthedocs.io)) to create specific pipelines to process this type of brain PET-MR images.
 
@@ -10,6 +10,7 @@ The objectives of this module are:
 - complete, reusable, and configurable pre-processing pipelines, and
 - high-quality results with the minimal manual intervention.
 
+This project was previously names **Pypes**.
 
 Before using, **convert your DICOM files to NifTI files**.
 
