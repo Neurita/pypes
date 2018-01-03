@@ -10,4 +10,4 @@ nipype==0.14.0
 boyle==0.2.0
 pandas==0.21.0
 git+https://github.com/darcymason/pydicom@1d525bea082ecc7fe70dfa15b38d132db7cfa0c7#egg=pydicom
-git+https://github.com/nipy/nipy.git@e84acca16fe392722c4b091e8501856a51aa46a4#egg=nipy
+git+https://github.com/nipy/nipy.git@d49e8292adad6619e3dac710752131b567efe90e#egg=nipy
