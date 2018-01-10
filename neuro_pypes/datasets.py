@@ -108,6 +108,12 @@ def _clinical_wf_setup(wf_name):
                                                  ("spm_mrpet_grouptemplate", attach_spm_pet_grouptemplate),
                                                 ],
 
+                        # MPRAGE preprocessing, PET MNI group template, PET PVC, and rest-fMRI
+                        "spm_anat_pet_pvc_rest": [("spm_anat_preproc",  attach_spm_anat_preprocessing),
+                                                  ("spm_pet_preproc",   attach_spm_pet_preprocessing),
+                                                  ("spm_rest_preproc",  attach_rest_preprocessing),
+                                                 ],
+
                         # MPRAGE preprocessing, PET PVC, and PET normalization to MNI
                         "spm_anat_pet_pvc":     [("spm_anat_preproc",  attach_spm_anat_preprocessing),
                                                  ("spm_mrpet_preproc", attach_spm_mrpet_preprocessing),
@@ -161,9 +167,9 @@ def _clinical_wf_setup(wf_name):
                                                         ],
                        }
 
-    parameters       = {"spm_pet_template":     [('spm_pet_template.do_petpvc', False),],
-                        "spm_anat_pet_tpm_pvc": [('spm_pet_template.do_petpvc', True),],
-                       }
+    parameters = {"spm_pet_template":     [('spm_pet_template.do_petpvc', False),],
+                  "spm_anat_pet_tpm_pvc": [('spm_pet_template.do_petpvc', True),],
+                 }
 
     if wf_name not in attach_functions:
         raise KeyError('Expected an existing pipeline name, got {}. '
@@ -302,5 +308,3 @@ def clinical_crumb_workflow(wf_name, data_crumb, output_dir, cache_dir='', confi
                               cache_dir=cache_dir,)
 
     return wf
-
-
