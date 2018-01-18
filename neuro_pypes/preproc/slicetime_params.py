@@ -15,9 +15,9 @@ from nipype.interfaces.base import (BaseInterface,
                                     BaseInterfaceInputSpec,
                                     traits,)
 
-from .._utils        import check_equal, grep
-from ..utils         import get_trait_value
-from ..preproc.dicom import split_dcm_ahdr, dcm_ascii_hdr
+from neuro_pypes._utils import check_equal, grep
+from neuro_pypes.utils import get_trait_value
+from neuro_pypes.preproc.dicom import split_dcm_ahdr, dcm_ascii_hdr
 
 
 def slicing_mode(dcm_file):

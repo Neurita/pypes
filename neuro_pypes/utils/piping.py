@@ -8,7 +8,7 @@ from nipype.interfaces.io import SelectFiles, DataSink, DataGrabber
 from nipype.interfaces.base import traits, isdefined
 import nipype.interfaces.fsl as fsl
 
-from ..crumb  import DataCrumb
+from neuro_pypes.crumb  import DataCrumb
 
 
 def get_trait_value(traitspec, value_name, default=None):

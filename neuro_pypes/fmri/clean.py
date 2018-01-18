@@ -10,21 +10,20 @@ from   nipype.interfaces.nipy.preprocess import Trim, ComputeMask
 from   nipype.interfaces.utility import Function, Select, IdentityInterface
 from   neuro_pypes.interfaces.nilearn import mean_img, smooth_img
 
-from   .filter import bandpass_filter
-from   .nuisance import rest_noise_filter_wf
-from   .._utils import format_pair_list, flatten_list
-from   ..config import setup_node, get_config_setting
-from   ..preproc import (auto_spm_slicetime,
-                         nipy_motion_correction,
-                         spm_coregister,
-                         )
-from   ..utils  import (remove_ext,
-                        extend_trait_list,
-                        get_input_node,
-                        get_interface_node,
-                        get_datasink,
-                        get_input_file_name,
-                        extension_duplicates)
+from   neuro_pypes.fmri.filter import bandpass_filter
+from   neuro_pypes.fmri.nuisance import rest_noise_filter_wf
+from   neuro_pypes._utils import format_pair_list, flatten_list
+from   neuro_pypes.config import setup_node, get_config_setting
+from   neuro_pypes.preproc import (auto_spm_slicetime,
+                                   nipy_motion_correction,
+                                   spm_coregister)
+from   neuro_pypes.utils  import (remove_ext,
+                                  extend_trait_list,
+                                  get_input_node,
+                                  get_interface_node,
+                                  get_datasink,
+                                  get_input_file_name,
+                                  extension_duplicates)
 
 
 def fmri_cleanup_wf(wf_name="fmri_cleanup"):

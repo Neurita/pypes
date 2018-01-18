@@ -8,14 +8,13 @@ from   nipype.interfaces.utility import IdentityInterface
 from   nipype.interfaces.camino  import (Image2Voxel, FSL2Scheme, DTIFit, Track,
                                          Conmat, ComputeFractionalAnisotropy, AnalyzeHeader)
 
-from   ..config  import setup_node, check_atlas_file
-from   ..utils import (get_datasink,
-                       get_interface_node,
-                       get_input_node,
-                       get_data_dims,
-                       get_vox_dims,
-                       get_affine,
-                       )
+from   neuro_pypes.config  import setup_node, check_atlas_file
+from   neuro_pypes.utils import (get_datasink,
+                                 get_interface_node,
+                                 get_input_node,
+                                 get_data_dims,
+                                 get_vox_dims,
+                                 get_affine)
 
 
 def camino_tractography(wf_name="camino_tract"):

@@ -15,14 +15,14 @@ from   nilearn.masking    import apply_mask
 from   nilearn._utils.niimg_conversions import check_niimg, _index_img
 from   boyle.nifti.utils  import filter_icc
 
-from .utils import (get_largest_blobs,
-                    build_raw_loadings_table,
-                    add_groups_to_loadings_table,)
-from ..interfaces import (plot_all_components,
-                          plot_ica_components,
-                          plot_multi_slices,
-                          plot_overlays)
-from ..utils import fetch_one_file
+from neuro_pypes.ica.utils import (get_largest_blobs,
+                                   build_raw_loadings_table,
+                                   add_groups_to_loadings_table,)
+from neuro_pypes.interfaces import (plot_all_components,
+                                    plot_ica_components,
+                                    plot_multi_slices,
+                                    plot_overlays)
+from neuro_pypes.utils import fetch_one_file
 
 
 def plot_connectivity_matrix(connectivity_matrix, label_names):

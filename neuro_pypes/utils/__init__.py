@@ -25,4 +25,3 @@ from .piping  import  (extend_trait_list,
 
 from .pandas import (add_table_headers,
                      write_tabbed_excel,)
-

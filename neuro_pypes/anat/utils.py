@@ -6,7 +6,7 @@ import nipype.interfaces.spm as spm
 from   nipype.interfaces.ants import N4BiasFieldCorrection
 from   nipype.interfaces.base import traits
 
-from   ..utils import spm_tpm_priors_path
+from   neuro_pypes.utils import spm_tpm_priors_path
 
 
 def biasfield_correct(anat_filepath=traits.Undefined):

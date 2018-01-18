@@ -7,9 +7,9 @@ from   nipype.interfaces.fsl import MultiImageMaths
 from   nipype.interfaces.utility import IdentityInterface, Select, Split
 from   nipype.algorithms.misc import Gunzip
 
-from .._utils  import flatten_list
-from ..config  import setup_node, check_atlas_file
-from ..preproc import spm_coregister
+from neuro_pypes._utils  import flatten_list
+from neuro_pypes.config  import setup_node, check_atlas_file
+from neuro_pypes.preproc import spm_coregister
 
 
 def spm_anat_to_diff_coregistration(wf_name="spm_anat_to_diff_coregistration"):
@@ -128,4 +128,3 @@ def spm_anat_to_diff_coregistration(wf_name="spm_anat_to_diff_coregistration"):
                   ])
 
     return wf
-

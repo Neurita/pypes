@@ -8,20 +8,20 @@ import nipype.pipeline.engine as pe
 from   nipype.algorithms.misc import Gunzip
 from   nipype.interfaces.utility import Select, IdentityInterface, Function
 
-from  .utils     import (petpvc_cmd,
-                         petpvc_mask,
-                         intensity_norm)
-from   ..config  import setup_node, get_config_setting
-from   ..preproc import spm_coregister
-from   ..utils   import (get_datasink,
-                         extend_trait_list,
-                         get_input_node,
-                         remove_ext,
-                         get_input_file_name,
-                         extension_duplicates)
+from neuro_pypes.utils import (petpvc_cmd,
+                               petpvc_mask,
+                               intensity_norm)
+from neuro_pypes.config  import setup_node, get_config_setting
+from neuro_pypes.preproc import spm_coregister
+from neuro_pypes.utils   import (get_datasink,
+                                 extend_trait_list,
+                                 get_input_node,
+                                 remove_ext,
+                                 get_input_file_name,
+                                 extension_duplicates)
 
-from   .._utils import (flatten_list,
-                        format_pair_list)
+from neuro_pypes._utils import (flatten_list,
+                                format_pair_list)
 
 
 def petpvc_workflow(wf_name="petpvc"):

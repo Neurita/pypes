@@ -9,25 +9,24 @@ from   nipype.algorithms.misc    import Gunzip
 from   nipype.interfaces.utility import Function, Merge, IdentityInterface
 from   nipype.interfaces import spm, fsl
 
-from   .._utils  import format_pair_list
-from   ..config  import setup_node, get_config_setting, check_atlas_file
-from   ..preproc import (spm_normalize,
-                         get_bounding_box,
-                         spm_tpm_priors_path,
-                         spm_coregister,
-                         spm_apply_deformations,
-                         )
-from   ..utils   import (remove_ext,
-                         selectindex,
-                         extend_trait_list,
-                         get_input_node,
-                         get_datasink,
-                         get_input_file_name,
-                         extension_duplicates)
+from   neuro_pypes._utils  import format_pair_list
+from   neuro_pypes.config  import setup_node, get_config_setting, check_atlas_file
+from   neuro_pypes.preproc import (spm_normalize,
+                                   get_bounding_box,
+                                   spm_tpm_priors_path,
+                                   spm_coregister,
+                                   spm_apply_deformations)
+from   neuro_pypes.utils   import (remove_ext,
+                                   selectindex,
+                                   extend_trait_list,
+                                   get_input_node,
+                                   get_datasink,
+                                   get_input_file_name,
+                                   extension_duplicates)
 
 
 def spm_warp_fmri_wf(wf_name="spm_warp_fmri", register_to_grptemplate=False):
-    """ Run SPM to warp resting-state fMRI pre-processed data to MNI or a given 
+    """ Run SPM to warp resting-state fMRI pre-processed data to MNI or a given
     template.
 
     Tasks:

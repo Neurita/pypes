@@ -9,26 +9,26 @@ from   nipype.algorithms.misc    import Gunzip
 from   nipype.interfaces.utility import Merge, IdentityInterface, Function
 from   nipype.interfaces         import spm
 
-from   .pvc      import petpvc_workflow
-from   ..config  import (setup_node,
-                        check_atlas_file,
-                        get_config_setting)
+from   neuro_pypes.pet.pvc import petpvc_workflow
+from   neuro_pypes.config  import (setup_node,
+                                   check_atlas_file,
+                                   get_config_setting)
 
-from   ..preproc import (spm_normalize,
-                         spm_coregister,
-                         spm_apply_deformations,
-                         get_bounding_box)
+from   neuro_pypes.preproc import (spm_normalize,
+                                   spm_coregister,
+                                   spm_apply_deformations,
+                                   get_bounding_box)
 
-from   ..utils import (get_datasink,
-                       spm_tpm_priors_path,
-                       extend_trait_list,
-                       get_input_node,
-                       get_interface_node,
-                       remove_ext,
-                       get_input_file_name,
-                       extension_duplicates)
+from   neuro_pypes.utils import (get_datasink,
+                                 spm_tpm_priors_path,
+                                 extend_trait_list,
+                                 get_input_node,
+                                 get_interface_node,
+                                 remove_ext,
+                                 get_input_file_name,
+                                 extension_duplicates)
 
-from   .._utils import format_pair_list, flatten_list
+from   neuro_pypes._utils import format_pair_list, flatten_list
 
 
 # TODO: merge the two workflows below, maybe splitting them in

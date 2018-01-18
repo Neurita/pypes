@@ -14,7 +14,7 @@ from nipype.interfaces.io import IOBase, add_traits
 from nipype.utils.filemanip import list_to_filename
 from nipype.utils.misc import human_order_sorted
 
-from ._utils import get_values_map_keys
+from neuro_pypes._utils import get_values_map_keys
 
 
 class DataCrumbInputSpec(DynamicTraitedSpec, BaseInterfaceInputSpec):

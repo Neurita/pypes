@@ -7,9 +7,9 @@ from nipype.interfaces.base    import traits
 from nipype.interfaces.utility import IdentityInterface
 from nipype.interfaces.dcm2nii import Dcm2niix, Dcm2nii
 
-from ..config import setup_node
-from ..utils  import (get_datasink,
-                      get_input_node)
+from neuro_pypes.config import setup_node
+from neuro_pypes.utils  import (get_datasink,
+                                get_input_node)
 
 
 def dcm2niix_wf(wf_name='dcm2niix'):
@@ -140,4 +140,3 @@ def dcm2nii_converter(source_names=traits.Undefined):
     dcm2nii.inputs.source_names    = source_names
 
     return dcm2nii
-

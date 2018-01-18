@@ -4,26 +4,25 @@ Nipype workflows to process anatomical MRI.
 """
 import os.path as op
 
-import nipype.pipeline.engine    as pe
-from   nipype.algorithms.misc    import Gunzip
-from   nipype.interfaces.utility import IdentityInterface, Function
-from   nipype.interfaces.base    import isdefined
+import nipype.pipeline.engine as pe
+from nipype.algorithms.misc import Gunzip
+from nipype.interfaces.utility import IdentityInterface, Function
+from nipype.interfaces.base import isdefined
 
-from .utils import biasfield_correct, spm_segment
-
-from   ..interfaces.nilearn import math_img, copy_header
-from   ..config  import setup_node, check_atlas_file, get_config_setting
-from   ..preproc import (spm_apply_deformations,
-                         get_bounding_box,)
-from   .._utils  import format_pair_list
-from   ..utils   import (remove_ext,
-                         selectindex,
-                         spm_tpm_priors_path,
-                         extend_trait_list,
-                         get_input_node,
-                         get_datasink,
-                         get_input_file_name,
-                         extension_duplicates)
+from neuro_pypes.anat.utils import biasfield_correct, spm_segment
+from neuro_pypes.interfaces.nilearn import math_img, copy_header
+from neuro_pypes.config  import setup_node, check_atlas_file, get_config_setting
+from neuro_pypes.preproc import (spm_apply_deformations,
+                                 get_bounding_box,)
+from neuro_pypes._utils  import format_pair_list
+from neuro_pypes.utils   import (remove_ext,
+                                 selectindex,
+                                 spm_tpm_priors_path,
+                                 extend_trait_list,
+                                 get_input_node,
+                                 get_datasink,
+                                 get_input_file_name,
+                                 extension_duplicates)
 
 
 def spm_anat_preprocessing(wf_name="spm_anat_preproc"):

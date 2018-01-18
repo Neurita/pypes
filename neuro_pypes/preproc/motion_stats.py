@@ -8,17 +8,17 @@ https://github.com/FCP-INDI/C-PAC
 import nipype.pipeline.engine as pe
 from   nipype.interfaces import Function, IdentityInterface
 
-from   ..config import setup_node
+from neuro_pypes.config import setup_node
 
 
 def calc_friston_twenty_four(in_file):
     """ Method to calculate friston twenty four parameters.
-    
+
     Parameters
     ----------
     in_file: string
         input movement parameters file from motion correction
-    
+
     Returns
     -------
     new_file: string
@@ -47,15 +47,15 @@ def calc_friston_twenty_four(in_file):
 
 def fristons_twenty_four_wf(wf_name='fristons_twenty_four'):
     """ The main purpose of this workflow is to calculate 24 parameters including
-    the 6 motion parameters of the current volume and the preceeding volume, 
-    plus each of these values squared. 
-    
+    the 6 motion parameters of the current volume and the preceeding volume,
+    plus each of these values squared.
+
     Parameters
     ----------
     wf_name: str
         Workflow name
 
-    Returns 
+    Returns
     -------
     wf: workflow object
 
@@ -170,11 +170,11 @@ def motion_power_stats_wf(wf_name='gen_motion_stats'):
     ----------
     wf_name: workflow object
         Workflow name
-    
-    Returns 
+
+    Returns
     -------
     param_wf: workflow object
-          Workflow object containing various movement/motion and power parameters estimates.  
+          Workflow object containing various movement/motion and power parameters estimates.
 
     Nipype inputs
     -------------
@@ -191,10 +191,10 @@ def motion_power_stats_wf(wf_name='gen_motion_stats'):
     inputspec.movement_parameters : string (Mat file)
         1D file containing six movement/motion parameters(3 Translation, 3 Rotations)
         in different columns (roll pitch yaw dS  dL  dP), obtained in functional preprocessing step
-        
+
     scrubbing_input.threshold : a float
         scrubbing threshold
-        
+
     scrubbing_input.remove_frames_before : an integer
         count of preceding frames to the offending time
         frames to be removed (i.e.,those exceeding FD threshold)
@@ -202,7 +202,7 @@ def motion_power_stats_wf(wf_name='gen_motion_stats'):
     scrubbing_input.remove_frames_after : an integer
         count of subsequent frames to the offending time
         frames to be removed (i.e., those exceeding FD threshold)
-            
+
     Nipype outputs
     --------------
     outputspec.FD_1D : 1D file
@@ -227,12 +227,12 @@ def motion_power_stats_wf(wf_name='gen_motion_stats'):
     .. [1] Power, J. D., Barnes, K. A., Snyder, A. Z., Schlaggar, B. L., & Petersen, S. E. (2012). Spurious
            but systematic correlations in functional connectivity MRI networks arise from subject motion. NeuroImage, 59(3),
            2142-2154. doi:10.1016/j.neuroimage.2011.10.018
-           
+
     .. [2] Power, J. D., Barnes, K. A., Snyder, A. Z., Schlaggar, B. L., & Petersen, S. E. (2012). Steps
            toward optimizing motion artifact removal in functional connectivity MRI; a reply to Carp.
            NeuroImage. doi:10.1016/j.neuroimage.2012.03.017
-    
-    .. [3] Jenkinson, M., Bannister, P., Brady, M., Smith, S., 2002. Improved optimization for the robust 
+
+    .. [3] Jenkinson, M., Bannister, P., Brady, M., Smith, S., 2002. Improved optimization for the robust
            and accurate linear registration and motion correction of brain images. Neuroimage 17, 825-841.
     """
     wf = pe.Workflow(name=wf_name)
@@ -302,27 +302,27 @@ def motion_power_stats_wf(wf_name='gen_motion_stats'):
                                          output_names=['out_file'],
                                          function=calculate_FD_P),
                            name='calculate_FD')
-    
-    pm.connect(inputNode, 'movement_parameters', 
+
+    pm.connect(inputNode, 'movement_parameters',
                calculate_FD, 'in_file' )
-    
-    pm.connect(calculate_FD, 'out_file', 
+
+    pm.connect(calculate_FD, 'out_file',
                outputNode, 'FD_1D')
-    
+
     # Calculating mean Framewise Displacement as per jenkinson et al., 2002
     calculate_FDJ = setup_node(Function(input_names=['in_file'],
                                          output_names=['out_file'],
                                            function=calculate_FD_J),
                              name='calculate_FDJ')
-    
-    pm.connect(inputNode, 'oned_matrix_save', 
+
+    pm.connect(inputNode, 'oned_matrix_save',
                calculate_FDJ, 'in_file' )
-    
-    pm.connect(calculate_FDJ, 'out_file', 
+
+    pm.connect(calculate_FDJ, 'out_file',
                outputNode, 'FDJ_1D')
 
     ##calculating frames to exclude and include after scrubbing
-    exclude_frames = setup_node(Function(input_names=['in_file', 
+    exclude_frames = setup_node(Function(input_names=['in_file',
                                                         'threshold',
                                                         'frames_before',
                                                         'frames_after'],
@@ -330,37 +330,37 @@ def motion_power_stats_wf(wf_name='gen_motion_stats'):
                                            function=set_frames_ex),
                              name='exclude_frames')
 
-    pm.connect(calculate_FD, 'out_file', 
+    pm.connect(calculate_FD, 'out_file',
                exclude_frames, 'in_file')
-    pm.connect(scrubbing_input, 'threshold', 
+    pm.connect(scrubbing_input, 'threshold',
                exclude_frames, 'threshold')
     pm.connect(scrubbing_input, 'remove_frames_before',
                exclude_frames, 'frames_before')
     pm.connect(scrubbing_input, 'remove_frames_after',
                exclude_frames, 'frames_after')
-    
-    pm.connect(exclude_frames, 'out_file', 
+
+    pm.connect(exclude_frames, 'out_file',
                outputNode, 'frames_ex_1D')
-    
+
     include_frames = setup_node(Function(input_names=['in_file',
-                                                        'threshold', 
+                                                        'threshold',
                                                         'exclude_list'],
                                            output_names=['out_file'],
                                            function=set_frames_in),
                              name='include_frames')
-    pm.connect(calculate_FD, 'out_file', 
+    pm.connect(calculate_FD, 'out_file',
                include_frames, 'in_file')
-    pm.connect(scrubbing_input, 'threshold', 
+    pm.connect(scrubbing_input, 'threshold',
                include_frames, 'threshold')
-    pm.connect(exclude_frames, 'out_file', 
+    pm.connect(exclude_frames, 'out_file',
                include_frames, 'exclude_list')
 
-    pm.connect(include_frames, 'out_file', 
+    pm.connect(include_frames, 'out_file',
                outputNode, 'frames_in_1D')
 
-    
-    calc_motion_parameters = setup_node(Function(input_names=["subject_id", 
-                                                                "scan_id", 
+
+    calc_motion_parameters = setup_node(Function(input_names=["subject_id",
+                                                                "scan_id",
                                                                 "movement_parameters",
                                                                 "max_displacement"],
                                                    output_names=['out_file'],
@@ -374,15 +374,15 @@ def motion_power_stats_wf(wf_name='gen_motion_stats'):
                calc_motion_parameters, 'movement_parameters')
     pm.connect(inputNode, 'max_displacement',
                calc_motion_parameters, 'max_displacement')
-    
-    pm.connect(calc_motion_parameters, 'out_file', 
+
+    pm.connect(calc_motion_parameters, 'out_file',
                outputNode, 'motion_params')
 
 
-    calc_power_parameters = setup_node(Function(input_names=["subject_id", 
-                                                                "scan_id", 
+    calc_power_parameters = setup_node(Function(input_names=["subject_id",
+                                                                "scan_id",
                                                                 "FD_1D",
-                                                                "FDJ_1D", 
+                                                                "FDJ_1D",
                                                                 "threshold",
                                                                 "DVARS"],
                                                    output_names=['out_file'],
@@ -402,23 +402,23 @@ def motion_power_stats_wf(wf_name='gen_motion_stats'):
                calc_power_parameters, 'threshold')
 
 
-    pm.connect(calc_power_parameters, 'out_file', 
+    pm.connect(calc_power_parameters, 'out_file',
                outputNode, 'power_params')
 
     return pm
 
 
-def set_frames_ex(in_file, threshold, 
+def set_frames_ex(in_file, threshold,
                   frames_before=1, frames_after=2):
     """
-    Method to calculate Number of frames that would be censored 
-    ("scrubbed") by removing the offending time frames 
-    (i.e., those exceeding FD threshold), the preceding frame, 
+    Method to calculate Number of frames that would be censored
+    ("scrubbed") by removing the offending time frames
+    (i.e., those exceeding FD threshold), the preceding frame,
     and the two subsequent frames
-    
+
     Parameters
     ----------
-    in_file : a string 
+    in_file : a string
         framewise displacement(FD) file path
     threshold : a float
          scrubbing threshold value set in configuration file
@@ -428,7 +428,7 @@ def set_frames_ex(in_file, threshold,
     frames_after : an integer
         number of frames following the offending time frame
         by default value is 2
-         
+
     Returns
     -------
     out_file : string
@@ -449,7 +449,7 @@ def set_frames_ex(in_file, threshold,
 
     indices = [i[0] for i in (np.argwhere(data >= threshold)).tolist()]
     #print "initial indices-->", indices
-    
+
     for i in indices:
         #remove preceding frames
         if i > 0 :
@@ -457,13 +457,13 @@ def set_frames_ex(in_file, threshold,
             while count <= frames_before:
                 extra_indices.append(i-count)
                 count+=1
-                
+
         #remove following frames
         count = 1
         while count <= frames_after:
             extra_indices.append(i+count)
             count+=1
-                    
+
     indices = list(set(indices) | set(extra_indices))
     indices.sort()
 
@@ -486,7 +486,7 @@ def calculate_FD_P(in_file):
     ----------
     in_file: str
         Movement parameters vector file path.
-    
+
     Returns
     -------
     out_file: str
@@ -501,19 +501,19 @@ def calculate_FD_P(in_file):
     lines = open(in_file, 'r').readlines()
     rows = [[float(x) for x in line.split()] for line in lines]
     cols = np.array([list(col) for col in zip(*rows)])
-    
+
     translations = np.transpose(np.abs(np.diff(cols[0:3, :])))
     rotations = np.transpose(np.abs(np.diff(cols[3:6, :])))
 
     FD_power = np.sum(translations, axis = 1) + (50*3.141/180)*np.sum(rotations, axis =1)
-    
+
     #FD is zero for the first time point
     FD_power = np.insert(FD_power, 0, 0)
-    
+
     np.savetxt(out_file, FD_power)
-    
+
     return op.abspath(out_file)
-    
+
 
 def calculate_FD_J(in_file):
     """
@@ -578,7 +578,7 @@ def calculate_FD_J(in_file):
 
 def set_frames_in(in_file, threshold, exclude_list):
     """ Method to calculate the frames that are left after censoring for scrubbing.
-     
+
      Parameters
      ----------
      in_file : string
@@ -587,11 +587,11 @@ def set_frames_in(in_file, threshold, exclude_list):
         scrubbing thereshold set in configuration file
      exclude_list : string
         path of file containing sensored timepoints
-    
+
      Returns
      -------
-     out_file : string 
-        path of file containing remaining uncensored timepoints 
+     out_file : string
+        path of file containing remaining uncensored timepoints
     """
     import os.path as op
 
@@ -625,7 +625,7 @@ def set_frames_in(in_file, threshold, exclude_list):
 
 def gen_motion_parameters(subject_id, scan_id, movement_parameters, max_displacement):
     """  Method to calculate all the movement parameters.
-    
+
     Parameters
     ----------
     subject_id : string
@@ -635,15 +635,15 @@ def gen_motion_parameters(subject_id, scan_id, movement_parameters, max_displace
         scan name or id
 
     max_displacement : string
-        path of file with maximum displacement (in mm) for brain voxels in each volume    
+        path of file with maximum displacement (in mm) for brain voxels in each volume
 
     movement_parameters : string
-        path of 1D file containing six movement/motion parameters(3 Translation, 
+        path of 1D file containing six movement/motion parameters(3 Translation,
         3 Rotations) in different columns (roll pitch yaw dS  dL  dP)
-    
-    Returns 
+
+    Returns
     -------
-    out_file : string 
+    out_file : string
         path to csv file contianing various motion parameters
     """
 
@@ -742,7 +742,7 @@ def gen_motion_parameters(subject_id, scan_id, movement_parameters, max_displace
 
 def gen_power_parameters(subject_id, scan_id, FD_1D, FDJ_1D, DVARS, threshold = 1.0):
     """ Method to generate Power parameters for scrubbing
-    
+
     Parameters
     ----------
     subject_id : string
@@ -763,11 +763,11 @@ def gen_power_parameters(subject_id, scan_id, FD_1D, FDJ_1D, DVARS, threshold = 
 
     DVARS : string
         path to numpy file containing DVARS
-    
+
     Returns
     -------
     out_file : string (csv file)
-        path to csv file containing all the pow parameters 
+        path to csv file containing all the pow parameters
     """
     import os.path as op
     import numpy as np
@@ -827,7 +827,7 @@ def gen_power_parameters(subject_id, scan_id, FD_1D, FDJ_1D, DVARS, threshold = 
 def calculate_DVARS(rest, mask):
     """
     Method to calculate DVARS as per power's method
-    
+
     Parameters
     ----------
     rest : string (nifti file)
@@ -835,11 +835,11 @@ def calculate_DVARS(rest, mask):
 
     mask : string (nifti file)
         path to brain only mask for functional data
-        
+
     Returns
     -------
     out_file : string (numpy mat file)
-        path to file containing  array of DVARS 
+        path to file containing  array of DVARS
         calculation for each voxel
     """
     import os.path as op
@@ -848,12 +848,12 @@ def calculate_DVARS(rest, mask):
     import nibabel as nib
 
     out_file = 'DVARS.npy'
-    
+
     rest_data = nib.load(rest).get_data().astype(np.float32)
     mask_data = nib.load(mask).get_data().astype('bool')
-    
+
     #square of relative intensity value for each voxel across
-    #every timepoint 
+    #every timepoint
     data = np.square(np.diff(rest_data, axis = 3))
 
     #applying mask, getting the data in the brain only
@@ -863,7 +863,5 @@ def calculate_DVARS(rest, mask):
     DVARS = np.sqrt(np.mean(data, axis=0))
 
     np.save(out_file, DVARS)
-    
-    return op.abspath(out_file)
 
-    
+    return op.abspath(out_file)

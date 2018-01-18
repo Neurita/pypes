@@ -9,9 +9,9 @@ from   nipype.interfaces.base import traits, isdefined
 from   nipype.interfaces.utility import IdentityInterface
 from   nipype.algorithms.misc import Gunzip
 
-from   .slicetime_params import STCParametersInterface
-from   ..utils  import remove_ext
-from   ..config import setup_node
+from   neuro_pypes.preproc.slicetime_params import STCParametersInterface
+from   neuro_pypes.utils import remove_ext
+from   neuro_pypes.config import setup_node
 
 
 def afni_slicetime(in_file=traits.Undefined,

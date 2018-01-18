@@ -4,15 +4,16 @@ Nipype processing nodes for ROI images
 """
 import os.path as op
 
-
-from nipype.interfaces.base import BaseInterface, \
-    BaseInterfaceInputSpec, traits, File, TraitedSpec
-from nipype.utils.filemanip import split_filename
-
 import nibabel as nib
-from   boyle.nifti.roi import drain_rois
+from boyle.nifti.roi import drain_rois
+from nipype.utils.filemanip import split_filename
+from nipype.interfaces.base import (BaseInterface,
+                                    BaseInterfaceInputSpec,
+                                    traits,
+                                    File,
+                                    TraitedSpec)
 
-from ..utils.files import niftiimg_out
+from neuro_pypes.utils.files import niftiimg_out
 
 
 @niftiimg_out

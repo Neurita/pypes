@@ -10,9 +10,9 @@ from   nipype.interfaces.io import DataSink
 from   nipype.interfaces.utility import IdentityInterface
 from   hansel.utils import joint_value_map, valuesmap_to_dict
 
-from .crumb  import DataCrumb
-from .utils  import extend_trait_list, joinstrings
-from .       import configuration
+from neuro_pypes.crumb  import DataCrumb
+from neuro_pypes.utils  import extend_trait_list, joinstrings
+from neuro_pypes import configuration
 
 
 def build_crumb_workflow(wfname_attacher, data_crumb, in_out_kwargs, output_dir,
@@ -167,5 +167,3 @@ def crumb_wf(work_dir, data_crumb, output_dir, file_templates,
               )
 
     return wf
-
-

@@ -5,16 +5,16 @@ Functions to create pipelines for public and not so public available datasets.
 
 from collections import OrderedDict
 
-from   .config  import update_config
-from   .anat    import (attach_spm_anat_preprocessing,
-                        attach_ants_cortical_thickness)
-from   .dmri    import (attach_spm_fsl_dti_preprocessing,
-                        attach_camino_tractography)
-from   .fmri    import attach_rest_preprocessing, attach_rest_grptemplate_preprocessing
-from   .io      import build_crumb_workflow
-from   .pet     import (attach_spm_mrpet_preprocessing,
-                        attach_spm_pet_preprocessing,
-                        attach_spm_pet_grouptemplate,)
+from neuro_pypes.config import update_config
+from neuro_pypes.anat import (attach_spm_anat_preprocessing,
+                              attach_ants_cortical_thickness)
+from neuro_pypes.dmri import (attach_spm_fsl_dti_preprocessing,
+                              attach_camino_tractography)
+from neuro_pypes.fmri import attach_rest_preprocessing, attach_rest_grptemplate_preprocessing
+from neuro_pypes.io import build_crumb_workflow
+from neuro_pypes.pet import (attach_spm_mrpet_preprocessing,
+                             attach_spm_pet_preprocessing,
+                             attach_spm_pet_grouptemplate)
 
 
 def _cobre_wf_setup(wf_name):

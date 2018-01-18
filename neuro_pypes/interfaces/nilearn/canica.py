@@ -14,7 +14,7 @@ from nipype.interfaces.base import (BaseInterface,
                                     traits)
 from nilearn.decomposition import CanICA, DictLearning
 
-from ...utils import get_trait_value
+from neuro_pypes.utils import get_trait_value
 
 
 class CanICAInputSpec(BaseInterfaceInputSpec):

@@ -12,10 +12,10 @@ import nipype.interfaces.afni as afni
 import nipype.interfaces.fsl as fsl
 import nipype.interfaces.spm  as spm
 
-from ..interfaces.nilearn import mean_img, concat_imgs
-from .spatial import get_bounding_box
-from ..config import setup_node, get_config_setting
-from ..utils import spm_tpm_priors_path
+from neuro_pypes.interfaces.nilearn import mean_img, concat_imgs
+from neuro_pypes.preproc.spatial import get_bounding_box
+from neuro_pypes.config import setup_node, get_config_setting
+from neuro_pypes.utils import spm_tpm_priors_path
 
 
 def spm_apply_deformations(in_file=traits.Undefined, trans_field=traits.Undefined, bbox=traits.Undefined,

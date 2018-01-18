@@ -7,13 +7,13 @@ import nipype.pipeline.engine as pe
 from   nipype.interfaces.io import DataSink
 from   nipype.interfaces import IdentityInterface, Function
 
-from   .._utils import _check_list
-from   ..config import setup_node, get_config_setting
-from   ..interfaces import CanICAInterface
-from   ..interfaces.nilearn.image import concat_3D_imgs
-from   ..utils import (get_trait_value,
-                       get_datasink, )
-from   .plotting import plot_ica_results
+from   neuro_pypes._utils import _check_list
+from   neuro_pypes.config import setup_node, get_config_setting
+from   neuro_pypes.interfaces import CanICAInterface
+from   neuro_pypes.interfaces.nilearn.image import concat_3D_imgs
+from   neuro_pypes.utils import (get_trait_value,
+                                 get_datasink, )
+from   neuro_pypes.ica.plotting import plot_ica_results
 
 
 def attach_canica(main_wf, wf_name="canica", **kwargs):

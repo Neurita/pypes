@@ -8,15 +8,15 @@ import nipype.pipeline.engine as pe
 from   nipype.interfaces.io import DataSink
 from   nipype.interfaces import IdentityInterface
 
-from   ..preproc import spm_create_group_template_wf, spm_warp_to_mni
-from   ..config  import setup_node
-from   .._utils  import format_pair_list
-from   ..utils   import (get_datasink,
-                         extend_trait_list,
-                         get_input_node,
-                         remove_ext,
-                         get_input_file_name,
-                         extension_duplicates)
+from   neuro_pypes.preproc import spm_create_group_template_wf, spm_warp_to_mni
+from   neuro_pypes.config  import setup_node
+from   neuro_pypes._utils  import format_pair_list
+from   neuro_pypes.utils   import (get_datasink,
+                                   extend_trait_list,
+                                   get_input_node,
+                                   remove_ext,
+                                   get_input_file_name,
+                                   extension_duplicates)
 
 
 def attach_spm_fmri_grouptemplate_wf(main_wf, wf_name='spm_epi_grouptemplate'):
@@ -124,4 +124,3 @@ def attach_spm_fmri_grouptemplate_wf(main_wf, wf_name='spm_epi_grouptemplate'):
                    ])
 
     return main_wf
-

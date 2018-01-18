@@ -14,7 +14,7 @@ from   nipype.interfaces.base import (BaseInterface,
                                       BaseInterfaceInputSpec,
                                       traits,)
 
-from ...utils import get_trait_value
+from neuro_pypes.utils import get_trait_value
 
 
 class ConnectivityCorrelationInputSpec(BaseInterfaceInputSpec):
@@ -113,4 +113,3 @@ class ConnectivityCorrelationInterface(BaseInterface):
         outputs['timeseries'  ] = self._time_series_file
         outputs['connectivity'] = self._conn_mat_file
         return outputs
-

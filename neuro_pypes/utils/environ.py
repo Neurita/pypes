@@ -7,7 +7,7 @@ from os import path as op
 
 from nipype.interfaces import spm
 
-from ..config import get_config_setting
+from neuro_pypes.config import get_config_setting
 
 
 def spm_tpm_priors_path(spm_dir=None):

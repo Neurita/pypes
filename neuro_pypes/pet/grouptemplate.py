@@ -8,17 +8,17 @@ import nipype.pipeline.engine as pe
 from   nipype.interfaces.io import DataSink
 from   nipype.interfaces import IdentityInterface
 
-from   .mrpet import attach_spm_mrpet_preprocessing
-from   ..preproc import (spm_create_group_template_wf,
-                         spm_register_to_template_wf,)
-from   ..config  import setup_node, get_config_setting
-from   .._utils  import format_pair_list, flatten_list
-from   ..utils   import (get_datasink,
-                         extend_trait_list,
-                         get_input_node,
-                         remove_ext,
-                         get_input_file_name,
-                         extension_duplicates)
+from   neuro_pypes.pet.mrpet import attach_spm_mrpet_preprocessing
+from   neuro_pypes.preproc import (spm_create_group_template_wf,
+                                   spm_register_to_template_wf,)
+from   neuro_pypes.config  import setup_node, get_config_setting
+from   neuro_pypes._utils  import format_pair_list, flatten_list
+from   neuro_pypes.utils   import (get_datasink,
+                                   extend_trait_list,
+                                   get_input_node,
+                                   remove_ext,
+                                   get_input_file_name,
+                                   extension_duplicates)
 
 
 def attach_spm_pet_grouptemplate(main_wf, wf_name="spm_pet_template"):
@@ -146,4 +146,3 @@ def attach_spm_pet_grouptemplate(main_wf, wf_name="spm_pet_template"):
                                                              regexp_subst)
 
     return main_wf
-

@@ -10,21 +10,20 @@ from   nipype.interfaces.utility import Function, IdentityInterface
 from   nipype.workflows.dmri.fsl.utils import eddy_rotate_bvecs, b0_average, b0_indices
 from   nipype.workflows.dmri.fsl import hmc_pipeline
 
-from ..interfaces import Eddy
+from neuro_pypes.interfaces import Eddy
 
-from .utils import (dti_acquisition_parameters,
-                    nlmeans_denoise, reslice,
-                    rapidart_dti_artifact_detection,)
+from neuro_pypes.dmri.utils import (dti_acquisition_parameters,
+                                    nlmeans_denoise, reslice,
+                                    rapidart_dti_artifact_detection,)
 
-from .._utils  import format_pair_list
-from ..config  import setup_node, get_config_setting
-from ..utils   import (get_datasink,
-                       get_input_node,
-                       remove_ext,
-                       extend_trait_list,
-                       get_input_file_name,
-                       extension_duplicates,
-                       )
+from neuro_pypes._utils  import format_pair_list
+from neuro_pypes.config  import setup_node, get_config_setting
+from neuro_pypes.utils   import (get_datasink,
+                                 get_input_node,
+                                 remove_ext,
+                                 extend_trait_list,
+                                 get_input_file_name,
+                                 extension_duplicates)
 
 
 def dti_artifact_correction(wf_name="dti_artifact_correction"):
