@@ -145,10 +145,12 @@ def create_regressors(motion_params, comp_norm, outliers, detrend_poly=None):
         norm_val = np.genfromtxt(filename_to_list(comp_norm)[idx])
         out_params = np.hstack((params, norm_val[:, None]))
         try:
-            outlier_val = np.genfromtxt(filename_to_list(outliers)[idx])
+            outlier_indices = np.genfromtxt(filename_to_list(outliers)[idx],
+                                            dtype=int)
         except IOError:
-            outlier_val = np.empty((0))
-        for index in np.atleast_1d(outlier_val):
+            outlier_indices = np.empty((0))
+
+        for index in np.atleast_1d(outlier_indices):
             outlier_vector = np.zeros((out_params.shape[0], 1))
             outlier_vector[index] = 1
             out_params = np.hstack((out_params, outlier_vector))
