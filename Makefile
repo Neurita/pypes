@@ -1,4 +1,4 @@
-.PHONY: help clean clean-pyc clean-build list test test-dbg test-cov test-all coverage docs release sdist install deps develop tag
+.PHONY: help clean clean-pyc clean-build list test test-dbg test-cov test-all coverage release sdist install deps develop upload tag
 
 project-name = neuro_pypes
 
@@ -15,22 +15,26 @@ help:
 	@echo "test-dbg - run tests and debug with pdb"
 	@echo "testall - run tests on every Python version with tox"
 	@echo "coverage - check code coverage quickly with the default Python"
-	@echo "docs - generate Sphinx HTML documentation, including API docs"
-	@echo "release - package and upload a release"
-	@echo "sdist - package"
+	@echo "docs - generate Sphinx HTML documentation"
 	@echo "install - install"
 	@echo "develop - install in development mode"
 	@echo "deps - install dependencies"
+	@echo "dev_deps - install dependencies for development"
+	@echo "release - package a release in wheel and tarball"
+	@echo "upload - make a release and run the scripts/deploy.sh"
 	@echo "tag - create a git tag with current version"
 
 install: deps
-	python setup.py install
+	pipenv run python setup.py install
 
-develop: deps
-	python setup.py develop
+develop: dev_deps deps
+	pipenv run python setup.py develop
 
 deps:
-	pip install -r requirements.txt
+	pipenv install
+
+dev_deps:
+	pipenv install --dev
 
 clean: clean-build clean-pyc
 
@@ -47,25 +51,23 @@ clean-pyc:
 	find . -name '*.log*' -delete
 
 lint:
-	flake8 $(project-name) test
+	pipenv run flake8 $(project-name)/
 
 test:
-	py.test
+	pipenv run py.test -v
 
 test-cov:
-	py.test --cov-report term-missing --cov=$(project-name)
+	pipenv run py.test --cov-report term-missing --cov=$(project-name)
 
 test-dbg:
-	py.test --pdb
+	pipenv run py.test --pdb
 
 test-all:
-	tox
+	pipenv run tox
 
 coverage:
-	coverage run --source $(project-name) setup.py test
-	coverage report -m
-	coverage html
-	open htmlcov/index.html
+	pipenv run coverage run --source $(project-name) setup.py test
+	pipenv run coverage report -m
 
 docs:
 	rm -f docs/$(project-name).rst
@@ -75,16 +77,13 @@ docs:
 	$(MAKE) -C docs html
 	open docs/_build/html/index.html
 
-tag: clean
+tag:
 	@echo "Creating git tag v$(version)"
-	git tag -f v$(version)
+	git tag v$(version)
 	git push --tags
 
 release: clean tag
-	python setup.py sdist
-	twine upload dist/*
+	pipenv run python setup.py sdist --formats gztar bdist_wheel
 
-sdist: clean
-	python setup.py sdist
-	python setup.py bdist_wheel upload
-	ls -l dist
+upload: release tag
+	scripts/deploy.sh
