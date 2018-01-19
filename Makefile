@@ -1,4 +1,4 @@
-.PHONY: help clean clean-pyc clean-build list test test-dbg test-cov test-all coverage release sdist install deps develop upload tag
+.PHONY: help clean clean-pyc clean-build list test test-dbg test-cov test-all coverage release sdist install deps develop upload path minor major
 
 project-name = neuro_pypes
 
@@ -22,7 +22,9 @@ help:
 	@echo "dev_deps - install dependencies for development"
 	@echo "release - package a release in wheel and tarball"
 	@echo "upload - make a release and run the scripts/deploy.sh"
-	@echo "tag - create a git tag with current version"
+	@echo "patch - bumpversion patch"
+	@echo "minor - bumpversion minor"
+	@echo "major - bumpversion major"
 
 install: deps
 	pipenv run python setup.py install
@@ -77,13 +79,17 @@ docs:
 	$(MAKE) -C docs html
 	open docs/_build/html/index.html
 
-tag:
-	@echo "Creating git tag v$(version)"
-	git tag v$(version)
-	git push --tags
+patch:
+	pipenv run bumpversion patch
 
-release: clean tag
+minor:
+	pipenv run bumpversion minor
+
+major:
+	pipenv run bumpversion major
+
+release: clean
 	pipenv run python setup.py sdist --formats gztar bdist_wheel
 
-upload: release tag
-	scripts/deploy.sh
+upload: release
+	twine upload dist/*
