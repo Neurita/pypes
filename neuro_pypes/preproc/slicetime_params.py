@@ -5,7 +5,7 @@
  Helper functions and nipype interface for
  reading slice timing correction parameters specially from Siemens acquisitions
 """
-import os.path as op
+import os
 
 import numpy as np
 import nibabel as nib
@@ -54,11 +54,11 @@ def slicing_mode(dcm_file):
 
     Example
     -------
-    import os.path as op
+    import os
     from glob import glob
     dcmdir   = '/home/alexandre/data/pet_stadhauders/hiswork/FTD/'
-    restdirs = [glob(op.join(op.abspath(sd), '*ep2d*')) for sd in glob(op.join(dcmdir, '*'))]
-    dcms    = [glob(op.join(rd[0], '*.dcm'))[10] for rd in restdirs if rd]
+    restdirs = [glob(os.path.join(os.path.abspath(sd), '*ep2d*')) for sd in glob(os.path.join(dcmdir, '*'))]
+    dcms    = [glob(os.path.join(rd[0], '*.dcm'))[10] for rd in restdirs if rd]
     modes   = [slicing_mode(dcm) for dcm in dcms]
     print(modes)
     """
@@ -327,7 +327,7 @@ class STCParameters(object):
             in_files = self.in_files
 
         for f in in_files:
-            if not op.exists(f):
+            if not os.path.exists(f):
                 raise IOError('Expected an existing file in `in_files`')
 
         return in_files

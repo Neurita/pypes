@@ -2,7 +2,7 @@
 """
 Diffusion Tensor Image preprocessing and tensor model fitting workflow.
 """
-import os.path as op
+import os
 
 from neuro_pypes.dmri.artifacts import attach_dti_artifact_correction
 from neuro_pypes.dmri.coregister import spm_anat_to_diff_coregistration
@@ -59,8 +59,8 @@ def attach_spm_fsl_dti_preprocessing(main_wf, wf_name="spm_fsl_dti_preprocessing
 
     # dataSink output substitutions
     ## The base name of the 'diff' file for the substitutions
-    diff_fbasename = remove_ext(op.basename(get_input_file_name(in_files, 'diff')))
-    anat_fbasename = remove_ext(op.basename(get_input_file_name(in_files, 'anat')))
+    diff_fbasename = remove_ext(os.path.basename(get_input_file_name(in_files, 'diff')))
+    anat_fbasename = remove_ext(os.path.basename(get_input_file_name(in_files, 'anat')))
 
     regexp_subst = [
                     (r"/brain_mask_{diff}_space\.nii$", "/brain_mask.nii"),
@@ -76,7 +76,7 @@ def attach_spm_fsl_dti_preprocessing(main_wf, wf_name="spm_fsl_dti_preprocessing
     # prepare substitution for atlas_file, if any
     do_atlas, atlas_file = check_atlas_file()
     if do_atlas:
-        atlas_basename = remove_ext(op.basename(atlas_file))
+        atlas_basename = remove_ext(os.path.basename(atlas_file))
         regexp_subst.extend([
                              (r"/[\w]*{atlas}.*\.nii$", "/{atlas}_{diff}_space.nii"),
                             ])

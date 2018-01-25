@@ -3,7 +3,6 @@
 Helper functions to check for value configurations in the system and the external tools.
 """
 import os
-from os import path as op
 
 from nipype.interfaces import spm
 
@@ -41,16 +40,16 @@ def spm_tpm_priors_path(spm_dir=None):
         spm_dir = spm_version.get('path', None)
 
     if spm_dir is None:
-        spm_dir = op.expanduser(get_config_setting('spm_dir'))
+        spm_dir = os.path.expanduser(get_config_setting('spm_dir'))
 
     if not spm_dir:
         raise NotADirectoryError('Could not find SPM path.')
 
-    if not op.exists(spm_dir):
+    if not os.path.exists(spm_dir):
         raise NotADirectoryError('The specified SPM path ({}) does not exist.'.format(spm_dir))
 
-    tpm_path = op.join(spm_dir, 'tpm', 'TPM.nii')
-    if not op.exists(tpm_path):
+    tpm_path = os.path.join(spm_dir, 'tpm', 'TPM.nii')
+    if not os.path.exists(tpm_path):
         raise FileNotFoundError('Could not find TPM.nii file from SPM.')
 
     return tpm_path

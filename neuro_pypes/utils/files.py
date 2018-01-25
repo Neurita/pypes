@@ -3,9 +3,9 @@
 Helper functions to manage external files.
 """
 import re
-from   os          import path as op
-from   glob        import glob
-from   functools   import wraps
+import os
+from glob import glob
+from functools import wraps
 
 
 def get_vox_dims(volume):
@@ -76,10 +76,10 @@ def get_extension(filepath, check_if_exists=False, allowed_exts=None):
         allowed_exts = {'.gz': '.nii'}
 
     try:
-        rest, ext = op.splitext(filepath)
+        rest, ext = os.path.splitext(filepath)
         if ext in allowed_exts:
             alloweds = allowed_exts[ext]
-            _, ext2 = op.splitext(rest)
+            _, ext2 = os.path.splitext(rest)
             if ext2 in alloweds:
                 ext = ext2 + ext
     except:
@@ -193,13 +193,13 @@ def find_files_in(dirpath, file_pattern, pat_type='fnmatch'):
         `dirpath` is included in each of its items.
     """
     if pat_type == 'fnmatch':
-        files = glob(op.join(dirpath, file_pattern))
+        files = glob(os.path.join(dirpath, file_pattern))
     elif pat_type == 're.search':
         regex = re.compile(file_pattern)
-        files = [f for f in glob(op.join(dirpath, '*')) if regex.search(f)]
+        files = [f for f in glob(os.path.join(dirpath, '*')) if regex.search(f)]
     elif pat_type == 're.match':
         regex = re.compile(file_pattern)
-        files = [f for f in glob(op.join(dirpath, '*')) if regex.match(f)]
+        files = [f for f in glob(os.path.join(dirpath, '*')) if regex.match(f)]
     else:
         raise ValueError("Expected one of ('fnmatch', 're.search' or 're.match') for "
                          "`pat_type` parameter, got {}.".format(pat_type))

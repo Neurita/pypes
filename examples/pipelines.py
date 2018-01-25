@@ -11,7 +11,7 @@ from __future__ import (absolute_import,
                         unicode_literals)
 
 import os
-import os.path as op
+import os
 import logging
 
 import pandas as pd
@@ -27,10 +27,10 @@ log = logging.getLogger()
 # to get std_brains with some atlases and templates:
 # git clone https://github.com/Neurita/std_brains.git
 STDB_DIR = '/home/hansel/data/std_brains'
-HAMM_DIR = op.join(STDB_DIR, 'atlases', 'hammers')
-HAMM_MNI = op.join(HAMM_DIR, 'Hammers_mith_atlas_n30r83_SPM5.nii.gz')
+HAMM_DIR = os.path.join(STDB_DIR, 'atlases', 'hammers')
+HAMM_MNI = os.path.join(HAMM_DIR, 'Hammers_mith_atlas_n30r83_SPM5.nii.gz')
 
-SPM_CANONICAL_BRAIN_2MM = op.join(STDB_DIR, 'templates', 'spm_canonical', 'single_subj_T1_brain.nii.gz')
+SPM_CANONICAL_BRAIN_2MM = os.path.join(STDB_DIR, 'templates', 'spm_canonical', 'single_subj_T1_brain.nii.gz')
 
 
 def verbose_switch(verbose=False):
@@ -109,10 +109,10 @@ def dcm2nii(ctx, input_crumb_path, output_dir, regex='fnmatch', ncpus=3):
     """
     from boyle.dicom.convert import convert_dcm2nii
 
-    input_dir  = op.expanduser(input_crumb_path)
-    output_dir = op.expanduser(output_dir)
+    input_dir  = os.path.expanduser(input_crumb_path)
+    output_dir = os.path.expanduser(output_dir)
 
-    if not op.exists(output_dir):
+    if not os.path.exists(output_dir):
         log.info('Creating output folder {}.'.format(output_dir))
         os.makedirs(output_dir)
     else:
@@ -127,7 +127,7 @@ def dcm2nii(ctx, input_crumb_path, output_dir, regex='fnmatch', ncpus=3):
 
     acq_folder_arg, last_in_arg = tuple(input_dir.all_args())[-2:]
     out_arg_names = ['{' + arg + '}' for arg in tuple(input_dir.all_args())[:-1]]
-    output_dir    = Crumb(op.join(output_dir, *out_arg_names), regex=regex, ignore_list=['.*'])
+    output_dir    = Crumb(os.path.join(output_dir, *out_arg_names), regex=regex, ignore_list=['.*'])
 
     src_dst = []
     acquisitions = input_dir.ls(acq_folder_arg, make_crumbs=True)
@@ -135,8 +135,8 @@ def dcm2nii(ctx, input_crumb_path, output_dir, regex='fnmatch', ncpus=3):
         out_args = acq.arg_values.copy()
         acq_out  = output_dir.replace(**out_args)
 
-        out_dir  = op.dirname (acq_out.path)
-        out_file = op.basename(acq_out.path) + '.nii.gz'
+        out_dir  = os.path.dirname (acq_out.path)
+        out_file = os.path.basename(acq_out.path) + '.nii.gz'
         os.makedirs(out_dir, exist_ok=True)
 
         src_dst.append((acq.split()[0], out_dir, out_file))
@@ -174,15 +174,15 @@ def clinical_pype(ctx, wf_name="spm_anat_preproc", base_dir="",
     """
     from neuro_neuro_pypes.datasets import clinical_crumb_workflow
 
-    data_path = op.join(op.expanduser(base_dir), '{year}', '{subject_id}', '{session_id}', '{image}')
+    data_path = os.path.join(os.path.expanduser(base_dir), '{year}', '{subject_id}', '{session_id}', '{image}')
     data_crumb = Crumb(data_path, ignore_list=['.*'])
 
     atlas_file = HAMM_MNI
 
     wf = clinical_crumb_workflow(wf_name     = wf_name,
                                  data_crumb  = data_crumb,
-                                 cache_dir   = op.abspath(op.expanduser(cache_dir)) if cache_dir else '',
-                                 output_dir  = op.abspath(op.expanduser(output_dir)) if output_dir else '',
+                                 cache_dir   = os.path.abspath(os.path.expanduser(cache_dir)) if cache_dir else '',
+                                 output_dir  = os.path.abspath(os.path.expanduser(output_dir)) if output_dir else '',
                                  config_file = settings_file,
                                  params={'atlas_file': atlas_file},
                                  )
@@ -233,10 +233,10 @@ def run_canica(ctx, input_crumb, output_dir, cache_dir="", mask_file="", algorit
         update_config(settings_file)
 
     # expanduser in inputs paths:
-    cache_dir  = op.expanduser(cache_dir)
-    output_dir = op.expanduser(output_dir)
+    cache_dir  = os.path.expanduser(cache_dir)
+    output_dir = os.path.expanduser(output_dir)
     if not cache_dir:
-        cache_dir = op.join(output_dir, '.pypes_cache')
+        cache_dir = os.path.join(output_dir, '.pypes_cache')
 
     # base folder depending if using MR-PET pipeline or PET-only
     data_crumb = Crumb(input_crumb, ignore_list=['.*'])
@@ -306,7 +306,7 @@ def run_gift(ctx, input_dir, output_dir, mask_file, zscore_plot=2):
     """
     import os
     import io
-    import os.path as op
+    import os
     import subprocess
 
     from jinja2 import Template
@@ -317,7 +317,7 @@ def run_gift(ctx, input_dir, output_dir, mask_file, zscore_plot=2):
     tmp_str = tmp_str.render(input_dir=input_dir,
                              output_dir=output_dir,
                              mask_file=mask_file)
-    batch_file = op.abspath('gift_filled_template.m')
+    batch_file = os.path.abspath('gift_filled_template.m')
 
     io.open(batch_file, 'w').write(tmp_str)
 
@@ -327,7 +327,7 @@ def run_gift(ctx, input_dir, output_dir, mask_file, zscore_plot=2):
 
     os.remove(batch_file)
 
-    bg_img = op.expanduser(SPM_CANONICAL_BRAIN_2MM)
+    bg_img = os.path.expanduser(SPM_CANONICAL_BRAIN_2MM)
     return plot_ica_results(output_dir, application='gift',
                             mask_file=mask_file, zscore=zscore_plot, bg_img=bg_img)
 
@@ -358,13 +358,13 @@ def run_sbm(ctx, input_dir, output_dir, mask_file, zscore_plot=2):
     """
     import os
     import io
-    import os.path as op
+    import os
     import subprocess
 
     from jinja2 import Template
     from neuro_pypes.ica import plot_ica_results
 
-    input_glob = op.join(input_dir, '*.nii')
+    input_glob = os.path.join(input_dir, '*.nii')
 
     tmp_file = 'sbm_batch_template.m'
     tmp_str = Template(io.open(tmp_file).read())
@@ -373,7 +373,7 @@ def run_sbm(ctx, input_dir, output_dir, mask_file, zscore_plot=2):
                              out_prefix='sbm_',
                              mask_file=mask_file)
 
-    batch_file = op.abspath('sbm_filled_template.m')
+    batch_file = os.path.abspath('sbm_filled_template.m')
     io.open(batch_file, 'w').write(tmp_str)
 
     cmd = 'matlab -nodesktop -nosplash -r "icatb_batch_file_run(\'{}\'); exit();"'.format(batch_file)
@@ -382,7 +382,7 @@ def run_sbm(ctx, input_dir, output_dir, mask_file, zscore_plot=2):
 
     os.remove(batch_file)
 
-    bg_img = op.expanduser(SPM_CANONICAL_BRAIN_2MM)
+    bg_img = os.path.expanduser(SPM_CANONICAL_BRAIN_2MM)
     return plot_ica_results(output_dir, application='sbm', mask_file=mask_file,
                             zscore=zscore_plot, bg_img=bg_img)
 
@@ -411,13 +411,13 @@ def cobre_pype(ctx, wf_name="spm_anat_rest_preproc", base_dir="", cache_dir="", 
     """
     from neuro_pypes.datasets import cobre_crumb_workflow
 
-    data_path = op.join(op.expanduser(base_dir), '{subject_id}', 'session_1', '{modality}', '{image}')
+    data_path = os.path.join(os.path.expanduser(base_dir), '{subject_id}', 'session_1', '{modality}', '{image}')
     data_crumb = Crumb(data_path, ignore_list=['.*'])
 
     wf = cobre_crumb_workflow(wf_name     = wf_name,
                               data_crumb  = data_crumb,
-                              cache_dir   = op.abspath(op.expanduser(cache_dir)) if cache_dir else '',
-                              output_dir  = op.abspath(op.expanduser(output_dir)) if output_dir else '',
+                              cache_dir   = os.path.abspath(os.path.expanduser(cache_dir)) if cache_dir else '',
+                              output_dir  = os.path.abspath(os.path.expanduser(output_dir)) if output_dir else '',
                               config_file = settings_file,
                               params={'atlas_file': HAMM_MNI},
                              )
@@ -456,7 +456,7 @@ def plot_ica_results(ctx, ica_result, application, mask_file='', mode='+-', zsco
     from neuro_pypes.ica import plot_ica_results
 
     if bg_img is None:
-        bg_img = op.expanduser(SPM_CANONICAL_BRAIN_2MM)
+        bg_img = os.path.expanduser(SPM_CANONICAL_BRAIN_2MM)
 
     return plot_ica_results(ica_result,
                             application=application,
@@ -573,12 +573,12 @@ def ica_sbm_loadings_sheet(ctx, ica_out_dir, labels_file="", mask="", bg_img=Non
 
     # generate and save the simple loadings sheet
     sdf = plotter.simple_loadings_df(group_labels_file=labels_file, subjid_pat=subjid_pat)
-    sdf.to_excel(op.join(ica_out_dir, rawloadings_filename))
+    sdf.to_excel(os.path.join(ica_out_dir, rawloadings_filename))
 
     # generate and save the group-processed loadings sheet
     pdf = plotter.weighted_loadings_df(group_labels_file=labels_file, subjid_pat=subjid_pat)
-    pdf.to_excel(op.join(ica_out_dir, grouploadings_filename))
+    pdf.to_excel(os.path.join(ica_out_dir, grouploadings_filename))
 
     # plot blobs over IC maps for checking
-    check_blob_plot = op.join(ica_out_dir, check_blob_plot)
+    check_blob_plot = os.path.join(ica_out_dir, check_blob_plot)
     plotter.plot_icmaps_and_blobs(check_blob_plot, bg_img=bg_img)

@@ -10,7 +10,7 @@ from __future__ import (absolute_import,
                         unicode_literals)
 
 import os
-import os.path as op
+import os
 import logging
 from collections import OrderedDict
 
@@ -54,7 +54,7 @@ def subj_data_from_dicoms(ctx, crumb_path, arg_name, verbose=False):
     if verbose:
         verbose_switch(verbose)
 
-    crumb = Crumb(op.expanduser(op.abspath(crumb_path)), ignore_list=['.*'])
+    crumb = Crumb(os.path.expanduser(os.path.abspath(crumb_path)), ignore_list=['.*'])
     if not crumb.has_crumbs():
         raise ValueError('Expected a path with crumb arguments, e.g., '
                          '"/home/hansel/data/{group}/{sid}/{session}"')
@@ -125,7 +125,7 @@ def create_group_name_conversion(ctx, crumb_path, arg_name, outfile):
     subj_df = pd.DataFrame.from_records(subj_data)
     subj_df.to_csv(outfile, sep=',', index=False)
 
-    log.info('File created in {}.'.format(op.abspath(outfile)))
+    log.info('File created in {}.'.format(os.path.abspath(outfile)))
 
     return subj_df
 
@@ -230,10 +230,10 @@ def rename_to_nukid(crumb_path, arg_name, subj_data, verbose_only=False):
             Will not perform the operation will only print them.
         """
         for (src, dst) in src_dsts:
-            if not op.exists(src):
+            if not os.path.exists(src):
                 raise IOError('Could not find source file {}.'.format(src))
 
-            if op.exists(dst):
+            if os.path.exists(dst):
                 if src == dst:
                     continue
                 else:
@@ -252,7 +252,7 @@ def rename_to_nukid(crumb_path, arg_name, subj_data, verbose_only=False):
         raise ValueError('Expected a path with crumb arguments, e.g., '
                          '"/home/hansel/data/{group}/{sid}/{session}"')
 
-    crumb = Crumb(op.expanduser(op.abspath(crumb_path)), ignore_list=['.*'])
+    crumb = Crumb(os.path.expanduser(os.path.abspath(crumb_path)), ignore_list=['.*'])
     src_dsts = []
     for subj in subjs:
         src_crs = crumb.replace(**{arg_name: subj['DCM Folder']}).unfold()
@@ -262,7 +262,7 @@ def rename_to_nukid(crumb_path, arg_name, subj_data, verbose_only=False):
             dst_args[arg_name] = subj['nukid']
 
             dst_cr = crumb.replace(**dst_args)
-            if not op.exists(src_cr.path):
+            if not os.path.exists(src_cr.path):
                 raise IOError('Could not find folder {} for subject {}.'.format(src_cr, subj))
 
             if Crumb.has_crumbs(dst_cr.path):

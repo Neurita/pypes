@@ -2,7 +2,7 @@
 """
 PET-MR image preprocessing nipype workflows.
 """
-import os.path as op
+import os
 
 import nipype.pipeline.engine    as pe
 from   nipype.algorithms.misc    import Gunzip
@@ -473,8 +473,8 @@ def attach_spm_mrpet_preprocessing(main_wf, wf_name="spm_mrpet_preproc",
     anat_output = get_interface_node(main_wf, "anat_output")
 
     # The base name of the 'pet' file for the substitutions
-    anat_fbasename = remove_ext(op.basename(get_input_file_name(in_files, 'anat')))
-    pet_fbasename  = remove_ext(op.basename(get_input_file_name(in_files, 'pet')))
+    anat_fbasename = remove_ext(os.path.basename(get_input_file_name(in_files, 'anat')))
+    pet_fbasename  = remove_ext(os.path.basename(get_input_file_name(in_files, 'pet')))
 
     # get the PET preprocessing pipeline
     if do_group_template:
@@ -513,7 +513,7 @@ def attach_spm_mrpet_preprocessing(main_wf, wf_name="spm_mrpet_preproc",
     # prepare substitution for atlas_file, if any
     do_atlas, atlas_file = check_atlas_file()
     if do_atlas:
-        atlas_basename = remove_ext(op.basename(atlas_file))
+        atlas_basename = remove_ext(os.path.basename(atlas_file))
         regexp_subst.extend([
                              (r"/[\w]*{atlas}\.nii$", "/{atlas}_{pet}.nii"),
                             ])

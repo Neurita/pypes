@@ -3,7 +3,7 @@
 Helper functions to plot results.
 """
 import re
-import os.path as op
+import os
 
 import nilearn.image      as niimg
 import numpy              as np
@@ -108,10 +108,10 @@ class ICAResultsPlotter(object):
     _comps_fname = None
 
     def __init__(self, ica_result_dir):
-        if not op.exists(ica_result_dir):
+        if not os.path.exists(ica_result_dir):
             raise IOError('Expected an existing file or folder, but could not find {}.'.format(ica_result_dir))
 
-        self.ica_dir = op.expanduser(ica_result_dir)
+        self.ica_dir = os.path.expanduser(ica_result_dir)
 
     def fit(self,  mask_file='', mode='+-', zscore=2):
         """ Process/filter/threshold the output to make it ready for plot.
@@ -190,9 +190,9 @@ class ICAResultsPlotter(object):
         sliced_ic_plots: list of str
         """
         # specify the file paths
-        all_icc_plot_f  = op.join(self.ica_dir, 'all_components_zscore_{}.{}'.format(self.zscore, outtype))
-        iccs_plot_f     = op.join(self.ica_dir,  'ic_components_zscore_{}.{}'.format(self.zscore, outtype))
-        icc_multi_slice = op.join(self.ica_dir, 'ic_map_{}_zscore_{}.{}')
+        all_icc_plot_f  = os.path.join(self.ica_dir, 'all_components_zscore_{}.{}'.format(self.zscore, outtype))
+        iccs_plot_f     = os.path.join(self.ica_dir,  'ic_components_zscore_{}.{}'.format(self.zscore, outtype))
+        icc_multi_slice = os.path.join(self.ica_dir, 'ic_map_{}_zscore_{}.{}')
 
         # make the plots
         fig1 = plot_ica_components(self._icc_imgs, **kwargs)
@@ -269,7 +269,7 @@ class MIALABICAResultsPlotter(ICAResultsPlotter):
         groups: pandas.DataFrame
         """
         groups = None
-        if group_labels_file and op.exists(group_labels_file):
+        if group_labels_file and os.path.exists(group_labels_file):
             groups = pd.read_csv(group_labels_file)
             if not 'subject_id' in groups.columns or \
                not 'group' in groups.columns:
@@ -471,7 +471,7 @@ class MIALABICAResultsPlotter(ICAResultsPlotter):
         loadings_df: pandas.DataFrame
         """
         # make sure file exists
-        if not op.exists(group_labels_file):
+        if not os.path.exists(group_labels_file):
             raise FileNotFoundError('The file {} has not been found.'.format(group_labels_file))
 
         # make sure this object has been .fit()
@@ -487,7 +487,7 @@ class MIALABICAResultsPlotter(ICAResultsPlotter):
         # build the raw loadings table
         df = build_raw_loadings_table(loads, patids)
         df = add_groups_to_loadings_table(df, groups)
-        #df.to_excel(op.join(ica_out_dir, rawloadings_filename))
+        #df.to_excel(os.path.join(ica_out_dir, rawloadings_filename))
 
         return df
 
@@ -515,7 +515,7 @@ class MIALABICAResultsPlotter(ICAResultsPlotter):
         loadings_df: pandas.DataFrame
         """
         # make sure file exists
-        if not op.exists(group_labels_file):
+        if not os.path.exists(group_labels_file):
             raise FileNotFoundError('The file {} has not been found.'.format(group_labels_file))
 
         # make sure this object has been .fit()
@@ -675,7 +675,7 @@ class GIFTGroupICAResultsPlotter(MIALABICAResultsPlotter):
     #     gof_df: pandas.DataFrame
     #     """
     #     # make sure file exists
-    #     if not op.exists(group_labels_file):
+    #     if not os.path.exists(group_labels_file):
     #         raise FileNotFoundError('The file {} has not been found.'.format(group_labels_file))
     #
     #     # make sure this object has been .fit()
@@ -778,12 +778,12 @@ def ica_loadings_sheet(plotter, labels_file, mask=None, bg_img=None, zscore=2.,
 
     # generate and save the simple loadings sheet
     sdf = plotter.simple_loadings_df(group_labels_file=labels_file, subjid_pat=subjid_pat)
-    sdf.to_excel(op.join(output_dir, rawloadings_filename))
+    sdf.to_excel(os.path.join(output_dir, rawloadings_filename))
 
     # generate and save the group-processed loadings sheet
     pdf = plotter.weighted_loadings_df(group_labels_file=labels_file, subjid_pat=subjid_pat)
-    pdf.to_excel(op.join(output_dir, grouploadings_filename))
+    pdf.to_excel(os.path.join(output_dir, grouploadings_filename))
 
     # plot blobs over IC maps for checking
-    check_blob_plot = op.join(output_dir, check_blob_plot)
+    check_blob_plot = os.path.join(output_dir, check_blob_plot)
     plotter.plot_icmaps_and_blobs(check_blob_plot, bg_img=bg_img)

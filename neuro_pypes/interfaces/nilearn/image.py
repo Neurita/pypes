@@ -40,12 +40,12 @@ def ni2file(**presuffixes):
             if not res_img.shape: # the result is a scalar value
                 return res_img.get_data().flatten()[0]
 
-            import os.path as op
+            import os
             from nipype.utils.filemanip import fname_presuffix
 
             out_file = kwargs.get('out_file', presuffixes.pop('out_file', None))
             if out_file is not None:
-                if not presuffixes and op.exists(out_file):
+                if not presuffixes and os.path.exists(out_file):
                     warn('The file {} already exists and will be overwritten, please add a presuffix to'
                          ' the decorator.'.format(out_file))
 
@@ -55,11 +55,11 @@ def ni2file(**presuffixes):
                 if in_file is None:
                     in_file = _pick_an_input_file(*args, **kwargs)
 
-                if not op.exists(in_file):
+                if not os.path.exists(in_file):
                     raise IOError('Expected an existing file to use as reference for'
                                   ' the output file name, got {}.'.format(in_file))
 
-                out_file = fname_presuffix(op.basename(in_file), **presuffixes)
+                out_file = fname_presuffix(os.path.basename(in_file), **presuffixes)
 
             if not out_file:
                 raise ValueError("Could not find a output file name for this function: "
@@ -67,7 +67,7 @@ def ni2file(**presuffixes):
 
             res_img.to_filename(out_file)
 
-            return op.abspath(out_file)
+            return os.path.abspath(out_file)
 
         return wrapped
     return nifti_out

@@ -2,7 +2,7 @@
 """
 Nipype interfaces to canica and dictlearning in nilearn.decomposition
 """
-import os.path as op
+import os
 
 import numpy as np
 
@@ -160,7 +160,7 @@ class CanICAInterface(BaseInterface):
             np.savetxt(loading_file, loadings, fmt='%.10f')
             self._loading_files.append(loading_file)
 
-        outputs['components'] = op.abspath(self._reconstructed_img_file)
-        outputs['score']      = op.abspath(self._score_file)
-        outputs['loadings']   = [op.abspath(lf) for lf in self._loading_files]
+        outputs['components'] = os.path.abspath(self._reconstructed_img_file)
+        outputs['score']      = os.path.abspath(self._score_file)
+        outputs['loadings']   = [os.path.abspath(lf) for lf in self._loading_files]
         return outputs

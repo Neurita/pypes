@@ -2,7 +2,7 @@
 """
 Nipype interfaces to calculate connectivity measures using nilearn.
 """
-import os.path as op
+import os
 
 import numpy as np
 import nilearn.connectome
@@ -69,8 +69,8 @@ class ConnectivityCorrelationInterface(BaseInterface):
         standardize       = get_trait_value(self.inputs, 'standardize',       default=None)
         resampling_target = get_trait_value(self.inputs, 'resampling_target', default=None)
 
-        self._time_series_file = op.abspath('conn_timeseries.txt')
-        self._conn_mat_file    = op.abspath('connectivity.txt')
+        self._time_series_file = os.path.abspath('conn_timeseries.txt')
+        self._conn_mat_file    = os.path.abspath('connectivity.txt')
 
         ## TODO: add parameter to choose the ROI labels to be used.
         # if rois_list is None:

@@ -2,7 +2,7 @@
 """
 A nipype.SelectFiles node based on hansel.Crumb
 """
-import os.path as op
+import os
 from warnings import warn
 
 from hansel import Crumb
@@ -97,7 +97,7 @@ class DataCrumb(IOBase):
             first_arg_name, _ = self._crumb._first_open_arg()
             if first_arg_name not in info:
                 raise KeyError('Crumb path is not absolute and could not find input for {}.'.format(first_arg_name))
-            elif not op.isabs(info[first_arg_name]):
+            elif not os.path.isabs(info[first_arg_name]):
                 raise IOError('Expected an absolute path for {} argument in {} but got {}.'.format(first_arg_name, self._crumb, info[first_arg_name]))
 
         force_lists = self.inputs.force_lists

@@ -6,7 +6,7 @@ https://github.com/FCP-INDI/C-PAC
 """
 
 import nipype.pipeline.engine as pe
-from   nipype.interfaces import Function, IdentityInterface
+from nipype.interfaces import Function, IdentityInterface
 
 from neuro_pypes.config import setup_node
 
@@ -24,7 +24,7 @@ def calc_friston_twenty_four(in_file):
     new_file: string
         output 1D file containing 24 parameter values
     """
-    import os.path as op
+    import os
     import numpy as np
 
     data = np.genfromtxt(in_file)
@@ -42,7 +42,7 @@ def calc_friston_twenty_four(in_file):
     new_file = 'fristons_twenty_four.1D'
     np.savetxt(new_file, new_data, fmt='%0.8f', delimiter=' ')
 
-    return op.abspath(new_file)
+    return os.path.abspath(new_file)
 
 
 def fristons_twenty_four_wf(wf_name='fristons_twenty_four'):
@@ -492,7 +492,7 @@ def calculate_FD_P(in_file):
     out_file: str
         Frame-wise displacement matrix file path.
     """
-    import os.path as op
+    import os
 
     import numpy as np
 
@@ -512,7 +512,7 @@ def calculate_FD_P(in_file):
 
     np.savetxt(out_file, FD_power)
 
-    return op.abspath(out_file)
+    return os.path.abspath(out_file)
 
 
 def calculate_FD_J(in_file):
@@ -532,7 +532,7 @@ def calculate_FD_J(in_file):
     -----
     `in_file` should have one 3dvolreg affine matrix in one row - NOT the motion parameters.
     """
-    import os.path as op
+    import os
     import sys
     import math
 
@@ -573,7 +573,7 @@ def calculate_FD_J(in_file):
 
             T_rb_prev = T_rb
 
-    return op.abspath(out_file)
+    return os.path.abspath(out_file)
 
 
 def set_frames_in(in_file, threshold, exclude_list):
@@ -593,7 +593,7 @@ def set_frames_in(in_file, threshold, exclude_list):
      out_file : string
         path of file containing remaining uncensored timepoints
     """
-    import os.path as op
+    import os
 
     import numpy as np
 
@@ -620,7 +620,7 @@ def set_frames_in(in_file, threshold, exclude_list):
         for idx in indices:
             f.write('%s,' % int(idx))
 
-    return op.abspath(out_file)
+    return os.path.abspath(out_file)
 
 
 def gen_motion_parameters(subject_id, scan_id, movement_parameters, max_displacement):
@@ -647,7 +647,7 @@ def gen_motion_parameters(subject_id, scan_id, movement_parameters, max_displace
         path to csv file contianing various motion parameters
     """
 
-    import os.path as op
+    import os
     import numpy as np
     import re
 
@@ -737,7 +737,7 @@ def gen_motion_parameters(subject_id, scan_id, movement_parameters, max_displace
         for i in range(6):
             f.write("%.6f," %(np.mean(abs(arr[i]))))
 
-    return op.abspath(out_file)
+    return os.path.abspath(out_file)
 
 
 def gen_power_parameters(subject_id, scan_id, FD_1D, FDJ_1D, DVARS, threshold = 1.0):
@@ -769,7 +769,7 @@ def gen_power_parameters(subject_id, scan_id, FD_1D, FDJ_1D, DVARS, threshold = 
     out_file : string (csv file)
         path to csv file containing all the pow parameters
     """
-    import os.path as op
+    import os
     import numpy as np
 
     out_file = 'pow_params.txt'
@@ -821,7 +821,7 @@ def gen_power_parameters(subject_id, scan_id, FD_1D, FDJ_1D, DVARS, threshold = 
         meanDVARS = np.mean(np.load(DVARS))
         f.write('%.4f,' % meanDVARS)
 
-    return op.abspath(out_file)
+    return os.path.abspath(out_file)
 
 
 def calculate_DVARS(rest, mask):
@@ -842,7 +842,7 @@ def calculate_DVARS(rest, mask):
         path to file containing  array of DVARS
         calculation for each voxel
     """
-    import os.path as op
+    import os
 
     import numpy as np
     import nibabel as nib
@@ -864,4 +864,4 @@ def calculate_DVARS(rest, mask):
 
     np.save(out_file, DVARS)
 
-    return op.abspath(out_file)
+    return os.path.abspath(out_file)

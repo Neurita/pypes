@@ -2,7 +2,7 @@
 """
 PET group template registration nipype workflow.
 """
-import os.path as op
+import os
 
 import nipype.pipeline.engine as pe
 from   nipype.interfaces.io import DataSink
@@ -65,7 +65,7 @@ def attach_spm_pet_grouptemplate(main_wf, wf_name="spm_pet_template"):
     datasink = get_datasink(main_wf, name='datasink')
 
     # The base name of the 'pet' file for the substitutions
-    pet_fbasename = remove_ext(op.basename(get_input_file_name(in_files, 'pet')))
+    pet_fbasename = remove_ext(os.path.basename(get_input_file_name(in_files, 'pet')))
 
     # the group template datasink
     base_outdir  = datasink.inputs.base_directory

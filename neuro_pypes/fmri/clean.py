@@ -2,28 +2,30 @@
 """
 Nipype workflow to clean up resting-state functional MRI.
 """
-import nipype.pipeline.engine as pe
-import os.path as op
-from   nipype.algorithms.misc import Gunzip
-from   nipype.interfaces import fsl
-from   nipype.interfaces.nipy.preprocess import Trim, ComputeMask
-from   nipype.interfaces.utility import Function, Select, IdentityInterface
-from   neuro_pypes.interfaces.nilearn import mean_img, smooth_img
 
-from   neuro_pypes.fmri.filter import bandpass_filter
-from   neuro_pypes.fmri.nuisance import rest_noise_filter_wf
-from   neuro_pypes._utils import format_pair_list, flatten_list
-from   neuro_pypes.config import setup_node, get_config_setting
-from   neuro_pypes.preproc import (auto_spm_slicetime,
-                                   nipy_motion_correction,
-                                   spm_coregister)
-from   neuro_pypes.utils  import (remove_ext,
-                                  extend_trait_list,
-                                  get_input_node,
-                                  get_interface_node,
-                                  get_datasink,
-                                  get_input_file_name,
-                                  extension_duplicates)
+import os
+
+import nipype.pipeline.engine as pe
+from nipype.algorithms.misc import Gunzip
+from nipype.interfaces import fsl
+from nipype.interfaces.nipy.preprocess import Trim, ComputeMask
+from nipype.interfaces.utility import Function, Select, IdentityInterface
+from neuro_pypes.interfaces.nilearn import mean_img, smooth_img
+
+from neuro_pypes.fmri.filter import bandpass_filter
+from neuro_pypes.fmri.nuisance import rest_noise_filter_wf
+from neuro_pypes._utils import format_pair_list, flatten_list
+from neuro_pypes.config import setup_node, get_config_setting
+from neuro_pypes.preproc import (auto_spm_slicetime,
+                                 nipy_motion_correction,
+                                 spm_coregister)
+from neuro_pypes.utils import (remove_ext,
+                               extend_trait_list,
+                               get_input_node,
+                               get_interface_node,
+                               get_datasink,
+                               get_input_file_name,
+                               extension_duplicates)
 
 
 def fmri_cleanup_wf(wf_name="fmri_cleanup"):
@@ -123,43 +125,47 @@ def fmri_cleanup_wf(wf_name="fmri_cleanup"):
     wf = pe.Workflow(name=wf_name)
 
     # specify input and output fields
-    in_fields  = ["in_file",
-                  "anat",
-                  "atlas_anat",
-                  "coreg_target",
-                  "tissues",
-                  "lowpass_freq",
-                  "highpass_freq",]
+    in_fields = [
+        "in_file",
+        "anat",
+        "atlas_anat",
+        "coreg_target",
+        "tissues",
+        "lowpass_freq",
+        "highpass_freq",
+    ]
 
-    out_fields = ["motion_corrected",
-                  "motion_params",
-                  "tissues",
-                  "anat",
-                  "avg_epi",
-                  "time_filtered",
-                  "smooth",
-                  "tsnr_file",
-                  "epi_brain_mask",
-                  "tissues_brain_mask",
-                  "motion_regressors",
-                  "compcor_regressors",
-                  "gsr_regressors",
-                  "nuis_corrected",
-                  "art_displacement_files",
-                  "art_intensity_files",
-                  "art_norm_files",
-                  "art_outlier_files",
-                  "art_plot_files",
-                  "art_statistic_files",]
+    out_fields = [
+        "motion_corrected",
+        "motion_params",
+        "tissues",
+        "anat",
+        "avg_epi",
+        "time_filtered",
+        "smooth",
+        "tsnr_file",
+        "epi_brain_mask",
+        "tissues_brain_mask",
+        "motion_regressors",
+        "compcor_regressors",
+        "gsr_regressors",
+        "nuis_corrected",
+        "art_displacement_files",
+        "art_intensity_files",
+        "art_norm_files",
+        "art_outlier_files",
+        "art_plot_files",
+        "art_statistic_files",
+    ]
 
     # input identities
     rest_input = setup_node(IdentityInterface(fields=in_fields, mandatory_inputs=True),
                             name="rest_input")
 
     # rs-fMRI preprocessing nodes
-    trim    = setup_node(Trim(), name="trim")
+    trim = setup_node(Trim(), name="trim")
 
-    stc_wf  = auto_spm_slicetime()
+    stc_wf = auto_spm_slicetime()
     realign = setup_node(nipy_motion_correction(), name='realign')
 
     # average
@@ -170,11 +176,11 @@ def fmri_cleanup_wf(wf_name="fmri_cleanup"):
     mean_gunzip = setup_node(Gunzip(), name="mean_gunzip")
 
     # co-registration nodes
-    coreg     = setup_node(spm_coregister(cost_function="mi"), name="coreg_fmri")
-    brain_sel = setup_node(Select(index=[0, 1, 2]),            name="brain_sel")
+    coreg = setup_node(spm_coregister(cost_function="mi"), name="coreg_fmri")
+    brain_sel = setup_node(Select(index=[0, 1, 2]), name="brain_sel")
 
     # brain mask made with EPI
-    epi_mask    = setup_node(ComputeMask(),         name='epi_mask')
+    epi_mask = setup_node(ComputeMask(), name='epi_mask')
 
     # brain mask made with the merge of the tissue segmentations
     tissue_mask = setup_node(fsl.MultiImageMaths(), name='tissue_mask')
@@ -186,7 +192,7 @@ def fmri_cleanup_wf(wf_name="fmri_cleanup"):
     wmcsf_select = setup_node(Select(index=[1, 2]), name="wmcsf_sel")
 
     # noise filter
-    noise_wf   = rest_noise_filter_wf()
+    noise_wf = rest_noise_filter_wf()
     wm_select  = setup_node(Select(index=[1]), name="wm_sel")
     csf_select = setup_node(Select(index=[2]), name="csf_sel")
 
@@ -323,8 +329,8 @@ def attach_fmri_cleanup_wf(main_wf, wf_name="fmri_cleanup"):
 
     # dataSink output substitutions
     # The base name of the 'rest' file for the substitutions
-    rest_fbasename = remove_ext(op.basename(get_input_file_name(in_files, 'rest')))
-    anat_fbasename = remove_ext(op.basename(get_input_file_name(in_files, 'anat')))
+    rest_fbasename = remove_ext(os.path.basename(get_input_file_name(in_files, 'rest')))
+    anat_fbasename = remove_ext(os.path.basename(get_input_file_name(in_files, 'anat')))
 
     regexp_subst = [
                     (r"/rc1[\w]+_corrected\.nii$",                                 "/gm_{rest}.nii"),

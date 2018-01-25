@@ -2,7 +2,7 @@
 """
 Nipype workflow for cortical thickness measures using ANTs.
 """
-import os.path as op
+import os
 
 from   nipype.interfaces.ants import CorticalThickness
 
@@ -69,7 +69,7 @@ def attach_ants_cortical_thickness(main_wf, wf_name='ants_cortical_thickness'):
     cort_thick = setup_node(CorticalThickness(), name="cortical_thickness")
 
     # The base name of the 'anat' file for the substitutions
-    anat_fbasename = remove_ext(op.basename(get_input_file_name(in_files, 'anat')))
+    anat_fbasename = remove_ext(os.path.basename(get_input_file_name(in_files, 'anat')))
 
     # dataSink output substitutions
     regexp_subst = [

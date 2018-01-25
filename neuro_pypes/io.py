@@ -2,7 +2,7 @@
 """
 Workflows to grab input file structures.
 """
-import os.path as op
+import os
 import logging as log
 
 import nipype.pipeline.engine as pe
@@ -69,7 +69,7 @@ def build_crumb_workflow(wfname_attacher, data_crumb, in_out_kwargs, output_dir,
 
     # check some args
     if not cache_dir:
-        cache_dir = op.join(op.dirname(output_dir), "wd")
+        cache_dir = os.path.join(os.path.dirname(output_dir), "wd")
 
     # print the configuration parameters
     log.info('Using the following configuration parameters:')
@@ -86,7 +86,7 @@ def build_crumb_workflow(wfname_attacher, data_crumb, in_out_kwargs, output_dir,
         main_wf = attach_wf(main_wf=main_wf, wf_name=wf_name)
 
     # move the crash files folder elsewhere
-    main_wf.config["execution"]["crashdump_dir"] = op.join(main_wf.base_dir,
+    main_wf.config["execution"]["crashdump_dir"] = os.path.join(main_wf.base_dir,
                                                            main_wf.name, "log")
 
     log.info('Workflow created.')

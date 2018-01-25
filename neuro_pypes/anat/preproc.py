@@ -2,7 +2,7 @@
 """
 Nipype workflows to process anatomical MRI.
 """
-import os.path as op
+import os
 
 import nipype.pipeline.engine as pe
 from nipype.algorithms.misc import Gunzip
@@ -291,7 +291,7 @@ def attach_spm_anat_preprocessing(main_wf, wf_name="spm_anat_preproc"):
     anat_wf = spm_anat_preprocessing(wf_name=wf_name)
 
     # The base name of the 'anat' file for the substitutions
-    anat_fbasename = remove_ext(op.basename(get_input_file_name(in_files, 'anat')))
+    anat_fbasename = remove_ext(os.path.basename(get_input_file_name(in_files, 'anat')))
 
     # dataSink output substitutions
     regexp_subst = [
@@ -317,7 +317,7 @@ def attach_spm_anat_preprocessing(main_wf, wf_name="spm_anat_preproc"):
     # prepare substitution for atlas_file, if any
     do_atlas, atlas_file = check_atlas_file()
     if do_atlas:
-        atlas_basename = remove_ext(op.basename(atlas_file))
+        atlas_basename = remove_ext(os.path.basename(atlas_file))
         regexp_subst.extend([
                              (r"/w{atlas}\.nii$", "/{atlas}_anat_space.nii"),
                             ])

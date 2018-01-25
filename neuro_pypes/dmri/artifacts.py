@@ -2,7 +2,7 @@
 """
 Nipype workflow to detect and remove ardifacts in diffusion MRI.
 """
-import os.path as op
+import os
 
 import nipype.pipeline.engine as pe
 from   nipype.interfaces.fsl import BET, ExtractROI
@@ -316,7 +316,7 @@ def attach_dti_artifact_correction(main_wf, wf_name="dti_artifact_correction"):
 
     # dataSink output substitutions
     ## The base name of the 'diff' file for the substitutions
-    diff_fbasename = remove_ext(op.basename(get_input_file_name(in_files, 'diff')))
+    diff_fbasename = remove_ext(os.path.basename(get_input_file_name(in_files, 'diff')))
 
     regexp_subst = [
                     (r"/brain_mask_{diff}_space\.nii$", "/brain_mask.nii"),

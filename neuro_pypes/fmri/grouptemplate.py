@@ -2,7 +2,7 @@
 """
 fMRI group template registration nipype workflow.
 """
-import os.path as op
+import os
 
 import nipype.pipeline.engine as pe
 from   nipype.interfaces.io import DataSink
@@ -68,7 +68,7 @@ def attach_spm_fmri_grouptemplate_wf(main_wf, wf_name='spm_epi_grouptemplate'):
     datasink = get_datasink(main_wf, name='datasink')
 
     # The base name of the 'rest' file for the substitutions
-    fmri_fbasename = remove_ext(op.basename(get_input_file_name(in_files, 'rest')))
+    fmri_fbasename = remove_ext(os.path.basename(get_input_file_name(in_files, 'rest')))
 
     # the group template datasink
     base_outdir  = datasink.inputs.base_directory

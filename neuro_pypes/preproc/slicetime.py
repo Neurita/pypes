@@ -2,16 +2,16 @@
 """
 Helper functions for Slice Timing Correction
 """
-import os.path as op
+import os
 
 import nipype.pipeline.engine as pe
-from   nipype.interfaces.base import traits, isdefined
-from   nipype.interfaces.utility import IdentityInterface
-from   nipype.algorithms.misc import Gunzip
+from nipype.interfaces.base import traits, isdefined
+from nipype.interfaces.utility import IdentityInterface
+from nipype.algorithms.misc import Gunzip
 
-from   neuro_pypes.preproc.slicetime_params import STCParametersInterface
-from   neuro_pypes.utils import remove_ext
-from   neuro_pypes.config import setup_node
+from neuro_pypes.preproc.slicetime_params import STCParametersInterface
+from neuro_pypes.utils import remove_ext
+from neuro_pypes.config import setup_node
 
 
 def afni_slicetime(in_file=traits.Undefined,
@@ -83,7 +83,7 @@ def afni_slicetime(in_file=traits.Undefined,
 
     if isdefined(in_file):
         if not isdefined(out_file):
-            out_file = op.join(op.dirname(in_file), 'tshift_' + remove_ext(op.basename(in_file)))
+            out_file = os.path.join(os.path.dirname(in_file), 'tshift_' + remove_ext(os.path.basename(in_file)))
 
     tshift.inputs.in_file = in_file
     tshift.inputs.out_file = out_file
@@ -164,15 +164,13 @@ def spm_slicetime(in_files=traits.Undefined,
 
     stc = spm.SliceTiming()
 
-    stc.inputs.in_files         = in_files
-    stc.inputs.out_prefix       = 'a' if not isdefined(out_prefix) else out_prefix
-    stc.inputs.slice_order      = slice_order
-    stc.inputs.ref_slice        = ref_slice
-    stc.inputs.time_repetition  = time_repetition
+    stc.inputs.in_files = in_files
+    stc.inputs.out_prefix = 'a' if not isdefined(out_prefix) else out_prefix
+    stc.inputs.slice_order = slice_order
+    stc.inputs.ref_slice = ref_slice
+    stc.inputs.time_repetition = time_repetition
     stc.inputs.time_acquisition = time_acquisition
-    stc.inputs.num_slices       = num_slices
-
-    #res = stc.run()
+    stc.inputs.num_slices = num_slices
     return stc
 
 
@@ -210,13 +208,10 @@ def nipy_fmrirealign4d(in_files=traits.Undefined,
     import nipype.interfaces.nipy as nipy
 
     stc = nipy.FmriRealign4d()
-
-    stc.inputs.in_file     = in_files
-    stc.inputs.tr          = time_repetition
+    stc.inputs.in_file = in_files
+    stc.inputs.tr = time_repetition
     stc.inputs.slice_order = slice_order
-    stc.inputs.loops       = loops
-
-    #res = stc.run()
+    stc.inputs.loops = loops
     return stc
 
 
@@ -300,46 +295,48 @@ def auto_spm_slicetime(in_file=traits.Undefined,
     def _pick_first(sequence):
         return sequence[0]
 
+    input_fields = [
+        "in_file",
+        "num_slices",
+        "slice_order",
+        "time_repetition",
+        "time_acquisition",
+        "ref_slice",
+        "slice_mode",
+    ]
+
     # the input and output nodes
-    stc_input = setup_node(IdentityInterface(fields=["in_file",
-                                                     "num_slices",
-                                                     "slice_order",
-                                                     "time_repetition",
-                                                     "time_acquisition",
-                                                     "ref_slice",
-                                                     "slice_mode",
-                                                    ]),
-                                             name="stc_input")
+    stc_input = setup_node(IdentityInterface(fields=input_fields),
+                           name="stc_input")
 
     stc_output = setup_node(IdentityInterface(fields=["timecorrected_files",
                                                       "time_repetition",
                                                      ]),
-                                               name="stc_output")
+                                              name="stc_output")
 
     # Declare the processing nodes
     params = setup_node(STCParametersInterface(in_files=in_file), name='stc_params')
     gunzip = setup_node(Gunzip(), name="gunzip")
-    stc    = setup_node(spm_slicetime(out_prefix       = out_prefix,
-                                      num_slices       = num_slices,
-                                      time_repetition  = time_repetition,
-                                      time_acquisition = time_acquisition,
-                                      ref_slice        = ref_slice,
-                                      slice_order      = slice_order), name='slice_timer')
+    stc = setup_node(spm_slicetime(out_prefix=out_prefix,
+                                   num_slices=num_slices,
+                                   time_repetition=time_repetition,
+                                   time_acquisition=time_acquisition,
+                                   ref_slice=ref_slice,
+                                   slice_order=slice_order),
+                     name='slice_timer')
 
     # Create the workflow object
     wf = pe.Workflow(name=wf_name)
 
     # Connect the nodes
-    wf.connect([
-                # input node
-                (stc_input, params, [("in_file",          "in_files"),
+    wf.connect([(stc_input, params, [("in_file",          "in_files"),
                                      ("num_slices",       "num_slices"),
                                      ("slice_order",      "slice_order"),
                                      ("time_repetition",  "time_repetition"),
                                      ("time_acquisition", "time_acquisition"),
                                      ("ref_slice",        "ref_slice"),
                                      ("slice_mode",       "slice_mode"),
-                                    ]),
+                                     ]),
 
                 # processing nodes
                 (params, gunzip,    [(("in_files",    _pick_first),      "in_file")]),
@@ -348,13 +345,13 @@ def auto_spm_slicetime(in_file=traits.Undefined,
                                      ("num_slices",                      "num_slices"),
                                      ("time_acquisition",                "time_acquisition"),
                                      ("time_repetition",                 "time_repetition"),
-                                    ]),
+                                     ]),
                 (gunzip, stc,       [("out_file",                        "in_files")]),
 
                 # output node
-                (params, stc_output,[("time_repetition",     "time_repetition")]),
-                (stc,    stc_output,[("timecorrected_files", "timecorrected_files")]),
-              ])
+                (params, stc_output, [("time_repetition", "time_repetition")]),
+                (stc,    stc_output, [("timecorrected_files", "timecorrected_files")]),
+                ])
 
     return wf
 
@@ -414,20 +411,19 @@ def auto_nipy_slicetime(in_files=traits.Undefined,
     """
     # Declare the processing nodes
     params = setup_node(STCParametersInterface(in_files=in_files), name='stc_params')
-    stc    = setup_node(nipy_fmrirealign4d(time_repetition=time_repetition,
-                                           slice_order=slice_order,
-                                           loops=loops),
-                        name='slice_timer')
+    stc = setup_node(nipy_fmrirealign4d(time_repetition=time_repetition,
+                                        slice_order=slice_order,
+                                        loops=loops),
+                     name='slice_timer')
 
     # Create the workflow object
     wf = pe.Workflow(name=wf_name)
 
     # Connect the nodes
-    wf.connect([
-                (params, stc, [("in_files",         "in_files"),
-                               ("slice_order",      "slice_order"),
-                               ("time_repetition",  "tr"),
-                              ]),
-              ])
+    wf.connect([(params, stc, [("in_files", "in_files"),
+                               ("slice_order", "slice_order"),
+                               ("time_repetition", "tr"),
+                               ]),
+                ])
 
     return wf

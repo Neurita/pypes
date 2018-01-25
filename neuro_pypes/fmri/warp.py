@@ -2,7 +2,7 @@
 """
 Nipype workflows to process resting-state functional MRI.
 """
-import os.path as op
+import os
 
 import nipype.pipeline.engine    as pe
 from   nipype.algorithms.misc    import Gunzip
@@ -361,8 +361,8 @@ def attach_spm_warp_fmri_wf(main_wf, registration_wf_name="spm_warp_fmri", do_gr
 
     # dataSink output substitutions
     # The base name of the 'rest' file for the substitutions
-    rest_fbasename = remove_ext(op.basename(get_input_file_name(in_files, 'rest')))
-    anat_fbasename = remove_ext(op.basename(get_input_file_name(in_files, 'anat')))
+    rest_fbasename = remove_ext(os.path.basename(get_input_file_name(in_files, 'rest')))
+    anat_fbasename = remove_ext(os.path.basename(get_input_file_name(in_files, 'anat')))
 
     regexp_subst = [
                     (r"/corr_stc{fmri}_trim_mean_sn.mat$", "/{fmri}_grptemplate_params.mat"),
@@ -394,7 +394,7 @@ def attach_spm_warp_fmri_wf(main_wf, registration_wf_name="spm_warp_fmri", do_gr
     # prepare substitution for atlas_file, if any
     do_atlas, atlas_file = check_atlas_file()
     if do_atlas:
-        atlas_basename = remove_ext(op.basename(atlas_file))
+        atlas_basename = remove_ext(os.path.basename(atlas_file))
         regexp_subst.extend([
                              (r"/[\w]*{atlas}.*\.nii$", "/{atlas}_{fmri}_space.nii"),
                             ])

@@ -5,7 +5,7 @@ This works over Kaptan:https://github.com/emre/kaptan
 
 The global configuration registry is declared in the bottom of this file.
 """
-import os.path as op
+import os
 
 from   nipype.pipeline.engine import Node, MapNode, JoinNode
 from   nipype.interfaces.base import isdefined
@@ -18,9 +18,9 @@ def _load_config(file_path):
 
 
 def _check_file(file_path):
-    fpath = op.abspath(op.expanduser(file_path))
+    fpath = os.path.abspath(os.path.expanduser(file_path))
 
-    if not op.isfile(fpath):
+    if not os.path.isfile(fpath):
         raise IOError("Could not find configuration file {}.".format(fpath))
 
 
@@ -115,7 +115,7 @@ class Config(object):
         except KeyError:
             raise
         else:
-            if not op.exists(fpath):
+            if not os.path.exists(fpath):
                 raise IOError('Could not find file for key {} in the {}.'.format(item, fpath))
             return fpath
 
@@ -280,7 +280,7 @@ def check_atlas_file():
         return False, ''
 
     atlas_file = get_config_setting('atlas_file', default='')
-    if not op.isfile(atlas_file):
+    if not os.path.isfile(atlas_file):
         raise FileNotFoundError('Could not find atlas file in {}. '
                                 'Please set `normalize_atlas` to False '
                                 'or give an existing atlas image.'.format(atlas_file))

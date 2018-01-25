@@ -2,7 +2,7 @@
 """
 PET-only image registration nipype workflow.
 """
-import os.path as op
+import os
 
 from neuro_pypes.preproc import spm_warp_to_mni
 from neuro_pypes._utils  import format_pair_list
@@ -41,7 +41,7 @@ def attach_spm_pet_preprocessing(main_wf, wf_name='spm_pet_preproc'):
     datasink = get_datasink  (main_wf)
 
     # The base name of the 'pet' file for the substitutions
-    pet_fbasename = remove_ext(op.basename(get_input_file_name(in_files, 'pet')))
+    pet_fbasename = remove_ext(os.path.basename(get_input_file_name(in_files, 'pet')))
 
     # get the PET preprocessing pipeline
     warp_pet_wf = spm_warp_to_mni(wf_name=wf_name)

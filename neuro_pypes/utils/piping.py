@@ -8,7 +8,7 @@ from nipype.interfaces.io import SelectFiles, DataSink, DataGrabber
 from nipype.interfaces.base import traits, isdefined
 import nipype.interfaces.fsl as fsl
 
-from neuro_pypes.crumb  import DataCrumb
+from neuro_pypes.crumb import DataCrumb
 
 
 def get_trait_value(traitspec, value_name, default=None):
@@ -249,20 +249,24 @@ def get_input_file_name(input_node, fname_key):
         except AttributeError:
             raise
         except KeyError:
-            raise KeyError('Could not find file key {} in node {}({}).'.format(fname_key, input_node.name,
-                                                                           type(input_node.interface)))
+            raise KeyError('Could not find file key {} in node {}({}).'.format(
+                fname_key,
+                input_node.name,
+                type(input_node.interface)))
         else:
             return fname
 
     if isinstance(input_node.interface, DataCrumb):
         try:
             crumb_args = input_node.interface._templates[fname_key]
-            incrumb    = input_node.interface._crumb.replace(**dict(crumb_args))
+            incrumb = input_node.interface._crumb.replace(**dict(crumb_args))
         except AttributeError:
             raise
         except KeyError:
-            raise KeyError('Could not find file key {} in node {}({}).'.format(fname_key, input_node.name,
-                                                                           type(input_node.interface)))
+            raise KeyError('Could not find file key {} in node {}({}).'.format(
+                fname_key,
+                input_node.name,
+                type(input_node.interface)))
         else:
             return incrumb.path
 

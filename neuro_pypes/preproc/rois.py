@@ -2,7 +2,7 @@
 """
 Nipype processing nodes for ROI images
 """
-import os.path as op
+import os
 
 import nibabel as nib
 from boyle.nifti.roi import drain_rois
@@ -46,5 +46,5 @@ class DrainROIs(BaseInterface):
         outputs = self._outputs().get()
         fname = self.inputs.img
         _, base, _ = split_filename(fname)
-        outputs["out"] = op.abspath(base + '_drained.nii.gz')
+        outputs["out"] = os.path.abspath(base + '_drained.nii.gz')
         return outputs

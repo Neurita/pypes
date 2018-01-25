@@ -2,26 +2,28 @@
 """
 A PETPVC workflow
 """
-import os.path as op
+import os
 
 import nipype.pipeline.engine as pe
-from   nipype.algorithms.misc import Gunzip
-from   nipype.interfaces.utility import Select, IdentityInterface, Function
+from nipype.algorithms.misc import Gunzip
+from nipype.interfaces.utility import Select, IdentityInterface, Function
 
-from neuro_pypes.utils import (petpvc_cmd,
-                               petpvc_mask,
-                               intensity_norm)
-from neuro_pypes.config  import setup_node, get_config_setting
+from neuro_pypes.config import setup_node, get_config_setting
 from neuro_pypes.preproc import spm_coregister
-from neuro_pypes.utils   import (get_datasink,
-                                 extend_trait_list,
-                                 get_input_node,
-                                 remove_ext,
-                                 get_input_file_name,
-                                 extension_duplicates)
-
-from neuro_pypes._utils import (flatten_list,
-                                format_pair_list)
+from neuro_pypes.utils import (
+    get_datasink,
+    extend_trait_list,
+    get_input_node,
+    remove_ext,
+    get_input_file_name,
+    extension_duplicates)
+from neuro_pypes._utils import (
+    flatten_list,
+    format_pair_list)
+from neuro_pypes.pet.utils import (
+    petpvc_cmd,
+    petpvc_mask,
+    intensity_norm)
 
 
 def petpvc_workflow(wf_name="petpvc"):
@@ -234,8 +236,8 @@ def attach_petpvc_workflow(main_wf, wf_name="spm_petpvc"):
     datasink = get_datasink  (main_wf)
 
     # The base name of the 'pet' file for the substitutions
-    anat_fbasename = remove_ext(op.basename(get_input_file_name(in_files, 'anat')))
-    pet_fbasename  = remove_ext(op.basename(get_input_file_name(in_files, 'pet')))
+    anat_fbasename = remove_ext(os.path.basename(get_input_file_name(in_files, 'anat')))
+    pet_fbasename  = remove_ext(os.path.basename(get_input_file_name(in_files, 'pet')))
 
     # get the PET preprocessing pipeline
     pet_wf = petpvc_workflow(wf_name=wf_name)

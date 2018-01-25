@@ -18,7 +18,7 @@ def rapidart_dti_artifact_detection():
 
 def nlmeans_denoise(in_file, mask_file, out_file='', N=12):
     """ Filepath interface to the nlmeans_denoise_img in neuro_pypes.preproc."""
-    import os.path as op
+    import os
     import nibabel as nib
 
     from neuro_pypes.preproc import nlmeans_denoise_img
@@ -31,14 +31,14 @@ def nlmeans_denoise(in_file, mask_file, out_file='', N=12):
 
     den.to_filename(out_file)
 
-    return op.abspath(out_file)
+    return os.path.abspath(out_file)
 
 
 def reslice(in_file, new_zooms=None, order=3, out_file=''):
     """
     Performs regridding of an image to set isotropic voxel sizes using dipy.
     """
-    import os.path as op
+    import os
 
     import nibabel as nib
 
@@ -52,7 +52,7 @@ def reslice(in_file, new_zooms=None, order=3, out_file=''):
 
     img.to_filename(out_file)
 
-    return op.abspath(out_file)
+    return os.path.abspath(out_file)
 
 
 def dti_acquisition_parameters(in_file, epi_factor=128):
@@ -166,7 +166,7 @@ def dti_acquisition_parameters(in_file, epi_factor=128):
     """
     # the imports must be inside if you want them to work in a nipype.Function node.
     import warnings
-    import os.path as op
+    import os
     import nibabel as nib
 
     acqp_file = "diff.acqp"
@@ -201,4 +201,4 @@ def dti_acquisition_parameters(in_file, epi_factor=128):
     with open(index_file, "wt") as fout:
         fout.write("{}\n".format(" ".join(n_volumes * ["1"])))
 
-    return op.abspath(acqp_file), op.abspath(index_file)
+    return os.path.abspath(acqp_file), os.path.abspath(index_file)

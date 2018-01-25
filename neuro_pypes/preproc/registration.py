@@ -5,12 +5,12 @@ Nipype registration nodes and workflows
 import os.path as path
 
 import nipype.pipeline.engine as pe
-from   nipype.algorithms.misc import Gunzip
-from   nipype.interfaces.base import traits, isdefined
-from   nipype.interfaces.utility import IdentityInterface, Function
-import nipype.interfaces.afni as afni
-import nipype.interfaces.fsl as fsl
-import nipype.interfaces.spm  as spm
+from nipype.interfaces import afni
+from nipype.interfaces import fsl
+from nipype.interfaces import spm
+from nipype.algorithms.misc import Gunzip
+from nipype.interfaces.base import traits, isdefined
+from nipype.interfaces.utility import IdentityInterface, Function
 
 from neuro_pypes.interfaces.nilearn import mean_img, concat_imgs
 from neuro_pypes.preproc.spatial import get_bounding_box
