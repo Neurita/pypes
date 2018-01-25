@@ -167,29 +167,34 @@ def create_regressors(motion_params, comp_norm, outliers, detrend_poly=None):
     return out_files
 
 
-def extract_noise_components(realigned_file, mask_file, num_components=5,
+def extract_noise_components(realigned_file,
+                             mask_file,
+                             num_components=5,
                              extra_regressors=None):
-    """Derive components most reflective of physiological noise.
+    """Derive components most reflective of physiological noise
+
     Parameters
     ----------
     realigned_file: a 4D Nifti file containing realigned volumes
     mask_file: a 3D Nifti file containing white matter + ventricular masks
     num_components: number of components to use for noise decomposition
     extra_regressors: additional regressors to add
+
     Returns
     -------
     components_file: a text file containing the noise components
     """
-    import os
-    import nibabel as nb
+    from scipy.linalg.decomp_svd import svd
     import numpy as np
-    import scipy as sp
-    from   nipype.utils.filemanip import filename_to_list
+    import nibabel as nb
+    from nipype.utils import NUMPY_MMAP
+    from nipype.utils.filemanip import filename_to_list
+    import os
 
-    imgseries = nb.load(realigned_file)
+    imgseries = nb.load(realigned_file, mmap=NUMPY_MMAP)
     components = None
     for filename in filename_to_list(mask_file):
-        mask = nb.load(filename).get_data()
+        mask = nb.load(filename, mmap=NUMPY_MMAP).get_data()
         if len(np.nonzero(mask > 0)[0]) == 0:
             continue
         voxel_timecourses = imgseries.get_data()[mask > 0]
@@ -202,7 +207,7 @@ def extract_noise_components(realigned_file, mask_file, num_components=5,
         stdX[np.isnan(stdX)] = 1.
         stdX[np.isinf(stdX)] = 1.
         X = (X - np.mean(X, axis=0)) / stdX
-        u, _, _ = sp.linalg.svd(X, full_matrices=False)
+        u, _, _ = svd(X, full_matrices=False)
         if components is None:
             components = u[:, :num_components]
         else:
@@ -211,6 +216,5 @@ def extract_noise_components(realigned_file, mask_file, num_components=5,
         regressors = np.genfromtxt(extra_regressors)
         components = np.hstack((components, regressors))
     components_file = os.path.join(os.getcwd(), 'noise_components.txt')
-
     np.savetxt(components_file, components, fmt=b"%.10f")
     return components_file
