@@ -3,15 +3,15 @@
 Resting-state fMRI specific nuisance correction filtering workflow.
 """
 
-import nipype.pipeline.engine       as pe
-from   nipype.algorithms.rapidart   import ArtifactDetect
-from   nipype.interfaces.utility    import Function, IdentityInterface, Merge
-from   nipype.algorithms.confounds  import TSNR
-from   nipype.interfaces            import fsl
+import nipype.pipeline.engine as pe
+from nipype.algorithms.rapidart import ArtifactDetect
+from nipype.interfaces.utility import Function, IdentityInterface, Merge
+from nipype.algorithms.confounds import TSNR
+from nipype.interfaces import fsl
 
-from   neuro_pypes.config  import setup_node, _get_params_for
-from   neuro_pypes.utils   import selectindex, rename
-from   neuro_pypes.preproc import motion_regressors, extract_noise_components, create_regressors
+from neuro_pypes.config import setup_node, _get_params_for
+from neuro_pypes.utils import selectindex, rename
+from neuro_pypes.preproc import motion_regressors, extract_noise_components, create_regressors
 
 
 def rapidart_fmri_artifact_detection():
@@ -155,8 +155,8 @@ def rest_noise_filter_wf(wf_name='rest_noise_removal'):
                                                     'mask_file',
                                                     'num_components',
                                                     'extra_regressors'],
-                                         output_names=['out_files'],
-                                         function=extract_noise_components,),
+                                         output_names=['components_file'],
+                                         function=extract_noise_components),
                               name='compcor_pars')
     #compcor_pars = setup_node(ACompCor(), name='compcor_pars')
     #compcor_pars.inputs.components_file = 'noise_components.txt'
@@ -171,7 +171,7 @@ def rest_noise_filter_wf(wf_name='rest_noise_removal'):
                                                 'mask_file',
                                                 'num_components',
                                                 'extra_regressors'],
-                                    output_names=['out_files'],
+                                    output_names=['components_file'],
                                     function=extract_noise_components, ),
                             name='gsr_pars')
 
@@ -237,13 +237,11 @@ def rest_noise_filter_wf(wf_name='rest_noise_removal'):
                     (motion_filter,    compcor_filter,    [("out_res",                        "in_file"),
                                                            (("out_res", rename, "_cleaned"),  "out_res_name"),
                                                           ]),
-                    (compcor_pars,     compcor_filter,    [(("out_files", selectindex, 0),    "design")]),
-                    #(compcor_pars,     compcor_filter,    [("components_file",  "design")]),
+                    (compcor_pars,     compcor_filter,    [("components_file", "design")]),
                     (rest_noise_input, compcor_filter,    [("brain_mask",                     "mask")]),
 
                     # output
-                    (compcor_pars,     rest_noise_output, [("out_files",   "compcor_regressors")]),
-                    #(compcor_pars,     rest_noise_output, [("components_file",   "compcor_regressors")]),
+                    (compcor_pars,     rest_noise_output, [("components_file", "compcor_regressors")]),
                     ])
         last_filter = compcor_filter
 
@@ -251,18 +249,18 @@ def rest_noise_filter_wf(wf_name='rest_noise_removal'):
     if filters['gsr']:
         wf.connect([
             # calculate gsr regressors parameters file
-            (last_filter,       gsr_pars, [("out_res",      "realigned_file")]),
-            (rest_noise_input,  gsr_pars, [("brain_mask",   "mask_file")]),
+            (last_filter, gsr_pars, [("out_res", "realigned_file")]),
+            (rest_noise_input, gsr_pars, [("brain_mask", "mask_file")]),
 
             # the output file name
-            (rest_noise_input, gsr_filter,  [("brain_mask", "mask")]),
-            (last_filter,       gsr_filter, [("out_res", "in_file"),
-                                             (("out_res", rename, "_gsr"), "out_res_name"),
+            (rest_noise_input, gsr_filter, [("brain_mask", "mask")]),
+            (last_filter,      gsr_filter, [("out_res", "in_file"),
+                                            (("out_res", rename, "_gsr"), "out_res_name"),
                                             ]),
-            (gsr_pars,          gsr_filter, [(("out_files", selectindex, 0), "design")]),
+            (gsr_pars, gsr_filter, [("components_file", "design")]),
 
             # output
-            (gsr_pars,   rest_noise_output, [("out_files", "gsr_regressors")]),
+            (gsr_pars, rest_noise_output, [("components_file", "gsr_regressors")]),
         ])
         last_filter = gsr_filter
 
