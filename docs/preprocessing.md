@@ -73,7 +73,7 @@ It consists on two parts:
 2. warping and smoothing ([`neuro_pypes.fmri.warp.attach_spm_warp_fmri_wf`](https://github.com/Neurita/pypes/blob/master/neuro_pypes/fmri/warp.py)).
 
 The connection of both parts is in
-[`neuro_pypes.fmri.rest._attach_rest_preprocessing`](https://github.com/Neurita/pypes/blob/master/neuro_pypes/fmri/rest.py).
+[`neuro_pypes.fmri.resting._attach_rest_preprocessing`](https://github.com/Neurita/pypes/blob/master/neuro_pypes/fmri/rest.py).
 
 It's also possible to create a **group template** if you set that in the
 configuration file.
