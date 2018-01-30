@@ -1,0 +1,15 @@
+language: python
+
+python:
+  - "3.5"
+  - "3.6"
+
+env:
+  - PIP_USE_MIRRORS=true
+
+install:
+  - pip install pipenv
+  - make develop
+
+script:
+  - make test
