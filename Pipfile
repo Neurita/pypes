@@ -1,19 +1,7 @@
 [packages]
 
-numpy = "==1.13.3"
-scipy = "==1.0.0"
-hansel = ">=0.9.5"
-scikit-learn = "==0.19.1"
-matplotlib = "==2.1.0"
-nilearn = "==0.3.1"
-kaptan = "==0.5.9"
-nibabel = "==2.2.1"
-nipype = "==0.14.0"
-boyle = "==0.2.0"
-pandas = "==0.21.0"
-pydicom = {git = "https://github.com/darcymason/pydicom", ref = "1d525bea082ecc7fe70dfa15b38d132db7cfa0c7"}
-nipy = {git = "https://github.com/nipy/nipy.git", ref = "d49e8292adad6619e3dac710752131b567efe90e"}
-
+numpy = "*"
+"-e ." = "*"
 
 [dev-packages]
 
@@ -25,3 +13,4 @@ watchdog = "*"
 better-exceptions = "*"
 "flake8" = "*"
 bumpversion = "*"
+yapf = "*"
