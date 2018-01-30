@@ -84,6 +84,9 @@ tag: clean
 	git tag v$(version)
 	git push --tags
 
+log:
+	pipenv run gitchangelog
+
 patch:
 	pipenv run bumpversion patch
 
