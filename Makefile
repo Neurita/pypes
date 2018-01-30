@@ -79,6 +79,11 @@ docs:
 	$(MAKE) -C docs html
 	open docs/_build/html/index.html
 
+tag: clean
+	@echo "Creating git tag v$(version)"
+	git tag v$(version)
+	git push --tags
+
 patch:
 	pipenv run bumpversion patch
 
