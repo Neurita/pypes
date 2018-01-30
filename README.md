@@ -1,6 +1,7 @@
 # neuro_pypes
 
-[![image](https://readthedocs.org/projects/neuro-pypes/badge/?version=latest)](http://neuro-pypes.readthedocs.io)
+[![Build Status](https://travis-ci.org/Neurita/pypes.svg?branch=master)](https://travis-ci.org/Neurita/pypes)
+[![ReadTheDocs](https://readthedocs.org/projects/neuro-pypes/badge/?version=latest)](http://neuro-pypes.readthedocs.io)
 [![DOI](https://zenodo.org/badge/46623736.svg)](https://zenodo.org/badge/latestdoi/46623736)
 
 Reusable neuroimaging pipelines using [nipype](http://nipype.readthedocs.io/) and state-of-the-art
