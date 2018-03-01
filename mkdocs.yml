@@ -3,6 +3,7 @@ pages:
     - Home: index.md
     - Getting started: getting_started.md
     - Configuration: configuration.md
+    - Command line: cli.md
     - Preprocessing: preprocessing.md
     - Independent-components: ICA.md
     - Connectivity: connectivity.md

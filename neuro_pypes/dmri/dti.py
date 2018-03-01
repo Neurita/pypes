@@ -4,17 +4,17 @@ Diffusion Tensor Image preprocessing and tensor model fitting workflow.
 """
 import os
 
+from neuro_pypes._utils import format_pair_list, concat_to_pair_list
+from neuro_pypes.config import check_atlas_file
 from neuro_pypes.dmri.artifacts import attach_dti_artifact_correction
 from neuro_pypes.dmri.coregister import spm_anat_to_diff_coregistration
-from neuro_pypes._utils  import format_pair_list
-from neuro_pypes.config  import check_atlas_file
-from neuro_pypes.utils   import (get_datasink,
-                                 get_input_node,
-                                 get_interface_node,
-                                 remove_ext,
-                                 extend_trait_list,
-                                 get_input_file_name,
-                                 extension_duplicates)
+from neuro_pypes.utils import (get_datasink,
+                               get_input_node,
+                               get_interface_node,
+                               remove_ext,
+                               extend_trait_list,
+                               get_input_file_name,
+                               extension_duplicates)
 
 
 def attach_spm_fsl_dti_preprocessing(main_wf, wf_name="spm_fsl_dti_preprocessing"):
@@ -85,6 +85,7 @@ def attach_spm_fsl_dti_preprocessing(main_wf, wf_name="spm_fsl_dti_preprocessing
 
 
     regexp_subst += extension_duplicates(regexp_subst)
+    regexp_subst = concat_to_pair_list(regexp_subst, prefix='/diff')
     datasink.inputs.regexp_substitutions = extend_trait_list(datasink.inputs.regexp_substitutions,
                                                              regexp_subst)
 

@@ -4,8 +4,8 @@ Resting state networks atlas container class
 """
 from collections import OrderedDict
 
-import nilearn.plotting as niplot
 import nilearn.image as niimg
+import nilearn.plotting as niplot
 
 
 class RestingStateNetworks:
@@ -35,13 +35,14 @@ class RestingStateNetworks:
         If True it means that the `txt_file` volume indices start from 1.
         From 0 otherwise. Be careful, the default is True!
     """
+
     def __init__(self, img_file, txt_file, start_from_one=True):
-        self._img_file       = img_file
-        self._txt_file       = txt_file
+        self._img_file = img_file
+        self._txt_file = txt_file
         self._start_from_one = start_from_one
 
         self.network_names = self._network_names()
-        self._img          = niimg.load_img(self._img_file)
+        self._img = niimg.load_img(self._img_file)
         self._self_check()
 
     def iter_networks(self):
@@ -61,7 +62,7 @@ class RestingStateNetworks:
         RSN."""
         names_idx = self._read_labels_file()
         return OrderedDict([(idx, name) for name, idxs in names_idx.items()
-                                        for idx in idxs])
+                            for idx in idxs])
 
     def _get_img(self, network_index):
         """ Return one RSN given the index in the labels file."""
@@ -101,7 +102,7 @@ class RestingStateNetworks:
         for l in lines:
             pcs = l.split(',')
             netname = pcs[0]
-            blobs   = [int(idx) for idx in pcs[1:]]
+            blobs = [int(idx) for idx in pcs[1:]]
 
             netblobs[netname] = blobs
         return netblobs
@@ -126,4 +127,3 @@ class RestingStateNetworks:
 
     def __len__(self):
         return len(self.network_names)
-

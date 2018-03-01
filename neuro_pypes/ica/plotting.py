@@ -2,26 +2,30 @@
 """
 Helper functions to plot results.
 """
-import re
 import os
+import re
 
-import nilearn.image      as niimg
-import numpy              as np
-import pandas             as pd
-import scipy.io           as sio
-from   nilearn.input_data import NiftiMasker
-from   nilearn.image      import iter_img
-from   nilearn.masking    import apply_mask
-from   nilearn._utils.niimg_conversions import check_niimg, _index_img
-from   boyle.nifti.utils  import filter_icc
+import nilearn.image as niimg
+import numpy as np
+import pandas as pd
+import scipy.io as sio
+from boyle.nifti.utils import filter_icc
+from nilearn._utils.niimg_conversions import check_niimg, _index_img
+from nilearn.image import iter_img
+from nilearn.input_data import NiftiMasker
+from nilearn.masking import apply_mask
 
-from neuro_pypes.ica.utils import (get_largest_blobs,
-                                   build_raw_loadings_table,
-                                   add_groups_to_loadings_table,)
-from neuro_pypes.interfaces import (plot_all_components,
-                                    plot_ica_components,
-                                    plot_multi_slices,
-                                    plot_overlays)
+from neuro_pypes.ica.utils import (
+    get_largest_blobs,
+    build_raw_loadings_table,
+    add_groups_to_loadings_table,
+)
+from neuro_pypes.interfaces import (
+    plot_all_components,
+    plot_ica_components,
+    plot_multi_slices,
+    plot_overlays
+)
 from neuro_pypes.utils import fetch_one_file
 
 

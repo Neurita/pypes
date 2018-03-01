@@ -4,14 +4,14 @@ Resting-state fMRI specific nuisance correction filtering workflow.
 """
 
 import nipype.pipeline.engine as pe
-from nipype.algorithms.rapidart import ArtifactDetect
-from nipype.interfaces.utility import Function, IdentityInterface, Merge
 from nipype.algorithms.confounds import TSNR
+from nipype.algorithms.rapidart import ArtifactDetect
 from nipype.interfaces import fsl
+from nipype.interfaces.utility import Function, IdentityInterface, Merge
 
 from neuro_pypes.config import setup_node, _get_params_for
-from neuro_pypes.utils import selectindex, rename
 from neuro_pypes.preproc import motion_regressors, extract_noise_components, create_regressors
+from neuro_pypes.utils import selectindex, rename
 
 
 def rapidart_fmri_artifact_detection():

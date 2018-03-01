@@ -4,14 +4,16 @@ PET-only image registration nipype workflow.
 """
 import os
 
+from neuro_pypes._utils import format_pair_list, concat_to_pair_list
 from neuro_pypes.preproc import spm_warp_to_mni
-from neuro_pypes._utils  import format_pair_list
-from neuro_pypes.utils   import (get_datasink,
-                                 extend_trait_list,
-                                 get_input_node,
-                                 remove_ext,
-                                 get_input_file_name,
-                                 extension_duplicates)
+from neuro_pypes.utils import (
+    get_datasink,
+    extend_trait_list,
+    get_input_node,
+    remove_ext,
+    get_input_file_name,
+    extension_duplicates
+)
 
 
 def attach_spm_pet_preprocessing(main_wf, wf_name='spm_pet_preproc'):
@@ -38,7 +40,7 @@ def attach_spm_pet_preprocessing(main_wf, wf_name='spm_pet_preproc'):
     """
     # Dependency workflows
     in_files = get_input_node(main_wf)
-    datasink = get_datasink  (main_wf)
+    datasink = get_datasink(main_wf)
 
     # The base name of the 'pet' file for the substitutions
     pet_fbasename = remove_ext(os.path.basename(get_input_file_name(in_files, 'pet')))
@@ -48,18 +50,18 @@ def attach_spm_pet_preprocessing(main_wf, wf_name='spm_pet_preproc'):
 
     # dataSink output substitutions
     regexp_subst = [
-                    (r'/w{pet}.nii', '/{pet}_mni.nii'),
-                   ]
+        (r'/w{pet}.nii', '/{pet}_mni.nii'),
+    ]
     regexp_subst = format_pair_list(regexp_subst, pet=pet_fbasename)
     regexp_subst += extension_duplicates(regexp_subst)
-    datasink.inputs.regexp_substitutions = extend_trait_list(datasink.inputs.regexp_substitutions,
-                                                             regexp_subst)
+    regexp_subst = concat_to_pair_list(regexp_subst, prefix='/pet')
+    datasink.inputs.regexp_substitutions = extend_trait_list(datasink.inputs.regexp_substitutions, regexp_subst)
 
     # Connect the nodes
     main_wf.connect([
-                     # pet file input
-                    (in_files,    warp_pet_wf, [('pet',                      'warp_input.in_files')]),
-                    (warp_pet_wf, datasink,    [('warp_output.warped_files', 'pet.@warped'),]),
-                   ])
+        # pet file input
+        (in_files, warp_pet_wf, [('pet', 'warp_input.in_files')]),
+        (warp_pet_wf, datasink, [('warp_output.warped_files', 'pet.@warped'), ]),
+    ])
 
     return main_wf

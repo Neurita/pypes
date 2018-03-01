@@ -2,10 +2,6 @@
 """
 Helper functions to plot nipype workflows
 """
-from neuro_pypes.interfaces.nilearn import (plot_multi_slices,
-                                            plot_ortho_slices,
-                                            plot_ica_components,
-                                            plot_all_components)
 
 
 def plot_workflow(wf, detailed=False):

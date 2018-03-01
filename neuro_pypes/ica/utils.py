@@ -2,11 +2,11 @@
 """
 Helper functions to read, threshold, and build IC loadings results.
 """
-import pandas as pd
 import nilearn.image as niimg
-from   nilearn.image import iter_img
-from   boyle.nifti.roi import largest_connected_component
-from   boyle.nifti.utils import filter_icc
+import pandas as pd
+from boyle.nifti.roi import largest_connected_component
+from boyle.nifti.utils import filter_icc
+from nilearn.image import iter_img
 
 
 def get_largest_blobs(ic_maps):
@@ -37,7 +37,7 @@ def build_raw_loadings_table(loads, patids):
 
     # set the column names
     n_cols = loads.shape[1]
-    cols = ['subject_id'] + list(range(1, n_cols+1))
+    cols = ['subject_id'] + list(range(1, n_cols + 1))
 
     # fill the df
     return pd.DataFrame.from_records(loadings, columns=cols)

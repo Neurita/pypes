@@ -9,8 +9,9 @@ def get_bounding_box(in_file):
 
     # the imports must be inside if you want them to work in a nipype.Function node.
     from itertools import product
+
     import nibabel as nib
-    import numpy   as np
+    import numpy as np
 
     img = nib.load(in_file)
 
@@ -22,7 +23,7 @@ def get_bounding_box(in_file):
     corners = img.affine.dot(np.hstack([corners, np.ones((8, 1))]).T).T[:, :3]
 
     # get the extents
-    low_corner  = np.min(corners, axis=0)
+    low_corner = np.min(corners, axis=0)
     high_corner = np.max(corners, axis=0)
 
     return [low_corner.tolist(), high_corner.tolist()]

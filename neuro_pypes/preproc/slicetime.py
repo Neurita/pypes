@@ -5,13 +5,13 @@ Helper functions for Slice Timing Correction
 import os
 
 import nipype.pipeline.engine as pe
+from nipype.algorithms.misc import Gunzip
 from nipype.interfaces.base import traits, isdefined
 from nipype.interfaces.utility import IdentityInterface
-from nipype.algorithms.misc import Gunzip
 
+from neuro_pypes.config import setup_node
 from neuro_pypes.preproc.slicetime_params import STCParametersInterface
 from neuro_pypes.utils import remove_ext
-from neuro_pypes.config import setup_node
 
 
 def afni_slicetime(in_file=traits.Undefined,

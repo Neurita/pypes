@@ -6,23 +6,24 @@ import os
 
 import nipype.pipeline.engine as pe
 from nipype.algorithms.misc import Gunzip
-from nipype.interfaces.utility import IdentityInterface, Function
 from nipype.interfaces.base import isdefined
+from nipype.interfaces.utility import IdentityInterface, Function
 
+from neuro_pypes._utils import format_pair_list, concat_to_pair_list
 from neuro_pypes.anat.utils import biasfield_correct, spm_segment
+from neuro_pypes.config import setup_node, check_atlas_file, get_config_setting
 from neuro_pypes.interfaces.nilearn import math_img, copy_header
-from neuro_pypes.config  import setup_node, check_atlas_file, get_config_setting
-from neuro_pypes.preproc import (spm_apply_deformations,
-                                 get_bounding_box,)
-from neuro_pypes._utils  import format_pair_list
-from neuro_pypes.utils   import (remove_ext,
-                                 selectindex,
-                                 spm_tpm_priors_path,
-                                 extend_trait_list,
-                                 get_input_node,
-                                 get_datasink,
-                                 get_input_file_name,
-                                 extension_duplicates)
+from neuro_pypes.preproc import spm_apply_deformations, get_bounding_box
+from neuro_pypes.utils import (
+    remove_ext,
+    selectindex,
+    spm_tpm_priors_path,
+    extend_trait_list,
+    get_input_node,
+    get_datasink,
+    get_input_file_name,
+    extension_duplicates
+)
 
 
 def spm_anat_preprocessing(wf_name="spm_anat_preproc"):
@@ -321,10 +322,14 @@ def attach_spm_anat_preprocessing(main_wf, wf_name="spm_anat_preproc"):
         regexp_subst.extend([
                              (r"/w{atlas}\.nii$", "/{atlas}_anat_space.nii"),
                             ])
-        regexp_subst = format_pair_list(regexp_subst, atlas=atlas_basename)
+        regexp_subst = format_pair_list(regexp_subst, anat=anat_fbasename, atlas=atlas_basename)
 
     # add nii.gz patterns
     regexp_subst += extension_duplicates(regexp_subst)
+
+    # add parent folder to paths
+    regexp_subst = concat_to_pair_list(regexp_subst, prefix='/anat')
+
     datasink.inputs.regexp_substitutions = extend_trait_list(datasink.inputs.regexp_substitutions,
                                                              regexp_subst)
 

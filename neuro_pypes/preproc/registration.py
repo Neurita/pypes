@@ -5,16 +5,16 @@ Nipype registration nodes and workflows
 import os.path as path
 
 import nipype.pipeline.engine as pe
+from nipype.algorithms.misc import Gunzip
 from nipype.interfaces import afni
 from nipype.interfaces import fsl
 from nipype.interfaces import spm
-from nipype.algorithms.misc import Gunzip
 from nipype.interfaces.base import traits, isdefined
 from nipype.interfaces.utility import IdentityInterface, Function
 
+from neuro_pypes.config import setup_node, get_config_setting
 from neuro_pypes.interfaces.nilearn import mean_img, concat_imgs
 from neuro_pypes.preproc.spatial import get_bounding_box
-from neuro_pypes.config import setup_node, get_config_setting
 from neuro_pypes.utils import spm_tpm_priors_path
 
 
@@ -63,11 +63,11 @@ def spm_apply_deformations(in_file=traits.Undefined, trans_field=traits.Undefine
     if voxel_sizes is not None:
         norm12.inputs.write_voxel_sizes = voxel_sizes
 
-    norm12.inputs.deformation_file   = trans_field
-    norm12.inputs.image_to_align     = in_file
+    norm12.inputs.deformation_file = trans_field
+    norm12.inputs.image_to_align = in_file
     norm12.inputs.write_bounding_box = bbox
 
-    #norm12.run()
+    # norm12.run()
     return norm12
 
 
@@ -116,7 +116,7 @@ def spm_normalize(in_file=traits.Undefined, template=None, **kwargs):
     if isdefined(in_file):
         norm12.inputs.image_to_align = in_file
 
-    #norm12.run()
+    # norm12.run()
     return norm12
 
 
@@ -155,7 +155,7 @@ def spm_coregister(src_img=traits.Undefined, tgt_img=traits.Undefined, cost_func
     coreg.inputs.cost_function = cost_function
     coreg.inputs.jobtype = 'estwrite'
 
-    #coreg.run()
+    # coreg.run()
     return coreg
 
 
@@ -214,16 +214,20 @@ def spm_warp_to_mni(wf_name="spm_warp_to_mni"):
     """
     # input
     # check if spm_pet_preproc.do_petpvc is True
-    in_fields  = ["in_files"]
+    in_fields = ["in_files"]
     out_fields = ["warped_files"]
 
     input = setup_node(IdentityInterface(fields=in_fields, mandatory_inputs=True),
-                       name="warp_input",)
+                       name="warp_input", )
 
     gunzip = pe.MapNode(Gunzip(), name="gunzip", iterfield=['in_file'])
 
-    warp = setup_node(spm.Normalize12(jobtype='estwrite', affine_regularization_type='mni'),
-                      name="normalize12", type="map", iterfield=['image_to_align'])
+    warp = setup_node(
+        spm.Normalize12(jobtype='estwrite', affine_regularization_type='mni'),
+        name="normalize12",
+        type="map",
+        iterfield=['image_to_align']
+    )
 
     # output
     output = setup_node(IdentityInterface(fields=out_fields),
@@ -233,13 +237,13 @@ def spm_warp_to_mni(wf_name="spm_warp_to_mni"):
     wf = pe.Workflow(name=wf_name)
 
     wf.connect([
-                # inputs
-                (input,   gunzip, [("in_files", "in_file")]),
-                (gunzip,  warp,   [("out_file", "image_to_align")]),
+        # inputs
+        (input, gunzip, [("in_files", "in_file")]),
+        (gunzip, warp, [("out_file", "image_to_align")]),
 
-                # output
-                (warp,    output, [("normalized_image", "warped_files")]),
-               ])
+        # output
+        (warp, output, [("normalized_image", "warped_files")]),
+    ])
 
     return wf
 
@@ -279,7 +283,7 @@ def spm_create_group_template_wf(wf_name="spm_create_group_template"):
     wf: nipype Workflow
     """
     # input
-    input = setup_node(IdentityInterface(fields=["in_files"]), name="grptemplate_input",)
+    input = setup_node(IdentityInterface(fields=["in_files"]), name="grptemplate_input", )
 
     # checking if a template file has been set already
     template_file = get_config_setting("{}.template_file".format(wf_name))
@@ -287,23 +291,27 @@ def spm_create_group_template_wf(wf_name="spm_create_group_template"):
     use_common_template = path.exists(template_file)
     if not use_common_template:
         # merge
-        concat = setup_node(Function(function=concat_imgs,
-                                     input_names=["in_files"],
-                                     output_names=["out_file"],
-                                     imports=['from neuro_pypes.interfaces.nilearn import ni2file']),
-                            name='merge_time')
+        concat = setup_node(Function(
+            function=concat_imgs,
+            input_names=["in_files"],
+            output_names=["out_file"],
+            imports=['from neuro_pypes.interfaces.nilearn import ni2file']),
+            name='merge_time'
+        )
 
         # average
-        average = setup_node(Function(function=mean_img,
-                                      input_names=["in_file", "out_file"],
-                                      output_names=["out_file"],
-                                      imports=['from neuro_pypes.interfaces.nilearn import ni2file']),
-                            name='group_average')
+        average = setup_node(
+            Function(function=mean_img,
+                     input_names=["in_file", "out_file"],
+                     output_names=["out_file"],
+                     imports=['from neuro_pypes.interfaces.nilearn import ni2file']),
+            name='group_average'
+        )
         average.inputs.out_file = 'group_average.nii.gz'
 
-    #TODO: check what is the difference between nilearn.image.smooth_img and FSL IsotropicSmooth
+    # TODO: check what is the difference between nilearn.image.smooth_img and FSL IsotropicSmooth
     # smooth
-    #smooth = setup_node(Function(function=smooth_img,
+    # smooth = setup_node(Function(function=smooth_img,
     #                             input_names=["in_file", "fwhm"],
     #                             output_names=["out_file"],
     #                             imports=['from neuro_pypes.interfaces.nilearn import ni2file']),
@@ -311,7 +319,7 @@ def spm_create_group_template_wf(wf_name="spm_create_group_template"):
     smooth = setup_node(fsl.IsotropicSmooth(fwhm=8), name="{}_smooth".format(wf_name))
 
     # output
-    output = setup_node(IdentityInterface(fields=["template"]), name="grptemplate_output",)
+    output = setup_node(IdentityInterface(fields=["template"]), name="grptemplate_output", )
 
     # Create the workflow object
     wf = pe.Workflow(name=wf_name)
@@ -319,25 +327,25 @@ def spm_create_group_template_wf(wf_name="spm_create_group_template"):
     # if I have to create the group template
     if not use_common_template:
         wf.connect([
-                    # input
-                    (input,       concat,  [("in_files", "in_files")]),
+            # input
+            (input, concat, [("in_files", "in_files")]),
 
-                    # merge, average and smooth
-                    (concat,      average, [("out_file", "in_file")]),
-                    (average,     smooth,  [("out_file", "in_file")]),
+            # merge, average and smooth
+            (concat, average, [("out_file", "in_file")]),
+            (average, smooth, [("out_file", "in_file")]),
 
-                    # output
-                    (smooth,     output,   [("out_file", "template")]),
-                   ])
-    else: # if the template has been specified in the configuration file
+            # output
+            (smooth, output, [("out_file", "template")]),
+        ])
+    else:  # if the template has been specified in the configuration file
         wf.add_nodes([input])
 
         smooth.inputs.in_file = template_file
 
         wf.connect([
-                    # output
-                    (smooth,     output,   [("out_file", "template")]),
-                   ])
+            # output
+            (smooth, output, [("out_file", "template")]),
+        ])
 
     return wf
 
@@ -375,27 +383,31 @@ def spm_register_to_template_wf(wf_name="spm_registration_to_template"):
     wf: nipype Workflow
     """
     # specify input and output fields
-    in_fields  = ["in_file",
-                  "template",]
+    in_fields = [
+        "in_file",
+        "template",
+    ]
 
-    out_fields = ["warped",
-                  "warp_field",]
+    out_fields = [
+        "warped",
+        "warp_field",
+    ]
 
     # input
     reg_input = setup_node(IdentityInterface(fields=in_fields, mandatory_inputs=True),
                            name="reg_input")
 
     # warp each subject to the group template
-    gunzip_template = setup_node(Gunzip(), name="gunzip_template",)
-    gunzip_input    = setup_node(Gunzip(), name="gunzip_input",)
+    gunzip_template = setup_node(Gunzip(), name="gunzip_template", )
+    gunzip_input = setup_node(Gunzip(), name="gunzip_input", )
 
     warp2template = setup_node(spm.Normalize(jobtype="estwrite", out_prefix="wgrptemplate_"),
                                name="warp2template")
 
-    get_bbox = setup_node(Function(function=get_bounding_box,
-                                   input_names=["in_file"],
-                                   output_names=["bbox"]),
-                          name="get_bbox")
+    get_bbox = setup_node(
+        Function(function=get_bounding_box, input_names=["in_file"], output_names=["bbox"]),
+        name="get_bbox"
+    )
 
     # output
     reg_output = setup_node(IdentityInterface(fields=out_fields), name="reg_output")
@@ -404,24 +416,25 @@ def spm_register_to_template_wf(wf_name="spm_registration_to_template"):
     wf = pe.Workflow(name=wf_name)
 
     wf.connect([
-                # get template bounding box to apply to results
-                (reg_input,     get_bbox,        [("template", "in_file")]),
+        # get template bounding box to apply to results
+        (reg_input, get_bbox, [("template", "in_file")]),
 
-                # gunzip some inputs
-                (reg_input,     gunzip_input,    [("in_file",  "in_file")]),
-                (reg_input,     gunzip_template, [("template", "in_file")]),
+        # gunzip some inputs
+        (reg_input, gunzip_input, [("in_file", "in_file")]),
+        (reg_input, gunzip_template, [("template", "in_file")]),
 
-                # prepare the target parameters of the warp to template
-                (gunzip_template, warp2template, [("out_file", "template")]),
-                (get_bbox,        warp2template, [("bbox",     "write_bounding_box")]),
+        # prepare the target parameters of the warp to template
+        (gunzip_template, warp2template, [("out_file", "template")]),
+        (get_bbox, warp2template, [("bbox", "write_bounding_box")]),
 
-                # directly warp pet to the template
-                (gunzip_input,    warp2template, [("out_file", "source")]),
+        # directly warp pet to the template
+        (gunzip_input, warp2template, [("out_file", "source")]),
 
-                # output
-                (warp2template, reg_output, [("normalization_parameters", "warp_field"),
-                                             ("normalized_source",        "warped"),
-                                             ]),
-               ])
+        # output
+        (warp2template, reg_output, [
+            ("normalization_parameters", "warp_field"),
+            ("normalized_source", "warped"),
+        ]),
+    ])
 
     return wf

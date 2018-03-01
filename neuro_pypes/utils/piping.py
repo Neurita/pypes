@@ -246,8 +246,6 @@ def get_input_file_name(input_node, fname_key):
     if isinstance(input_node.interface, SelectFiles):
         try:
             fname = input_node.interface._templates[fname_key]
-        except AttributeError:
-            raise
         except KeyError:
             raise KeyError('Could not find file key {} in node {}({}).'.format(
                 fname_key,
@@ -260,8 +258,6 @@ def get_input_file_name(input_node, fname_key):
         try:
             crumb_args = input_node.interface._templates[fname_key]
             incrumb = input_node.interface._crumb.replace(**dict(crumb_args))
-        except AttributeError:
-            raise
         except KeyError:
             raise KeyError('Could not find file key {} in node {}({}).'.format(
                 fname_key,

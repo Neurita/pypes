@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-# emacs: -*- mode: python; py-indent-offset: 4; indent-tabs-mode: nil -*-
-# vi: set ft=python sts=4 ts=4 sw=4 et:
 """The fsl module provides classes for interfacing with the `FSL
 <http://www.fmrib.ox.ac.uk/fsl/index.html>`_ command line tools.  This
 was written to work with FSL version 5.0.4.
@@ -13,10 +10,10 @@ was written to work with FSL version 5.0.4.
     >>> os.chdir(datadir)
 """
 from __future__ import print_function, division, unicode_literals, absolute_import
-from builtins import str
 
 import os
 import warnings
+from builtins import str
 
 from nipype.interfaces.base import (traits, TraitedSpec, File, isdefined)
 from nipype.interfaces.fsl.base import FSLCommand, FSLCommandInputSpec
@@ -231,7 +228,6 @@ class EddyCorrect(FSLCommand):
     ...                     out_file="diffusion_edc.nii", ref_num=0)
     >>> eddyc.cmdline # doctest: +ALLOW_UNICODE
     'eddy_correct diffusion.nii diffusion_edc.nii 0'
-
     """
     _cmd = 'eddy_correct'
     input_spec = EddyCorrectInputSpec
@@ -240,7 +236,7 @@ class EddyCorrect(FSLCommand):
     def __init__(self, **inputs):
         warnings.warn(("Deprecated: Please use nipype.interfaces.fsl.epi.Eddy "
                        "instead"), DeprecationWarning)
-        return super(EddyCorrect, self).__init__(**inputs)
+        super(EddyCorrect, self).__init__(**inputs)
 
     def _run_interface(self, runtime):
         runtime = super(EddyCorrect, self)._run_interface(runtime)

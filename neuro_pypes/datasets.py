@@ -5,16 +5,22 @@ Functions to create pipelines for public and not so public available datasets.
 
 from collections import OrderedDict
 
+from neuro_pypes.anat import (
+    attach_spm_anat_preprocessing,
+    attach_ants_cortical_thickness
+)
 from neuro_pypes.config import update_config
-from neuro_pypes.anat import (attach_spm_anat_preprocessing,
-                              attach_ants_cortical_thickness)
-from neuro_pypes.dmri import (attach_spm_fsl_dti_preprocessing,
-                              attach_camino_tractography)
+from neuro_pypes.dmri import (
+    attach_spm_fsl_dti_preprocessing,
+    attach_camino_tractography
+)
 from neuro_pypes.fmri import attach_rest_preprocessing, attach_rest_grptemplate_preprocessing
 from neuro_pypes.io import build_crumb_workflow
-from neuro_pypes.pet import (attach_spm_mrpet_preprocessing,
-                             attach_spm_pet_preprocessing,
-                             attach_spm_pet_grouptemplate)
+from neuro_pypes.pet import (
+    attach_spm_mrpet_preprocessing,
+    attach_spm_pet_preprocessing,
+    attach_spm_pet_grouptemplate
+)
 
 
 def _cobre_wf_setup(wf_name):
@@ -42,24 +48,32 @@ def _cobre_wf_setup(wf_name):
                          ('image',    'rest.nii.gz')],
               }
     """
-    attach_functions = {"spm_anat_preproc":         [("spm_anat_preproc",  attach_spm_anat_preprocessing)],
+    attach_functions = {
+        "spm_anat_preproc": [
+            ("spm_anat_preproc", attach_spm_anat_preprocessing)
+        ],
 
-                        "spm_anat_rest_preproc":    [("spm_anat_preproc",  attach_spm_anat_preprocessing),
-                                                     ("spm_rest_preproc",  attach_rest_preprocessing),
-                                                    ],
-                       }
+        "spm_anat_rest_preproc": [
+            ("spm_anat_preproc", attach_spm_anat_preprocessing),
+            ("spm_rest_preproc", attach_rest_preprocessing),
+        ],
+    }
 
     if wf_name not in attach_functions:
         raise KeyError('Expected an existing pipeline name, got {}. '
                        'Available options: {}'.format(wf_name, list(attach_functions.keys())))
 
-    files_crumb_args = {'anat':  [('modality', 'anat_1'),
-                                  ('image',    'mprage.nii.gz')]} #'anat_1/mprage.nii.gz',
+    files_crumb_args = {
+        'anat': [('modality', 'anat_1'),
+                 ('image', 'mprage.nii.gz')]
+    }  # 'anat_1/mprage.nii.gz',
 
     if 'rest' in wf_name:
-        files_crumb_args.update({'rest':  [('modality', 'rest_1'),
-                                           ('image',    'rest.nii.gz')], # 'rest_1/rest.nii.gz'},
-                                })
+        files_crumb_args.update({
+            'rest': [('modality', 'rest_1'),
+                     ('image', 'rest.nii.gz')
+                     ],  # 'rest_1/rest.nii.gz'},
+        })
 
     params = {'file_templates': files_crumb_args}
 
@@ -91,85 +105,102 @@ def _clinical_wf_setup(wf_name):
                          ('image',    'rest.nii.gz')],
               }
     """
-                        # MPRAGE bias-field correction, normalization to MNI, and tissue segmentation
-    attach_functions = {"spm_anat_preproc":     [("spm_anat_preproc", attach_spm_anat_preprocessing)],
+    # MPRAGE bias-field correction, normalization to MNI, and tissue segmentation
+    attach_functions = {
+        "spm_anat_preproc": [
+            ("spm_anat_preproc", attach_spm_anat_preprocessing)
+        ],
 
-                        # PET normalization to MNI
-                        "spm_pet_preproc":      [("spm_pet_preproc", attach_spm_pet_preprocessing)],
+        # PET normalization to MNI
+        "spm_pet_preproc": [
+            ("spm_pet_preproc", attach_spm_pet_preprocessing)
+        ],
 
-                        # will create a PET group template
-                        "spm_pet_template":     [("spm_pet_preproc",       attach_spm_pet_preprocessing),
-                                                 ("spm_pet_grouptemplate", attach_spm_pet_grouptemplate),
-                                                ],
+        # will create a PET group template
+        "spm_pet_template": [
+            ("spm_pet_preproc", attach_spm_pet_preprocessing),
+            ("spm_pet_grouptemplate", attach_spm_pet_grouptemplate),
+        ],
 
-                        # MPRAGE preprocessing, PET MNI group template, PET PVC, and PET normalization to group template
-                        "spm_anat_pet_tpm_pvc": [("spm_anat_preproc",        attach_spm_anat_preprocessing),
-                                                 ("spm_pet_preproc",         attach_spm_pet_preprocessing),
-                                                 ("spm_mrpet_grouptemplate", attach_spm_pet_grouptemplate),
-                                                ],
+        # MPRAGE preprocessing, PET MNI group template, PET PVC, and PET normalization to group template
+        "spm_anat_pet_tpm_pvc": [
+            ("spm_anat_preproc", attach_spm_anat_preprocessing),
+            ("spm_pet_preproc", attach_spm_pet_preprocessing),
+            ("spm_mrpet_grouptemplate", attach_spm_pet_grouptemplate),
+        ],
 
-                        # MPRAGE preprocessing, PET MNI group template, PET PVC, and rest-fMRI
-                        "spm_anat_pet_pvc_rest": [("spm_anat_preproc",  attach_spm_anat_preprocessing),
-                                                  ("spm_pet_preproc",   attach_spm_pet_preprocessing),
-                                                  ("spm_rest_preproc",  attach_rest_preprocessing),
-                                                 ],
+        # MPRAGE preprocessing, PET MNI group template, PET PVC, and rest-fMRI
+        "spm_anat_pet_pvc_rest": [
+            ("spm_anat_preproc", attach_spm_anat_preprocessing),
+            ("spm_pet_preproc", attach_spm_pet_preprocessing),
+            ("spm_rest_preproc", attach_rest_preprocessing),
+        ],
 
-                        # MPRAGE preprocessing, PET PVC, and PET normalization to MNI
-                        "spm_anat_pet_pvc":     [("spm_anat_preproc",  attach_spm_anat_preprocessing),
-                                                 ("spm_mrpet_preproc", attach_spm_mrpet_preprocessing),
-                                                ],
+        # MPRAGE preprocessing, PET PVC, and PET normalization to MNI
+        "spm_anat_pet_pvc": [
+            ("spm_anat_preproc", attach_spm_anat_preprocessing),
+            ("spm_mrpet_preproc", attach_spm_mrpet_preprocessing),
+        ],
 
-                        # MPRAGE preprocessing, rs-fMRI preprocessing and normalization to MNI
-                        "spm_anat_rest_preproc":[("spm_anat_preproc",  attach_spm_anat_preprocessing),
-                                                 ("spm_rest_preproc",  attach_rest_preprocessing),
-                                                ],
+        # MPRAGE preprocessing, rs-fMRI preprocessing and normalization to MNI
+        "spm_anat_rest_preproc": [
+            ("spm_anat_preproc", attach_spm_anat_preprocessing),
+            ("spm_rest_preproc", attach_rest_preprocessing),
+        ],
 
-                        # MPRAGE preprocessing, DTI preprocessing with FSL
-                        "fsl_dti_preproc":      [("spm_anat_preproc",  attach_spm_anat_preprocessing),
-                                                 ("fsl_dti_preproc",   attach_spm_fsl_dti_preprocessing),
-                                                ],
+        # MPRAGE preprocessing, DTI preprocessing with FSL
+        "fsl_dti_preproc": [
+            ("spm_anat_preproc", attach_spm_anat_preprocessing),
+            ("fsl_dti_preproc", attach_spm_fsl_dti_preprocessing),
+        ],
 
-                        # MPRAGE preprocessing, DTI preprocessing with FSL, and tractography with Camino
-                        "anat_dti_camino":      [("spm_anat_preproc",  attach_spm_anat_preprocessing),
-                                                 ("fsl_dti_preproc",   attach_spm_fsl_dti_preprocessing),
-                                                 ("camino_tract" ,     attach_camino_tractography),
-                                                ],
+        # MPRAGE preprocessing, DTI preprocessing with FSL, and tractography with Camino
+        "anat_dti_camino": [
+            ("spm_anat_preproc", attach_spm_anat_preprocessing),
+            ("fsl_dti_preproc", attach_spm_fsl_dti_preprocessing),
+            ("camino_tract", attach_camino_tractography),
+        ],
 
-                        # MPRAGE and PET preprocessing, DTI preprocessing with FSL, and tractography with Camino
-                        "anat_pet_dti_camino":  [("spm_anat_preproc",  attach_spm_anat_preprocessing),
-                                                 ("spm_mrpet_preproc", attach_spm_mrpet_preprocessing),
-                                                 ("fsl_dti_preproc",   attach_spm_fsl_dti_preprocessing),
-                                                 ("camino_tract",      attach_camino_tractography),
-                                                ],
+        # MPRAGE and PET preprocessing, DTI preprocessing with FSL, and tractography with Camino
+        "anat_pet_dti_camino": [("spm_anat_preproc", attach_spm_anat_preprocessing),
+                                ("spm_mrpet_preproc", attach_spm_mrpet_preprocessing),
+                                ("fsl_dti_preproc", attach_spm_fsl_dti_preprocessing),
+                                ("camino_tract", attach_camino_tractography),
+                                ],
 
-                        # MPRAGE preprocessing, and EPI group template
-                        "spm_anat_rest_tpm_preproc": [("spm_anat_preproc", attach_spm_anat_preprocessing),
-                                                      ("spm_warp_fmri",    attach_rest_grptemplate_preprocessing),
-                                                     ],
+        # MPRAGE preprocessing, and EPI group template
+        "spm_anat_rest_tpm_preproc": [
+            ("spm_anat_preproc", attach_spm_anat_preprocessing),
+            ("spm_warp_fmri", attach_rest_grptemplate_preprocessing),
+        ],
 
-                        # MPRAGE preprocessing, EPI and PET group template, and PET and rs-fMRI preprocessing and
-                        # normalization to group template
-                        "spm_anat_pet_rest_tpm_preproc": [("spm_anat_preproc",        attach_spm_anat_preprocessing),
-                                                          ("spm_warp_fmri",           attach_rest_grptemplate_preprocessing),
-                                                          ("spm_pet_preproc",         attach_spm_pet_preprocessing),
-                                                          ("spm_mrpet_grouptemplate", attach_spm_pet_grouptemplate),
-                                                         ],
+        # MPRAGE preprocessing, EPI and PET group template, and PET and rs-fMRI preprocessing and
+        # normalization to group template
+        "spm_anat_pet_rest_tpm_preproc": [
+            ("spm_anat_preproc", attach_spm_anat_preprocessing),
+            ("spm_warp_fmri", attach_rest_grptemplate_preprocessing),
+            ("spm_pet_preproc", attach_spm_pet_preprocessing),
+            ("spm_mrpet_grouptemplate", attach_spm_pet_grouptemplate),
+        ],
 
-                        # MPRAGE preprocessing, EPI group template, and rs-fMRI preprocessing and normalization to MNI
-                        "spm_anat_pet_rest_preproc":    [("spm_anat_preproc",  attach_spm_anat_preprocessing),
-                                                         ("spm_rest_preproc",  attach_rest_preprocessing),
-                                                         ("spm_mrpet_preproc", attach_spm_mrpet_preprocessing),
-                                                        ],
+        # MPRAGE preprocessing, EPI group template, and rs-fMRI preprocessing and normalization to MNI
+        "spm_anat_pet_rest_preproc": [
+            ("spm_anat_preproc", attach_spm_anat_preprocessing),
+            ("spm_rest_preproc", attach_rest_preprocessing),
+            ("spm_mrpet_preproc", attach_spm_mrpet_preprocessing),
+        ],
 
-                        # MPRAGE and cortical thickness
-                        "spm_anat_ants_cortical_thick": [("spm_anat_preproc",  attach_spm_anat_preprocessing),
-                                                         ("ants_cort_thick",   attach_ants_cortical_thickness),
-                                                        ],
-                       }
+        # MPRAGE and cortical thickness
+        "spm_anat_ants_cortical_thick": [
+            ("spm_anat_preproc", attach_spm_anat_preprocessing),
+            ("ants_cort_thick", attach_ants_cortical_thickness),
+        ],
+    }
 
-    parameters = {"spm_pet_template":     [('spm_pet_template.do_petpvc', False),],
-                  "spm_anat_pet_tpm_pvc": [('spm_pet_template.do_petpvc', True),],
-                 }
+    parameters = {
+        "spm_pet_template": [('spm_pet_template.do_petpvc', False), ],
+        "spm_anat_pet_tpm_pvc": [('spm_pet_template.do_petpvc', True), ],
+    }
 
     if wf_name not in attach_functions:
         raise KeyError('Expected an existing pipeline name, got {}. '
@@ -182,19 +213,20 @@ def _clinical_wf_setup(wf_name):
 
     # the input files crumb patterns
     files_crumb_args = {}
-    files_crumb_args.update({'anat':  [('image', 'anat_hc.nii.gz')]})
+    files_crumb_args.update({'anat': [('image', 'anat_hc.nii.gz')]})
 
     if 'pet' in wf_name:
-        files_crumb_args.update({'pet':  [('image', 'pet_fdg.nii.gz')],})
+        files_crumb_args.update({'pet': [('image', 'pet_fdg.nii.gz')], })
 
     if 'rest' in wf_name:
-        files_crumb_args.update({'rest':  [('image', 'rest.nii.gz')],})
+        files_crumb_args.update({'rest': [('image', 'rest.nii.gz')], })
 
     if 'dti' in wf_name:
-        files_crumb_args.update({'diff': [('image', 'diff.nii.gz')],
-                                 'bval': [('image', 'diff.bval')],
-                                 'bvec': [('image', 'diff.bvec')],
-                                })
+        files_crumb_args.update({
+            'diff': [('image', 'diff.nii.gz')],
+            'bval': [('image', 'diff.bval')],
+            'bvec': [('image', 'diff.bvec')],
+        })
 
     return OrderedDict(attach_functions[wf_name]), wf_params, files_crumb_args
 
@@ -244,11 +276,13 @@ def cobre_crumb_workflow(wf_name, data_crumb, output_dir, cache_dir='', config_f
     if cfg_params is not None:
         update_config(cfg_params)
 
-    wf = build_crumb_workflow(attach_funcs,
-                              data_crumb=data_crumb,
-                              in_out_kwargs=file_templates,
-                              output_dir=output_dir,
-                              cache_dir=cache_dir,)
+    wf = build_crumb_workflow(
+        attach_funcs,
+        data_crumb=data_crumb,
+        in_out_kwargs=file_templates,
+        output_dir=output_dir,
+        cache_dir=cache_dir,
+    )
 
     return wf
 
@@ -301,10 +335,12 @@ def clinical_crumb_workflow(wf_name, data_crumb, output_dir, cache_dir='', confi
     if cfg_params is not None:
         update_config(cfg_params)
 
-    wf = build_crumb_workflow(attach_funcs,
-                              data_crumb=data_crumb,
-                              in_out_kwargs=file_templates,
-                              output_dir=output_dir,
-                              cache_dir=cache_dir,)
+    wf = build_crumb_workflow(
+        attach_funcs,
+        data_crumb=data_crumb,
+        in_out_kwargs=file_templates,
+        output_dir=output_dir,
+        cache_dir=cache_dir,
+    )
 
     return wf

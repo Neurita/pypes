@@ -3,8 +3,8 @@
 Nipype workflows to process resting-state functional MRI.
 """
 
-from neuro_pypes.fmri.grouptemplate import attach_spm_fmri_grouptemplate_wf
 from neuro_pypes.fmri.clean import attach_fmri_cleanup_wf
+from neuro_pypes.fmri.grouptemplate import attach_spm_fmri_grouptemplate_wf
 from neuro_pypes.fmri.warp import attach_spm_warp_fmri_wf
 
 

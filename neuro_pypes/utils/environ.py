@@ -80,12 +80,13 @@ def get_fsl_extension(default='NIFTI_GZ'):
     """
     outtype = os.environ.get('FSLOUTPUTTYPE', default)
 
-    otype_ext = {'NIFTI':           '.nii',
-                 'NIFTI_GZ':        '.nii.gz',
-                 'ANALYZE':         '.hdr',
-                 'NIFTI_PAIR':      '.hdr',
-                 'NIFTI_PAIR_GZ':   '.hdr.gz',
-                 'ANALYZE_PAIR_GZ': '.hdr.gz',
-                }
+    otype_ext = {
+        'NIFTI':           '.nii',
+        'NIFTI_GZ':        '.nii.gz',
+        'ANALYZE':         '.hdr',
+        'NIFTI_PAIR':      '.hdr',
+        'NIFTI_PAIR_GZ':   '.hdr.gz',
+        'ANALYZE_PAIR_GZ': '.hdr.gz',
+    }
 
     return otype_ext[outtype]

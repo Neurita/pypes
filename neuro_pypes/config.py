@@ -6,10 +6,11 @@ This works over Kaptan:https://github.com/emre/kaptan
 The global configuration registry is declared in the bottom of this file.
 """
 import os
+from typing import Any
 
-from   nipype.pipeline.engine import Node, MapNode, JoinNode
-from   nipype.interfaces.base import isdefined
-from   kaptan import Kaptan
+from kaptan import Kaptan
+from nipype.interfaces.base import isdefined
+from nipype.pipeline.engine import Node, MapNode, JoinNode
 
 
 def _load_config(file_path):
@@ -194,11 +195,13 @@ def check_mandatory_inputs(node_names):
     present in the global configuration settings."""
     for name in node_names:
         if name not in PYPES_CFG:
-            raise AttributeError('Could not find a configuration parameter for {}. '
-                                 'Please set it in the an input configuration file.'.format(name))
+            raise AttributeError(
+                'Could not find a configuration parameter for {}. '
+                'Please set it in the an input configuration file.'.format(name)
+            )
 
 
-def get_config_setting(param_name, default=''):
+def get_config_setting(param_name: str, default: Any = ''):
     """ Return the value for the entry with name `param_name` in the global configuration."""
     return PYPES_CFG.get(param_name, default=default)
 
@@ -285,4 +288,3 @@ def check_atlas_file():
                                 'Please set `normalize_atlas` to False '
                                 'or give an existing atlas image.'.format(atlas_file))
     return True, atlas_file
-
