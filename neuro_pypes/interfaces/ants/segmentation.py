@@ -6,10 +6,10 @@ The implementation of this interface is motivated by this study:
 http://dx.doi.org/10.1016/j.nicl.2016.05.017
 """
 
-from nipype.interfaces.base import TraitedSpec, File, traits, isdefined
-from nipype.interfaces.ants.base import ANTSCommand, ANTSCommandInputSpec
-from nipype.utils.filemanip import split_filename
 from nipype.external.due import BibTeX
+from nipype.interfaces.ants.base import ANTSCommand, ANTSCommandInputSpec
+from nipype.interfaces.base import TraitedSpec, File, traits, isdefined
+from nipype.utils.filemanip import split_filename
 
 
 class KellyKapowskiInputSpec(ANTSCommandInputSpec):
@@ -18,7 +18,7 @@ class KellyKapowskiInputSpec(ANTSCommandInputSpec):
 
     segmentation_image = File(exists=True, argstr='--segmentation-image "%s"', mandatory=True,
                               desc="A segmentation image must be supplied labeling the gray and white matters.\n"
-                                   "Default values = 2 and 3, respectively.",)
+                                   "Default values = 2 and 3, respectively.", )
 
     gray_matter_label = traits.Int(2, usedefault=True,
                                    desc="The label value for the gray matter label in the segmentation_image.")
@@ -33,13 +33,13 @@ class KellyKapowskiInputSpec(ANTSCommandInputSpec):
 
     white_matter_prob_image = File(exists=True, argstr='--white-matter-probability-image "%s"',
                                    desc="In addition to the segmentation image, a white matter probability image can be\n"
-                                       "used. If no such image is supplied, one is created using the segmentation image\n"
-                                       "and a variance of 1.0 mm.")
+                                        "used. If no such image is supplied, one is created using the segmentation image\n"
+                                        "and a variance of 1.0 mm.")
 
     convergence = traits.Str(default="[50,0.001,10]", argstr='--convergence "%s"', usedefault=True,
                              desc="Convergence is determined by fitting a line to the normalized energy profile of\n"
                                   "the last N iterations (where N is specified by the window size) and determining\n"
-                                  "the slope which is then compared with the convergence threshold.",)
+                                  "the slope which is then compared with the convergence threshold.", )
 
     thickness_prior_estimate = traits.Float(10, usedefault=True, argstr="--thickness-prior-estimate %f",
                                             desc="Provides a prior constraint on the final thickness measurement in mm.")
@@ -55,8 +55,8 @@ class KellyKapowskiInputSpec(ANTSCommandInputSpec):
 
     smoothing_velocity_field = traits.Float(1.5, argstr="--smoothing-velocity-field-parameter %f",
                                             desc="Defines the Gaussian smoothing of the velocity field (default = 1.5).\n"
-                                            "If the b-spline smoothing option is chosen, then this defines the \n"
-                                            "isotropic mesh spacing for the smoothing spline (default = 15).")
+                                                 "If the b-spline smoothing option is chosen, then this defines the \n"
+                                                 "isotropic mesh spacing for the smoothing spline (default = 15).")
 
     use_bspline_smoothing = traits.Bool(argstr="--use-bspline-smoothing 1",
                                         desc="Sets the option for B-spline smoothing of the velocity field.")
@@ -64,7 +64,8 @@ class KellyKapowskiInputSpec(ANTSCommandInputSpec):
     number_integration_points = traits.Int(10, argstr="--number-of-integration-points %d",
                                            desc="Number of compositions of the diffeomorphism per iteration.")
 
-    max_invert_displacement_field_iters = traits.Int(20, argstr="--maximum-number-of-invert-displacement-field-iterations %d",
+    max_invert_displacement_field_iters = traits.Int(20,
+                                                     argstr="--maximum-number-of-invert-displacement-field-iterations %d",
                                                      desc="Maximum number of iterations for estimating the invert \n"
                                                           "displacement field.")
 
@@ -114,21 +115,23 @@ class KellyKapowski(ANTSCommand):
     input_spec = KellyKapowskiInputSpec
     output_spec = KellyKapowskiOutputSpec
 
-    references_ = [{'entry': BibTeX("@book{Das2009867,"
-                                    "author={Sandhitsu R. Das and Brian B. Avants and Murray Grossman and James C. Gee},"
-                                    "title={Registration based cortical thickness measurement.},"
-                                    "journal={NeuroImage},"
-                                    "volume={45},"
-                                    "number={37},"
-                                    "pages={867--879},"
-                                    "year={2009},"
-                                    "issn={1053-8119},"
-                                    "url={http://www.sciencedirect.com/science/article/pii/S1053811908012780},"
-                                    "doi={http://dx.doi.org/10.1016/j.neuroimage.2008.12.016}"
-                                    "}"),
-                    'description': 'The details on the implementation of DiReCT.',
-                    'tags': ['implementation'],
-                    }]
+    references_ = [{
+        'entry': BibTeX(
+            "@book{Das2009867,"
+            "author={Sandhitsu R. Das and Brian B. Avants and Murray Grossman and James C. Gee},"
+            "title={Registration based cortical thickness measurement.},"
+            "journal={NeuroImage},"
+            "volume={45},"
+            "number={37},"
+            "pages={867--879},"
+            "year={2009},"
+            "issn={1053-8119},"
+            "url={http://www.sciencedirect.com/science/article/pii/S1053811908012780},"
+            "doi={http://dx.doi.org/10.1016/j.neuroimage.2008.12.016}"
+            "}"),
+        'description': 'The details on the implementation of DiReCT.',
+        'tags': ['implementation'],
+    }]
 
     def _parse_inputs(self, skip=None):
         if skip is None:
@@ -155,9 +158,11 @@ class KellyKapowski(ANTSCommand):
 
     def _format_arg(self, opt, spec, val):
         if opt == "segmentation_image":
-            newval = '[{0},{1},{2}]'.format(self.inputs.segmentation_image,
-                                            self.inputs.gray_matter_label,
-                                            self.inputs.white_matter_label)
+            newval = '[{0},{1},{2}]'.format(
+                self.inputs.segmentation_image,
+                self.inputs.gray_matter_label,
+                self.inputs.white_matter_label
+            )
             return spec.argstr % newval
 
         if opt == "cortical_thickness":

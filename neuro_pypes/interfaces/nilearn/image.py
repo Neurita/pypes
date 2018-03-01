@@ -20,6 +20,7 @@ def ni2file(**presuffixes):
     In the last case a presuffix must be defined in the decorator to avoid overwriting
     an existing file.
     """
+
     def _pick_an_input_file(*args, **kwargs):
         """Assume that either the first arg or the first kwarg is an input file."""
         if args:
@@ -37,7 +38,7 @@ def ni2file(**presuffixes):
                 else:
                     return res_img
 
-            if not res_img.shape: # the result is a scalar value
+            if not res_img.shape:  # the result is a scalar value
                 return res_img.get_data().flatten()[0]
 
             import os
@@ -63,13 +64,14 @@ def ni2file(**presuffixes):
 
             if not out_file:
                 raise ValueError("Could not find a output file name for this function: "
-                                " {}({}, {}).".format(f.__name__, *args, **kwargs))
+                                 " {}({}, {}).".format(f.__name__, *args, **kwargs))
 
             res_img.to_filename(out_file)
 
             return os.path.abspath(out_file)
 
         return wrapped
+
     return nifti_out
 
 
@@ -85,7 +87,7 @@ def math_img(formula, out_file='', **imgs):
     """
     import numpy as np
     import nilearn.image as niimg
-    from   six import string_types
+    from six import string_types
 
     for arg in list(imgs.keys()):
         if isinstance(imgs[arg], string_types):
@@ -153,7 +155,7 @@ def concat_3D_imgs(in_files, out_file=None):
     """
     import nilearn.image as niimg
 
-    from   nilearn._utils import check_niimg_3d
+    from nilearn._utils import check_niimg_3d
 
     all_3D = True
     for idx, img in enumerate(in_files):
@@ -164,7 +166,7 @@ def concat_3D_imgs(in_files, out_file=None):
             break
 
     if not all_3D:
-        #raise AttributeError('Expected all input images to be 3D volumes, but '
+        # raise AttributeError('Expected all input images to be 3D volumes, but '
         #                     ' at least the {}th is not.'.format(idx))
         return in_files
     else:
@@ -208,5 +210,8 @@ def copy_header(in_file, data_file, out_file=None):
 
     img = niimg.load_img(data_file)
 
-    return niimg.new_img_like(in_file, img.get_data(),
-                              affine=img.affine, copy_header=True)
+    return niimg.new_img_like(
+        in_file,
+        img.get_data(),
+        affine=img.affine, copy_header=True
+    )

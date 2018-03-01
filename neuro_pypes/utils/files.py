@@ -75,17 +75,14 @@ def get_extension(filepath, check_if_exists=False, allowed_exts=None):
     if allowed_exts is None:
         allowed_exts = {'.gz': '.nii'}
 
-    try:
-        rest, ext = os.path.splitext(filepath)
-        if ext in allowed_exts:
-            alloweds = allowed_exts[ext]
-            _, ext2 = os.path.splitext(rest)
-            if ext2 in alloweds:
-                ext = ext2 + ext
-    except:
-        raise
-    else:
-        return ext
+    rest, ext = os.path.splitext(filepath)
+    if ext in allowed_exts:
+        alloweds = allowed_exts[ext]
+        _, ext2 = os.path.splitext(rest)
+        if ext2 in alloweds:
+            ext = ext2 + ext
+
+    return ext
 
 
 def add_extension_if_needed(filepath, ext):
@@ -145,7 +142,9 @@ def extension_duplicates(regexp_pair_list):
     -------
     mod_regexp_pair_list: list of 2-tuple of str
     """
-    replace_ext = lambda x: x.replace('.nii', '.nii.gz')
+    def replace_ext(filepath):
+        return filepath.replace('.nii', '.nii.gz')
+
     dups = [(replace_ext(pair[0]), replace_ext(pair[1]))
             for pair in regexp_pair_list
             if '.nii$' in pair[0]]
@@ -156,8 +155,13 @@ def rename(in_files, suffix=None):
     """Rename all the files in `in_files` adding the `suffix` keeping its
     extension and basedir."""
     import os.path as path
-    from nipype.utils.filemanip import (filename_to_list, split_filename,
-                                        list_to_filename)
+
+    from nipype.utils.filemanip import (
+        filename_to_list,
+        split_filename,
+        list_to_filename
+    )
+
     out_files = []
     for idx, filename in enumerate(filename_to_list(in_files)):
         base, name, ext = split_filename(filename)

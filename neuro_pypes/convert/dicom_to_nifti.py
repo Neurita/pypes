@@ -3,13 +3,12 @@
 DICOM to Nifti converter node based on dcm2niix and hansel.Crumb.
 """
 import nipype.pipeline.engine as pe
-from nipype.interfaces.base    import traits
-from nipype.interfaces.utility import IdentityInterface
+from nipype.interfaces.base import traits
 from nipype.interfaces.dcm2nii import Dcm2niix, Dcm2nii
+from nipype.interfaces.utility import IdentityInterface
 
 from neuro_pypes.config import setup_node
-from neuro_pypes.utils  import (get_datasink,
-                                get_input_node)
+from neuro_pypes.utils import get_datasink, get_input_node
 
 
 def dcm2niix_wf(wf_name='dcm2niix'):
@@ -38,7 +37,7 @@ def dcm2niix_wf(wf_name='dcm2niix'):
     wf = pe.Workflow(name=wf_name)
 
     # specify input and output fields
-    in_fields  = ["in_dcmdir",]
+    in_fields = ["in_dcmdir", ]
 
     out_fields = ["bids",
                   "bvals",
@@ -58,17 +57,19 @@ def dcm2niix_wf(wf_name='dcm2niix'):
 
     # Connect the nodes
     wf.connect([
-                # input
-                (dcm2niix_input, dcm2niix, [("in_dcmdir",  "source_dir"),
-                                           ]),
+        # input
+        (dcm2niix_input, dcm2niix, [
+            ("in_dcmdir", "source_dir"),
+        ]),
 
-                # output
-                (dcm2niix, dcm2niix_output, [("bids",            "bids"),
-                                             ("bvals",           "bvals"),
-                                             ("bvecs",           "bvecs"),
-                                             ("converted_files", "converted_files"),
-                                            ]),
-              ])
+        # output
+        (dcm2niix, dcm2niix_output, [
+            ("bids", "bids"),
+            ("bvals", "bvals"),
+            ("bvecs", "bvecs"),
+            ("converted_files", "converted_files"),
+        ]),
+    ])
 
     return wf
 
@@ -96,18 +97,20 @@ def attach_dcm2niix(main_wf, wf_name="dcm2niix"):
     main_wf: nipype Workflow
     """
     in_files = get_input_node(main_wf)
-    datasink = get_datasink  (main_wf)
+    datasink = get_datasink(main_wf)
 
     # The workflow box
     d2n_wf = dcm2niix_wf(wf_name=wf_name)
 
-    main_wf.connect([(in_files, d2n_wf,   [("dcm_dir",                         "dcm2niix_input.in_dcmdir")]),
-                     (d2n_wf,   datasink, [("dcm2niix_output.bids",            "@bids"),
-                                           ("dcm2niix_output.bvals",           "@bvals"),
-                                           ("dcm2niix_output.bvecs",           "@bvecs"),
-                                           ("dcm2niix_output.converted_files", "@converted_files"),
-                                          ],),
-                    ])
+    main_wf.connect([
+        (in_files, d2n_wf, [("dcm_dir", "dcm2niix_input.in_dcmdir")]),
+        (d2n_wf, datasink, [
+            ("dcm2niix_output.bids", "@bids"),
+            ("dcm2niix_output.bvals", "@bvals"),
+            ("dcm2niix_output.bvecs", "@bvecs"),
+            ("dcm2niix_output.converted_files", "@converted_files"),
+        ])
+    ])
 
     return main_wf
 
@@ -134,9 +137,9 @@ def dcm2nii_converter(source_names=traits.Undefined):
     """
     dcm2nii = Dcm2nii()
 
-    dcm2nii.inputs.gzip_output     = True
-    dcm2nii.inputs.output_dir      = '.'
+    dcm2nii.inputs.gzip_output = True
+    dcm2nii.inputs.output_dir = '.'
     dcm2nii.inputs.terminal_output = 'file'
-    dcm2nii.inputs.source_names    = source_names
+    dcm2nii.inputs.source_names = source_names
 
     return dcm2nii

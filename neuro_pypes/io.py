@@ -2,17 +2,17 @@
 """
 Workflows to grab input file structures.
 """
-import os
 import logging as log
+import os
 
 import nipype.pipeline.engine as pe
-from   nipype.interfaces.io import DataSink
-from   nipype.interfaces.utility import IdentityInterface
-from   hansel.utils import joint_value_map, valuesmap_to_dict
+from hansel.utils import joint_value_map, valuesmap_to_dict
+from nipype.interfaces.io import DataSink
+from nipype.interfaces.utility import IdentityInterface
 
-from neuro_pypes.crumb  import DataCrumb
-from neuro_pypes.utils  import extend_trait_list, joinstrings
 from neuro_pypes import configuration
+from neuro_pypes.crumb import DataCrumb
+from neuro_pypes.utils import extend_trait_list, joinstrings
 
 
 def build_crumb_workflow(wfname_attacher, data_crumb, in_out_kwargs, output_dir,
@@ -60,10 +60,12 @@ def build_crumb_workflow(wfname_attacher, data_crumb, in_out_kwargs, output_dir,
         raise IOError("Expected an absolute Crumb path for `data_crumb`, got {}.".format(data_crumb))
 
     if not wfname_attacher or wfname_attacher is None:
-        raise ValueError("Expected `wfname_attacher` to have at least one function, "
-                         "got {}.".format(wfname_attacher))
+        raise ValueError(
+            "Expected `wfname_attacher` to have at least one function, "
+            "got {}.".format(wfname_attacher)
+        )
 
-    #if not in_out_kwargs or in_out_kwargs is None:
+    # if not in_out_kwargs or in_out_kwargs is None:
     #    raise ValueError("Expected `in_out_kwargs` to have at least the name for sets of parameters for "
     #                     " `data_crumb`, got {}.".format(in_out_kwargs))
 
@@ -76,18 +78,19 @@ def build_crumb_workflow(wfname_attacher, data_crumb, in_out_kwargs, output_dir,
     log.info(configuration)
 
     # generate the workflow
-    main_wf = crumb_wf(work_dir=cache_dir,
-                       data_crumb=data_crumb,
-                       output_dir=output_dir,
-                       file_templates=in_out_kwargs,
-                       wf_name=wf_name)
+    main_wf = crumb_wf(
+        work_dir=cache_dir,
+        data_crumb=data_crumb,
+        output_dir=output_dir,
+        file_templates=in_out_kwargs,
+        wf_name=wf_name
+    )
 
     for wf_name, attach_wf in wfname_attacher.items():
         main_wf = attach_wf(main_wf=main_wf, wf_name=wf_name)
 
     # move the crash files folder elsewhere
-    main_wf.config["execution"]["crashdump_dir"] = os.path.join(main_wf.base_dir,
-                                                           main_wf.name, "log")
+    main_wf.config["execution"]["crashdump_dir"] = os.path.join(main_wf.base_dir, main_wf.name, "log")
 
     log.info('Workflow created.')
 
@@ -128,16 +131,17 @@ def crumb_wf(work_dir, data_crumb, output_dir, file_templates,
     wf = pe.Workflow(name=wf_name, base_dir=work_dir)
 
     # datasink
-    datasink = pe.Node(DataSink(parameterization=False,
-                                base_directory=output_dir,),
-                       name="datasink")
+    datasink = pe.Node(
+        DataSink(parameterization=False, base_directory=output_dir, ),
+        name="datasink"
+    )
 
     # input workflow
     # (work_dir, data_crumb, crumb_arg_values, files_crumb_args, wf_name="input_files"):
-    select_files = pe.Node(DataCrumb(crumb=data_crumb,
-                                     templates=file_templates,
-                                     raise_on_empty=False),
-                           name='selectfiles')
+    select_files = pe.Node(
+        DataCrumb(crumb=data_crumb, templates=file_templates, raise_on_empty=False),
+        name='selectfiles'
+    )
 
     # basic file name substitutions for the datasink
     undef_args = select_files.interface._infields
@@ -156,14 +160,14 @@ def crumb_wf(work_dir, data_crumb, output_dir, file_templates,
     joinpath = pe.Node(joinstrings(len(undef_args)), name='joinpath')
 
     # Connect the infosrc node to the datasink
-    input_joins = [(name, 'arg{}'.format(arg_no+1))
+    input_joins = [(name, 'arg{}'.format(arg_no + 1))
                    for arg_no, name in enumerate(undef_args)]
 
     wf.connect([
-                (infosource,   select_files, [(field, field) for field in undef_args]),
-                (select_files, joinpath,     input_joins),
-                (joinpath,     datasink,     [("out", "container")]),
-               ],
-              )
+        (infosource, select_files, [(field, field) for field in undef_args]),
+        (select_files, joinpath, input_joins),
+        (joinpath, datasink, [("out", "container")]),
+    ],
+    )
 
     return wf

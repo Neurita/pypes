@@ -5,24 +5,28 @@ Nipype workflows to process resting-state functional MRI.
 import os
 
 import nipype.pipeline.engine    as pe
-from   nipype.algorithms.misc    import Gunzip
-from   nipype.interfaces.utility import Function, Merge, IdentityInterface
-from   nipype.interfaces import spm, fsl
+from nipype.algorithms.misc import Gunzip
+from nipype.interfaces import spm, fsl
+from nipype.interfaces.utility import Function, Merge, IdentityInterface
 
-from   neuro_pypes._utils  import format_pair_list
-from   neuro_pypes.config  import setup_node, get_config_setting, check_atlas_file
-from   neuro_pypes.preproc import (spm_normalize,
-                                   get_bounding_box,
-                                   spm_tpm_priors_path,
-                                   spm_coregister,
-                                   spm_apply_deformations)
-from   neuro_pypes.utils   import (remove_ext,
-                                   selectindex,
-                                   extend_trait_list,
-                                   get_input_node,
-                                   get_datasink,
-                                   get_input_file_name,
-                                   extension_duplicates)
+from neuro_pypes._utils import format_pair_list
+from neuro_pypes.config import setup_node, get_config_setting, check_atlas_file
+from neuro_pypes.preproc import (
+    spm_normalize,
+    get_bounding_box,
+    spm_tpm_priors_path,
+    spm_coregister,
+    spm_apply_deformations
+)
+from neuro_pypes.utils import (
+    remove_ext,
+    selectindex,
+    extend_trait_list,
+    get_input_node,
+    get_datasink,
+    get_input_file_name,
+    extension_duplicates
+)
 
 
 def spm_warp_fmri_wf(wf_name="spm_warp_fmri", register_to_grptemplate=False):
@@ -398,10 +402,11 @@ def attach_spm_warp_fmri_wf(main_wf, registration_wf_name="spm_warp_fmri", do_gr
         regexp_subst.extend([
                              (r"/[\w]*{atlas}.*\.nii$", "/{atlas}_{fmri}_space.nii"),
                             ])
-        regexp_subst = format_pair_list(regexp_subst, atlas=atlas_basename,
-                                                      fmri=rest_fbasename)
+        regexp_subst = format_pair_list(regexp_subst, atlas=atlas_basename, fmri=rest_fbasename)
 
     regexp_subst += extension_duplicates(regexp_subst)
+    regext_subst = append_string_to_pair_list(regexp_subst, prefix='/rest')
+
     datasink.inputs.regexp_substitutions = extend_trait_list(datasink.inputs.regexp_substitutions,
                                                              regexp_subst)
 

@@ -11,7 +11,7 @@ def plot_all_components(components_img, **kwargs):
     from matplotlib import pyplot as plt
 
     fig = plt.figure(facecolor='white')
-    p   = plot_prob_atlas(components_img, figure=fig, draw_cross=False, **kwargs)
+    p = plot_prob_atlas(components_img, figure=fig, draw_cross=False, **kwargs)
     p.close()
 
     return fig
@@ -25,16 +25,16 @@ def plot_ica_components(components_img, **kwargs):
     from matplotlib import pyplot as plt
     from matplotlib import gridspec
 
-    n_ics  = len(list(iter_img(components_img)))
-    n_rows = math.ceil(n_ics/2)
-    fig = plt.figure(figsize=(6, 3*n_rows), facecolor='black')
-    gs  = gridspec.GridSpec(n_rows, 2)
+    n_ics = len(list(iter_img(components_img)))
+    n_rows = math.ceil(n_ics / 2)
+    fig = plt.figure(figsize=(6, 3 * n_rows), facecolor='black')
+    gs = gridspec.GridSpec(n_rows, 2)
 
     plots = []
     for i, ic_img in enumerate(iter_img(components_img)):
         ax = plt.subplot(gs[i])
-        p  = plot_stat_map(ic_img, display_mode="z", title="IC {}".format(i+1),
-                           cut_coords=1, colorbar=False, figure=fig, axes=ax, **kwargs)
+        p = plot_stat_map(ic_img, display_mode="z", title="IC {}".format(i + 1),
+                          cut_coords=1, colorbar=False, figure=fig, axes=ax, **kwargs)
         plots.append(p)
 
     for p in plots:
@@ -106,12 +106,10 @@ def plot_multi_slices(img, cut_dir="z", n_cuts=20, n_cols=4, figsize=(2.5, 3),
 
     n_rows = 1
     if n_cuts > n_cols:
-        n_rows = math.ceil(n_cuts/n_cols)
+        n_rows = math.ceil(n_cuts / n_cols)
 
     spacing = kwargs.get('spacing', 'auto')
-    cuts = niplot.find_cut_slices(_img, n_cuts=n_cuts,
-                                  direction=cut_dir,
-                                  spacing=spacing)
+    cuts = niplot.find_cut_slices(_img, n_cuts=n_cuts, direction=cut_dir, spacing=spacing)
 
     # instantiate the figure
     if black_bg:
@@ -123,7 +121,7 @@ def plot_multi_slices(img, cut_dir="z", n_cuts=20, n_cols=4, figsize=(2.5, 3),
 
     figsize = figsize[0] * n_cols, figsize[1] * n_rows
     fig = plt.figure(figsize=figsize, facecolor=facecolor)
-    gs  = gridspec.GridSpec(n_rows, 1)
+    gs = gridspec.GridSpec(n_rows, 1)
 
     if title:
         fig.suptitle(title, fontsize=title_fontsize,
@@ -139,14 +137,16 @@ def plot_multi_slices(img, cut_dir="z", n_cuts=20, n_cols=4, figsize=(2.5, 3),
         cut_chunks = [cut for cut in cut_chunks if cut is not None]
 
         try:
-            p = plot_func(_img,
-                          display_mode=cut_dir,
-                          cut_coords=cut_chunks,
-                          colorbar=put_colorbar,
-                          figure=fig,
-                          axes=ax,
-                          black_bg=black_bg,
-                          **kwargs)
+            p = plot_func(
+                _img,
+                display_mode=cut_dir,
+                cut_coords=cut_chunks,
+                colorbar=put_colorbar,
+                figure=fig,
+                axes=ax,
+                black_bg=black_bg,
+                **kwargs
+            )
         except IndexError:
             logging.warning('Could not plot for coords {}.'.format(cut_chunks))
         finally:
@@ -216,15 +216,18 @@ def plot_ortho_slices(img, n_cuts=4, n_cols=6, figsize=(2.5, 3),
     else:
         n_rows = 1
         n_cols = 3
-        colorbard_idx = len(directions)-1
+        colorbard_idx = len(directions) - 1
 
     # calculate the cut coordinates for each direction
     cuts = []
     spacing = kwargs.get('spacing', 'auto')
     for cut_dir in directions:
-        dir_cuts = niplot.find_cut_slices(_img, n_cuts=n_cuts,
-                                          direction=cut_dir,
-                                          spacing=spacing)
+        dir_cuts = niplot.find_cut_slices(
+            _img,
+            n_cuts=n_cuts,
+            direction=cut_dir,
+            spacing=spacing
+        )
         cuts.append((cut_dir, dir_cuts))
 
     # instantiate the figure
@@ -237,7 +240,7 @@ def plot_ortho_slices(img, n_cuts=4, n_cols=6, figsize=(2.5, 3),
 
     figsize = figsize[0] * n_cols * n_cuts, figsize[1] * n_rows
     fig = plt.figure(figsize=figsize, facecolor=facecolor)
-    gs  = gridspec.GridSpec(n_rows, n_cols)
+    gs = gridspec.GridSpec(n_rows, n_cols)
 
     # put the title, if any
     if title:
@@ -286,18 +289,20 @@ def plot_overlays(stat_imgs, contour_imgs, bg_img=None,
 
     _stat_imgs = list(stat_imgs)
     _cnts_imgs = list(contour_imgs)
-    n_stats    = len(_stat_imgs)
-    n_conts    = len(_cnts_imgs)
+    n_stats = len(_stat_imgs)
+    n_conts = len(_cnts_imgs)
     if n_stats != n_conts:
-        raise AttributeError('The length of `stat_imgs` and `contour_imgs` are '
-                             'different, got {} and {}.'.format(n_stats, n_conts))
+        raise AttributeError(
+            'The length of `stat_imgs` and `contour_imgs` are '
+            'different, got {} and {}.'.format(n_stats, n_conts)
+        )
 
     n_rows = n_conts
-    n_cols = 3 # because I am doing the ortho plot
+    n_cols = 3  # because I am doing the ortho plot
 
     figsize = figsize[0] * n_cols, figsize[1] * n_rows
     fig = plt.figure(figsize=figsize, facecolor='black')
-    gs  = gridspec.GridSpec(n_rows, 1)
+    gs = gridspec.GridSpec(n_rows, 1)
 
     # put the title, if any
     if title:

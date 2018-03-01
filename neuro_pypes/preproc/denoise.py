@@ -29,7 +29,7 @@ def nlmeans_denoise_img(img, mask, N=4):
     from dipy.denoise.noise_estimate import estimate_sigma
 
     data = img.get_data()
-    msk  = mask.get_data()
+    msk = mask.get_data()
 
     sigma = estimate_sigma(data, N=N)
     return nlmeans(data, sigma=sigma, mask=msk)
@@ -75,10 +75,13 @@ def reslice_img(img, new_zooms=None, order=3):
         new_zooms = tuple(np.ones((3,)) * minzoom)
 
     # reslice it
-    nu_data, nu_affine = reslice(data=data, affine=img.affine,
-                                 zooms=img_zooms,
-                                 new_zooms=new_zooms,
-                                 order=order)
+    nu_data, nu_affine = reslice(
+        data=data,
+        affine=img.affine,
+        zooms=img_zooms,
+        new_zooms=new_zooms,
+        order=order
+    )
 
     # create the new image object
     header = img.header.copy()

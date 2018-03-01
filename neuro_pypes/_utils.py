@@ -58,6 +58,24 @@ def format_pair_list(pair_list, **kwargs):
     return [(s[0].format(**kwargs), s[1].format(**kwargs)) for s in pair_list]
 
 
+def concat_to_pair_list(pair_list, prefix='', suffix=''):
+    """ Add prefix and suffix to the strings in a a list of 2-tuple str.
+
+    Parameters
+    ----------
+    pair_list: list of 2-tuples of str
+
+    prefix: str
+
+    suffix: str
+
+    Returns
+    -------
+    formatted_pair_list: list of 2-tuples of str
+    """
+    return [(prefix + s[0] + suffix, prefix + s[1] + suffix) for s in pair_list]
+
+
 def _check_list(str_or_list):
     """ If `str_or_list` is a list will return it as it is. If it is a str, will return a
     list with the str inside.

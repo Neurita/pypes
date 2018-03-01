@@ -32,9 +32,9 @@ def spread_labels(labels_img, roi_values=None, background_label=0):
         roi_values = np.unique(lbls_vol)
         roi_values = roi_values[roi_values != background_label]
 
-    atlas_roi_vols = [(lbls_vol == val) * val for val in roi_values]
+    atlas_roi_vols = ((lbls_vol == val) * val for val in roi_values)
 
-    atlas_roi_imgs = [niimg.new_img_like(lbls_img, vol) for vol in atlas_roi_vols]
+    atlas_roi_imgs = (niimg.new_img_like(lbls_img, vol) for vol in atlas_roi_vols)
     # atlas_roi_imgs = [niimg.new_img_like(lbls_img, (lbls_vol == val) * val) for val in roi_values]
 
     return niimg.concat_imgs(atlas_roi_imgs)

@@ -4,15 +4,16 @@ Nipype interfaces to calculate connectivity measures using nilearn.
 """
 import os
 
-import numpy as np
 import nilearn.connectome
-from   nilearn.input_data     import NiftiMapsMasker, NiftiLabelsMasker
-#from   boyle.nifti.roi        import get_roilist_from_atlas
-from   nipype.interfaces.base import (BaseInterface,
-                                      TraitedSpec,
-                                      InputMultiPath,
-                                      BaseInterfaceInputSpec,
-                                      traits,)
+import numpy as np
+from nilearn.input_data import NiftiMapsMasker, NiftiLabelsMasker
+from nipype.interfaces.base import (
+    BaseInterface,
+    TraitedSpec,
+    InputMultiPath,
+    BaseInterfaceInputSpec,
+    traits
+)
 
 from neuro_pypes.utils import get_trait_value
 
@@ -30,7 +31,7 @@ class ConnectivityCorrelationInputSpec(BaseInterfaceInputSpec):
 
     # masker options
     smoothing_fwhm = traits.Float(desc="If smoothing_fwhm is defined, it gives the full-width half maximum in "
-                                       "millimeters of the spatial smoothing to apply to the signal.",)
+                                       "millimeters of the spatial smoothing to apply to the signal.", )
     standardize = traits.Bool(desc="If standardize is True, the time-series are centered and normed: "
                                    "their mean is put to 0 and their variance to 1 in the time dimension.",
                               default_value=False)
@@ -42,14 +43,14 @@ class ConnectivityCorrelationInputSpec(BaseInterfaceInputSpec):
                                          "Have a look on nilearn docs for more information.")
 
     # connectome options
-    kind = traits.Enum ("correlation", "partial correlation", "tangent", "covariance", "precision",
-                        desc="The connectivity matrix kind.", default='covariance')
+    kind = traits.Enum("correlation", "partial correlation", "tangent", "covariance", "precision",
+                       desc="The connectivity matrix kind.", default='covariance')
 
 
 class ConnectivityCorrelationOutputSpec(TraitedSpec):
     connectivity = traits.File(desc="Numpy text file with the connectivity matrix.")
-    timeseries   = traits.File(desc="Numpy text file with the time-series or 4th dimension data matrix extracted "
-                                    "from the atlas ROIs.")
+    timeseries = traits.File(desc="Numpy text file with the time-series or 4th dimension data matrix extracted "
+                                  "from the atlas ROIs.")
 
 
 class ConnectivityCorrelationInterface(BaseInterface):
@@ -62,15 +63,15 @@ class ConnectivityCorrelationInterface(BaseInterface):
     output_spec = ConnectivityCorrelationOutputSpec
 
     def _run_interface(self, runtime):
-        atlas_type        = get_trait_value(self.inputs, 'atlas_type')
-        conn_kind         = get_trait_value(self.inputs, 'kind',)
-        #rois_list         = get_trait_value(self.inputs, 'rois_list',         default=None)
-        smoothing_fwhm    = get_trait_value(self.inputs, 'smoothing_fwhm',    default=None)
-        standardize       = get_trait_value(self.inputs, 'standardize',       default=None)
+        atlas_type = get_trait_value(self.inputs, 'atlas_type')
+        conn_kind = get_trait_value(self.inputs, 'kind', )
+        # rois_list         = get_trait_value(self.inputs, 'rois_list',         default=None)
+        smoothing_fwhm = get_trait_value(self.inputs, 'smoothing_fwhm', default=None)
+        standardize = get_trait_value(self.inputs, 'standardize', default=None)
         resampling_target = get_trait_value(self.inputs, 'resampling_target', default=None)
 
         self._time_series_file = os.path.abspath('conn_timeseries.txt')
-        self._conn_mat_file    = os.path.abspath('connectivity.txt')
+        self._conn_mat_file = os.path.abspath('connectivity.txt')
 
         ## TODO: add parameter to choose the ROI labels to be used.
         # if rois_list is None:
@@ -90,16 +91,18 @@ class ConnectivityCorrelationInterface(BaseInterface):
         elif atlas_type == 'labels':
             AtlasMasker = NiftiLabelsMasker
 
-        masker = AtlasMasker(self.inputs.atlas_file,
-                             standardize=standardize,
-                             smoothing_fwhm=smoothing_fwhm,
-                             resampling_target=resampling_target,
-                             memory='nilearn_cache',
-                             verbose=5)
+        masker = AtlasMasker(
+            self.inputs.atlas_file,
+            standardize=standardize,
+            smoothing_fwhm=smoothing_fwhm,
+            resampling_target=resampling_target,
+            memory='nilearn_cache',
+            verbose=5
+        )
 
         self._time_series = masker.fit_transform(in_files)
 
-        conn_measure   = nilearn.connectome.ConnectivityMeasure(kind=conn_kind)
+        conn_measure = nilearn.connectome.ConnectivityMeasure(kind=conn_kind)
         self._conn_mat = conn_measure.fit_transform([self._time_series])
 
         return runtime
@@ -107,9 +110,9 @@ class ConnectivityCorrelationInterface(BaseInterface):
     def _list_outputs(self):
         outputs = self.output_spec().get()
 
-        np.savetxt(self._time_series_file, self._time_series,        fmt='%.10f')
-        np.savetxt(self._conn_mat_file,    self._conn_mat.squeeze(), fmt='%.10f')
+        np.savetxt(self._time_series_file, self._time_series, fmt='%.10f')
+        np.savetxt(self._conn_mat_file, self._conn_mat.squeeze(), fmt='%.10f')
 
-        outputs['timeseries'  ] = self._time_series_file
+        outputs['timeseries'] = self._time_series_file
         outputs['connectivity'] = self._conn_mat_file
         return outputs

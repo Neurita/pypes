@@ -19,6 +19,7 @@ def dcm_ascii_hdr(dcm_file):
     ----
     This only works for Siemens DICOM files.
     """
+
     def get_csa_header(dcm_file):
         import pydicom
         from nibabel.nicom import csareader as csar
@@ -53,7 +54,7 @@ def split_dcm_ahdr(ahdr):
     """
     parts = ahdr.split('### ASCCONV BEGIN ###')
 
-    meta   = parts[0].split('\n')
+    meta = parts[0].split('\n')
     ascconv = parts[1].split('### ASCCONV END ###')[0].split('\n')
 
     return meta, ascconv

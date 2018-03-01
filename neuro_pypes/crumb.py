@@ -6,10 +6,12 @@ import os
 from warnings import warn
 
 from hansel import Crumb
-
-from nipype.interfaces.base import (traits,
-                                    DynamicTraitedSpec,
-                                    Undefined, BaseInterfaceInputSpec)
+from nipype.interfaces.base import (
+    traits,
+    DynamicTraitedSpec,
+    Undefined,
+    BaseInterfaceInputSpec
+)
 from nipype.interfaces.io import IOBase, add_traits
 from nipype.utils.filemanip import list_to_filename
 from nipype.utils.misc import human_order_sorted
@@ -32,7 +34,7 @@ class DataCrumbInputSpec(DynamicTraitedSpec, BaseInterfaceInputSpec):
 
 class DataCrumb(IOBase):
     """ Use Crumb from hansel to select input files."""
-    input_spec  = DataCrumbInputSpec
+    input_spec = DataCrumbInputSpec
     output_spec = DynamicTraitedSpec
     _always_run = True
 
@@ -66,7 +68,7 @@ class DataCrumb(IOBase):
 
         files_args = get_values_map_keys(templates)
         undef_args = [name for name in list(crumb.all_args()) if name not in files_args]
-        self._infields  = undef_args
+        self._infields = undef_args
 
         self._outfields = []
         self._templates = []
@@ -98,7 +100,13 @@ class DataCrumb(IOBase):
             if first_arg_name not in info:
                 raise KeyError('Crumb path is not absolute and could not find input for {}.'.format(first_arg_name))
             elif not os.path.isabs(info[first_arg_name]):
-                raise IOError('Expected an absolute path for {} argument in {} but got {}.'.format(first_arg_name, self._crumb, info[first_arg_name]))
+                raise IOError(
+                    'Expected an absolute path for {} argument in {} but got {}.'.format(
+                        first_arg_name,
+                        self._crumb,
+                        info[first_arg_name]
+                    )
+                )
 
         force_lists = self.inputs.force_lists
         if isinstance(force_lists, bool):
@@ -128,7 +136,7 @@ class DataCrumb(IOBase):
         for field, template in self._templates.items():
 
             # Fill in the template and glob for files
-            focrumb  = ocrumb.replace(**dict(template))
+            focrumb = ocrumb.replace(**dict(template))
 
             if list(focrumb.open_args()):
                 raise ValueError('Expected a full specification of the Crumb path by now, got {}.'.format(focrumb))

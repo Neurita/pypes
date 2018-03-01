@@ -4,12 +4,14 @@ Nipype workflows to process anatomical MRI.
 """
 import json
 from collections import OrderedDict
+from typing import Iterable
 
-from nipype.utils.filemanip import filename_to_list
-from nipype.interfaces.nipy.preprocess import Trim
 import pandas as pd
+from nipype.interfaces.nipy.preprocess import Trim
+from nipype.utils.filemanip import filename_to_list
 from pydicom import read_file
-from hansel import Crumb
+
+import hansel
 
 
 def get_info(dicom_files):
@@ -50,15 +52,14 @@ def trim(begin_idx=6):
     return trim
 
 
-def motion_stats_sheet(motion_file_cr, crumb_fields):
+def motion_stats_sheet(motion_filepath: [str, hansel.Crumb], crumb_fields: Iterable[str]):
     """ Return a pandas.DataFrame with some of the motion statistics obtained from the
     `statistics_files` output of the nipype.RapidArt found in the hansel.Crumb `motion_file_cr`.
 
     Parameters
     ----------
-    motion_file_cr: str
-
-    crumb_fields: list of str
+    motion_filepath
+    crumb_fields:
 
     Returns
     -------
@@ -66,7 +67,7 @@ def motion_stats_sheet(motion_file_cr, crumb_fields):
 
     Examples
     --------
-    >>> motion_stats_sheet(motion_file_cr="/home/hansel/data/thomas/out/{group}/{patient_id}/{session}/rest/artifact_stats/motion_stats.json", \
+    >>> motion_stats_sheet(motion_file_cr="~/data/out/{group}/{sid}/session_0/rest/artifact_stats/motion_stats.json", \
     >>>                    crumb_fields=['group', 'patient_id', 'session'])
     """
     def get_motion_record(mtn_file_cr, crumb_fields):
@@ -83,7 +84,6 @@ def motion_stats_sheet(motion_file_cr, crumb_fields):
         mtn_record = OrderedDict()
         for fn in crumb_fields:
             mtn_record[fn] = mtn_file_cr[fn][0]
-
         mtn_record.update(outliers)
 
         for hdr, fn in zip(motion_hdr, motion_norm):
@@ -92,11 +92,11 @@ def motion_stats_sheet(motion_file_cr, crumb_fields):
         return mtn_record
 
     # process the input
-    motion_file_cr = Crumb(motion_file_cr)
-    crumb_fields   = [crf.strip() for crf in crumb_fields[1:-1].replace("'", "").split(',')]
+    if isinstance(motion_filepath, str):
+        motion_filepath = hansel.Crumb(motion_filepath)
 
     # create the motion records
-    motionstats = [get_motion_record(stats_file, crumb_fields) for stats_file in motion_file_cr.ls()]
+    motionstats = [get_motion_record(stats_file, crumb_fields) for stats_file in motion_filepath.ls()]
 
     # create a pandas Dataframe out of it
     df = pd.DataFrame.from_records(motionstats, columns=motionstats[0].keys())

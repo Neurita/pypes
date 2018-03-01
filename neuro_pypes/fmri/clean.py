@@ -10,12 +10,12 @@ from nipype.algorithms.misc import Gunzip
 from nipype.interfaces import fsl
 from nipype.interfaces.nipy.preprocess import Trim, ComputeMask
 from nipype.interfaces.utility import Function, Select, IdentityInterface
-from neuro_pypes.interfaces.nilearn import mean_img, smooth_img
 
-from neuro_pypes.fmri.filter import bandpass_filter
-from neuro_pypes.fmri.nuisance import rest_noise_filter_wf
 from neuro_pypes._utils import format_pair_list, flatten_list
 from neuro_pypes.config import setup_node, get_config_setting
+from neuro_pypes.fmri.filter import bandpass_filter
+from neuro_pypes.fmri.nuisance import rest_noise_filter_wf
+from neuro_pypes.interfaces.nilearn import mean_img, smooth_img
 from neuro_pypes.preproc import (auto_spm_slicetime,
                                  nipy_motion_correction,
                                  spm_coregister)

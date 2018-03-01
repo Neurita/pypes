@@ -25,9 +25,11 @@ def bandpass_filter(files, lowpass_freq=0.1, highpass_freq=0.01, tr=2):
 
     import nibabel as nb
     import numpy as np
-    from   nipype.utils.filemanip import (filename_to_list,
-                                          list_to_filename,
-                                          split_filename)
+    from nipype.utils.filemanip import (
+        filename_to_list,
+        list_to_filename,
+        split_filename
+    )
 
     fs = 1./tr
 

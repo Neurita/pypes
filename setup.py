@@ -5,13 +5,25 @@ pypes
 
 Reusable neuroimaging pipelines using nipype
 """
-
-from __future__ import print_function
-
-import os
 import io
 
 from setuptools import setup, find_packages
+
+requirements = [
+    'scipy>=1.0.0',
+    'hansel>=2.0.1',
+    'scikit_learn>=0.19.1',
+    'matplotlib==2.1.0',
+    'nilearn>=0.4.0',
+    'kaptan==0.5.9',
+    'nibabel>=2.2.1',
+    'nipype>=0.14.0',
+    'boyle>=0.2.0',
+    'pandas>=0.22.0',
+    'click>=6.7',
+    'nipy>=0.4.2',
+    'pydicom>=version="1.1.0",rc1',
+]
 
 
 # long description
@@ -25,44 +37,22 @@ def read(*filenames, **kwargs):
     return sep.join(buf)
 
 
-# Get version without importing, which avoids dependency issues
-MODULE_NAME = find_packages(exclude=['*.tests', '*.test.*'])[0]
-VERSION_PYFILE = os.path.join(MODULE_NAME, 'version.py')
-# set __version__ variable
-exec(compile(read(VERSION_PYFILE), VERSION_PYFILE, 'exec'))
-
-LICENSE = 'Apache License, Version 2.0'
-
 setup_dict = dict(
-    name=MODULE_NAME,
-    version=__version__,
+    name='neuro_pypes',
+    version='version="1.1.0",',
     description='Reusable and configurable neuroimaging pipelines with Nipype.',
-    license=LICENSE,
+    license='Apache License, Version 2.0',
     author='Alexandre Savio',
     author_email='alexsavio@gmail.com',
     maintainer='',
     maintainer_email='',
-    packages=find_packages(),
-    install_requires=[
-        # 'numpy>=1.13.3',
-        'scipy>=1.0.0',
-        'hansel>=0.9.5',
-        'scikit_learn>=0.19.1',
-        'matplotlib>=2.1.0',
-        'nilearn>=0.3.1',
-        'kaptan>=0.5.9',
-        'nibabel>=2.2.1',
-        'nipype>=0.14.0',
-        'boyle>=0.2.0',
-        'pandas>=0.21.0',
-        'nipy',
-        'pydicom',
-    ],
-    dependency_links=[
-        'git+https://github.com/darcymason/pydicom@ebf6a79602348d003a1d1324c66626f9f2b05432#egg=pydicom',
-        'git+https://github.com/nipy/nipy.git@d49e8292adad6619e3dac710752131b567efe90e#egg=nipy'
-    ],
+    packages=find_packages(exclude=['tests']),
+    install_requires=requirements,
     scripts=[],
+    entry_points='''
+      [console_scripts]
+      nitap=neuro_pypes.cli:cli
+      ''',
     long_description=read('README.md', 'CHANGES.md'),
     platforms='Linux/MacOSX',
     classifiers=[
@@ -85,7 +75,8 @@ setup_dict = dict(
     extras_require={
         'tests': [],
         'docs': ['mkdocs', 'recommonmark']
-    })
+    }
+)
 
 if __name__ == '__main__':
     setup(**setup_dict)

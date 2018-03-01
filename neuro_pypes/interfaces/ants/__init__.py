@@ -1,2 +1,2 @@
 
-from .segmentation import KellyKapowski
+from neuro_pypes.interfaces.ants.segmentation import KellyKapowski

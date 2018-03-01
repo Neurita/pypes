@@ -6,12 +6,13 @@ import os
 
 import nibabel as nib
 from boyle.nifti.roi import drain_rois
+from nipype.interfaces.base import (
+    BaseInterface,
+    BaseInterfaceInputSpec,
+    File,
+    TraitedSpec
+)
 from nipype.utils.filemanip import split_filename
-from nipype.interfaces.base import (BaseInterface,
-                                    BaseInterfaceInputSpec,
-                                    traits,
-                                    File,
-                                    TraitedSpec)
 
 from neuro_pypes.utils.files import niftiimg_out
 

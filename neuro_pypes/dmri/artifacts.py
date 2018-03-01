@@ -5,25 +5,27 @@ Nipype workflow to detect and remove ardifacts in diffusion MRI.
 import os
 
 import nipype.pipeline.engine as pe
-from   nipype.interfaces.fsl import BET, ExtractROI
-from   nipype.interfaces.utility import Function, IdentityInterface
-from   nipype.workflows.dmri.fsl.utils import eddy_rotate_bvecs, b0_average, b0_indices
-from   nipype.workflows.dmri.fsl import hmc_pipeline
+from nipype.interfaces.fsl import BET, ExtractROI
+from nipype.interfaces.utility import Function, IdentityInterface
+from nipype.workflows.dmri.fsl import hmc_pipeline
+from nipype.workflows.dmri.fsl.utils import eddy_rotate_bvecs, b0_average, b0_indices
 
+from neuro_pypes._utils import format_pair_list, concat_to_pair_list
+from neuro_pypes.config import setup_node, get_config_setting
+from neuro_pypes.dmri.utils import (
+    dti_acquisition_parameters,
+    nlmeans_denoise, reslice,
+    rapidart_dti_artifact_detection,
+)
 from neuro_pypes.interfaces import Eddy
-
-from neuro_pypes.dmri.utils import (dti_acquisition_parameters,
-                                    nlmeans_denoise, reslice,
-                                    rapidart_dti_artifact_detection,)
-
-from neuro_pypes._utils  import format_pair_list
-from neuro_pypes.config  import setup_node, get_config_setting
-from neuro_pypes.utils   import (get_datasink,
-                                 get_input_node,
-                                 remove_ext,
-                                 extend_trait_list,
-                                 get_input_file_name,
-                                 extension_duplicates)
+from neuro_pypes.utils import (
+    get_datasink,
+    get_input_node,
+    remove_ext,
+    extend_trait_list,
+    get_input_file_name,
+    extension_duplicates
+)
 
 
 def dti_artifact_correction(wf_name="dti_artifact_correction"):
@@ -325,6 +327,7 @@ def attach_dti_artifact_correction(main_wf, wf_name="dti_artifact_correction"):
     regexp_subst = format_pair_list(regexp_subst, diff=diff_fbasename)
 
     regexp_subst += extension_duplicates(regexp_subst)
+    regexp_subst = concat_to_pair_list(regexp_subst, prefix='/diff')
     datasink.inputs.regexp_substitutions = extend_trait_list(datasink.inputs.regexp_substitutions,
                                                              regexp_subst)
 

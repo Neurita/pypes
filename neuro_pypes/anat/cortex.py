@@ -4,16 +4,18 @@ Nipype workflow for cortical thickness measures using ANTs.
 """
 import os
 
-from   nipype.interfaces.ants import CorticalThickness
+from nipype.interfaces.ants import CorticalThickness
 
-from   ..config  import setup_node
-from   .._utils  import format_pair_list
-from   ..utils   import (remove_ext,
-                         extend_trait_list,
-                         get_input_node,
-                         get_datasink,
-                         get_input_file_name,
-                         extension_duplicates)
+from neuro_pypes._utils import format_pair_list
+from neuro_pypes.config import setup_node
+from neuro_pypes.utils import (
+    remove_ext,
+    extend_trait_list,
+    get_input_node,
+    get_datasink,
+    get_input_file_name,
+    extension_duplicates
+)
 
 
 def attach_ants_cortical_thickness(main_wf, wf_name='ants_cortical_thickness'):
@@ -78,24 +80,26 @@ def attach_ants_cortical_thickness(main_wf, wf_name='ants_cortical_thickness'):
 
     # add nii.gz patterns
     regexp_subst += extension_duplicates(regexp_subst)
+    regext_subst = append_string_to_pair_list(regexp_subst, prefix='/{}'.format(anat_fbasename))
+
     datasink.inputs.regexp_substitutions = extend_trait_list(datasink.inputs.regexp_substitutions,
                                                              regexp_subst)
 
     main_wf.connect([(in_files, cort_thick, [("anat", "anatomical_image")]),
 
                      # output
-                     (cort_thick, datasink, [("BrainExtractionMask",                "anat.cortex.@brain_mask"),
-                                             ("BrainSegmentation",                  "anat.cortex.@brain_segmentation"),
-                                             ("BrainSegmentationN4",                "anat.cortex.@brain_n4"),
-                                             ("BrainSegmentationPosteriors",        "anat.cortex.@brain_seg_posteriors"),
-                                             ("BrainVolumes",                       "anat.cortex.@brain_volumes"),
-                                             ("CorticalThickness",                  "anat.cortex.@cortical_thickness"),
-                                             ("CorticalThicknessNormedToTemplate",  "anat.cortex.@normed_cortical_thickness"),
-                                             ("SubjectToTemplate0GenericAffine",    "anat.cortex.@subj_to_template_affine"),
-                                             ("SubjectToTemplate1Warp",             "anat.cortex.@subj_to_template_warp"),
-                                             ("SubjectToTemplateLogJacobian",       "anat.cortex.@subj_to_template_logjac"),
-                                             ("TemplateToSubject0Warp",             "anat.cortex.@template_to_subj_warp"),
-                                             ("TemplateToSubject1GenericAffine",    "anat.cortex.@template_to_subj_affine"),
+                     (cort_thick, datasink, [("BrainExtractionMask",               "anat.cortex.@brain_mask"),
+                                             ("BrainSegmentation",                 "anat.cortex.@brain_segmentation"),
+                                             ("BrainSegmentationN4",               "anat.cortex.@brain_n4"),
+                                             ("BrainSegmentationPosteriors",       "anat.cortex.@brain_seg_posteriors"),
+                                             ("BrainVolumes",                      "anat.cortex.@brain_volumes"),
+                                             ("CorticalThickness",                 "anat.cortex.@cortical_thickness"),
+                                             ("CorticalThicknessNormedToTemplate", "anat.cortex.@normed_cortical_thickness"),
+                                             ("SubjectToTemplate0GenericAffine",   "anat.cortex.@subj_to_template_affine"),
+                                             ("SubjectToTemplate1Warp",            "anat.cortex.@subj_to_template_warp"),
+                                             ("SubjectToTemplateLogJacobian",      "anat.cortex.@subj_to_template_logjac"),
+                                             ("TemplateToSubject0Warp",            "anat.cortex.@template_to_subj_warp"),
+                                             ("TemplateToSubject1GenericAffine",   "anat.cortex.@template_to_subj_affine"),
                                             ]),
                     ])
 
