@@ -1,6 +1,26 @@
 Changelog
 =========
 
+Version 1.1.0 (01.03.2018)
+--------------------------
+
+### Features:
+
+- Add `nitap` CLI with `plot` and `motion` subcommands.
+
+
+### Docs:
+
+- Added a new section for the command line interface.
+
+
+### Code changes:
+
+- Changed all import paths to absolute paths.
+- Line width changed to 120.
+- Many code style changes towards automatised lint checks.
+
+
 Version 1.0.1
 -------------
 
