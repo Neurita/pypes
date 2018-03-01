@@ -20,8 +20,7 @@ help:
 	@echo "develop - install in development mode"
 	@echo "deps - install dependencies"
 	@echo "dev_deps - install dependencies for development"
-	@echo "release - package a release in wheel and tarball"
-	@echo "upload - make a release and run the scripts/deploy.sh"
+	@echo "release - package a release in wheel and tarball and upload it to PyPI"
 	@echo "patch - bumpversion patch"
 	@echo "minor - bumpversion minor"
 	@echo "major - bumpversion major"
@@ -96,8 +95,11 @@ minor:
 major:
 	pipenv run bumpversion major
 
-release: clean
+build:
 	pipenv run python setup.py sdist --formats gztar bdist_wheel
 
-upload: release
-	twine upload dist/*
+upload:
+	pipenv run python setup.py sdist upload
+
+release: clean build upload tag
+
