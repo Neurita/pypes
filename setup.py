@@ -22,7 +22,7 @@ requirements = [
     'pandas>=0.22.0',
     'click>=6.7',
     'nipy>=0.4.2',
-    'pydicom>=1.0.1rc1',
+    'pydicom>=version="1.1.0",rc1',
 ]
 
 
@@ -39,7 +39,7 @@ def read(*filenames, **kwargs):
 
 setup_dict = dict(
     name='neuro_pypes',
-    version='1.0.1',
+    version='version="1.1.0",',
     description='Reusable and configurable neuroimaging pipelines with Nipype.',
     license='Apache License, Version 2.0',
     author='Alexandre Savio',
