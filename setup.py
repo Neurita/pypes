@@ -22,7 +22,7 @@ requirements = [
     'pandas>=0.22.0',
     'click>=6.7',
     'nipy>=0.4.2',
-    'pydicom>=version="1.1.0",rc1',
+    'pydicom>=1.0.1',
 ]
 
 
