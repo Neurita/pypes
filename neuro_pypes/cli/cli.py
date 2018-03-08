@@ -5,13 +5,14 @@ from functools import partial
 import click
 
 import hansel
-from hansel.cli.utils import _get_file_pairs
+
 from neuro_pypes.cli.plot_helpers import create_imglist_html
 from neuro_pypes.cli.utils import (
     CONTEXT_SETTINGS,
     CrumbPath,
     UnexistingFilePath,
     check_not_none,
+    _get_file_pairs
 )
 
 
