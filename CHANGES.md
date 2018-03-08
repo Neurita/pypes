@@ -1,6 +1,14 @@
 Changelog
 =========
 
+Version 1.1.1 (08.03.2018)
+--------------------------
+
+### Bugfixes:
+
+- Fix wrong import in cli/cli.py file.
+
+
 Version 1.1.0 (01.03.2018)
 --------------------------
 
