@@ -25,5 +25,7 @@ from neuro_pypes.preproc.registration import (
     spm_apply_deformations,
     afni_deoblique,
     spm_warp_to_mni,
+    spm_create_group_template_wf,
+    spm_register_to_template_wf,
 )
 

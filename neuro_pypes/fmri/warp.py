@@ -4,12 +4,12 @@ Nipype workflows to process resting-state functional MRI.
 """
 import os
 
-import nipype.pipeline.engine    as pe
+import nipype.pipeline.engine as pe
 from nipype.algorithms.misc import Gunzip
 from nipype.interfaces import spm, fsl
 from nipype.interfaces.utility import Function, Merge, IdentityInterface
 
-from neuro_pypes._utils import format_pair_list
+from neuro_pypes._utils import format_pair_list, concat_to_pair_list
 from neuro_pypes.config import setup_node, get_config_setting, check_atlas_file
 from neuro_pypes.preproc import (
     spm_normalize,
@@ -405,7 +405,7 @@ def attach_spm_warp_fmri_wf(main_wf, registration_wf_name="spm_warp_fmri", do_gr
         regexp_subst = format_pair_list(regexp_subst, atlas=atlas_basename, fmri=rest_fbasename)
 
     regexp_subst += extension_duplicates(regexp_subst)
-    regext_subst = append_string_to_pair_list(regexp_subst, prefix='/rest')
+    regexp_subst = concat_to_pair_list(regexp_subst, prefix='/rest')
 
     datasink.inputs.regexp_substitutions = extend_trait_list(datasink.inputs.regexp_substitutions,
                                                              regexp_subst)

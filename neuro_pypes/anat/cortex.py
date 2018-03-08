@@ -6,7 +6,7 @@ import os
 
 from nipype.interfaces.ants import CorticalThickness
 
-from neuro_pypes._utils import format_pair_list
+from neuro_pypes._utils import format_pair_list, concat_to_pair_list
 from neuro_pypes.config import setup_node
 from neuro_pypes.utils import (
     remove_ext,
@@ -80,7 +80,7 @@ def attach_ants_cortical_thickness(main_wf, wf_name='ants_cortical_thickness'):
 
     # add nii.gz patterns
     regexp_subst += extension_duplicates(regexp_subst)
-    regext_subst = append_string_to_pair_list(regexp_subst, prefix='/{}'.format(anat_fbasename))
+    regexp_subst = concat_to_pair_list(regexp_subst, prefix='/{}'.format(anat_fbasename))
 
     datasink.inputs.regexp_substitutions = extend_trait_list(datasink.inputs.regexp_substitutions,
                                                              regexp_subst)
