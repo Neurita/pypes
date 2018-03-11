@@ -349,7 +349,7 @@ def attach_spm_warp_fmri_wf(main_wf, registration_wf_name="spm_warp_fmri", do_gr
     main_wf: nipype Workflow
     """
     # Dependency workflows
-    anat_wf    = main_wf.get_node("spm_anat_preproc")
+    anat_wf = main_wf.get_node("spm_anat_preproc")
     cleanup_wf = main_wf.get_node("fmri_cleanup")
 
     in_files = get_input_node(main_wf)

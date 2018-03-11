@@ -6,7 +6,7 @@ from __future__ import print_function, division, unicode_literals, absolute_impo
 
 import os.path as path
 import re
-from typing import Iterable, Tuple
+from typing import Iterable, Tuple, Union
 
 import click
 
@@ -61,7 +61,11 @@ def _print_values_map_as_csv(list_of_lists):
         click.echo(','.join([item[1] for item in values]))
 
 
-def _get_file_pairs(background: hansel.Crumb, foreground: hansel.Crumb) -> Iterable[Tuple[str, [str, None]]]:
+def _get_plot_file_pairs(background: hansel.Crumb, foreground: hansel.Crumb) -> Iterable[Tuple[str, Union[str, None]]]:
+
+    if background is None and foreground is not None:
+        background = foreground
+
     if not foreground:
         return ((bg, None) for bg in background.ls(make_crumbs=False))
 
@@ -91,7 +95,7 @@ def _get_file_pairs(background: hansel.Crumb, foreground: hansel.Crumb) -> Itera
         bg_files = list(background.ls(make_crumbs=False))
         fg_files = [foreground.ls(make_crumbs=False)[0]] * len(bg_files)
 
-    if not foreground.has_crumbs():
+    if foreground.has_crumbs():
         fg_files = list(foreground.ls(make_crumbs=False))
         bg_files = [background.ls(make_crumbs=False)[0]] * len(fg_files)
 
