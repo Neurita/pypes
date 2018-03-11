@@ -74,16 +74,17 @@ def attach_ants_cortical_thickness(main_wf, wf_name='ants_cortical_thickness'):
     anat_fbasename = remove_ext(os.path.basename(get_input_file_name(in_files, 'anat')))
 
     # dataSink output substitutions
-    regexp_subst = [
-                   ]
+    regexp_subst = [] # TODO?
     regexp_subst = format_pair_list(regexp_subst, anat=anat_fbasename)
 
     # add nii.gz patterns
     regexp_subst += extension_duplicates(regexp_subst)
     regexp_subst = concat_to_pair_list(regexp_subst, prefix='/{}'.format(anat_fbasename))
 
-    datasink.inputs.regexp_substitutions = extend_trait_list(datasink.inputs.regexp_substitutions,
-                                                             regexp_subst)
+    datasink.inputs.regexp_substitutions = extend_trait_list(
+        datasink.inputs.regexp_substitutions,
+        regexp_subst
+    )
 
     main_wf.connect([(in_files, cort_thick, [("anat", "anatomical_image")]),
 

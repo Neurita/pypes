@@ -1,4 +1,5 @@
 #!python
+import os
 import pathlib
 from functools import partial
 
@@ -12,7 +13,7 @@ from neuro_pypes.cli.utils import (
     CrumbPath,
     UnexistingFilePath,
     check_not_none,
-    _get_file_pairs
+    _get_plot_file_pairs
 )
 
 
@@ -126,26 +127,27 @@ def plot(
 
     index_file = pathlib.Path(out_file)
     output_plotdir = pathlib.Path(index_file.parent) / index_file.stem
+    output_plotdir.mkdir(exist_ok=True)
+
     plot_files = []
 
-    file_pairs = _get_file_pairs(background, foreground)
+    file_pairs = _get_plot_file_pairs(background, foreground)
 
-    with click.progressbar(file_pairs, label='Plotting...') as file_pairs:
-        for bg_file, fg_file in file_pairs:
+    for bg_file, fg_file in file_pairs:
+        out_plot_file = bg_file.replace(os.path.sep, '_')
+        if fg_file is not None:
+            out_plot_file += '-' + fg_file.replace(os.path.sep, '_')
+            fig = plotting_func(str(fg_file), bg_img=str(bg_file))
+        else:
+            fig = plotting_func(str(bg_file))
 
-            if fg_file is not None:
-                out_plot_file = pathlib.Path(fg_file).stem
-                fig = plotting_func(str(fg_file), bg_img=str(bg_file))
-            else:
-                out_plot_file = pathlib.Path(bg_file).stem
-                fig = plotting_func(str(bg_file))
-
-            plot_file = output_plotdir / (out_plot_file + '.png')
-            fig.savefig(str(plot_file), facecolor='k', edgecolor='k', bbox_inches='tight')
-            plot_files.append(plot_file)
+        plot_file = output_plotdir / (out_plot_file + '.png')
+        fig.savefig(str(plot_file), facecolor='k', edgecolor='k', bbox_inches='tight')
+        plot_files.append(plot_file)
+        click.echo('Created {}.'.format(plot_file))
 
     create_imglist_html(plot_files, output_filepath=index_file)
-    print('Created index file in {}.'.format(index_file))
+    click.echo('Created index file in {}.'.format(index_file))
 
 
 @cli.command(context_settings=CONTEXT_SETTINGS)
