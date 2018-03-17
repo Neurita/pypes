@@ -4,17 +4,17 @@ import pathlib
 from functools import partial
 
 import click
+import pandas as pd
 
 import hansel
-
 from neuro_pypes.cli.plot_helpers import create_imglist_html
 from neuro_pypes.cli.utils import (
     CONTEXT_SETTINGS,
     CrumbPath,
     UnexistingFilePath,
     check_not_none,
-    _get_plot_file_pairs
-)
+    _get_plot_file_pairs,
+    Spreadsheet)
 
 
 # declare the CLI group
@@ -160,13 +160,22 @@ def plot(
     help='The hansel.Crumb path to the background images.'
 )
 @click.option(
+    '-e',
+    '--extra',
+    type=Spreadsheet(),
+    callback=check_not_none,
+    required=False,
+    help='A spreadsheet (CSV file) with extra data for the subjects in the input. \n'
+         'The first row, with column names, must be match at least one argument.'
+)
+@click.option(
     '-o',
     '--out_file',
     type=UnexistingFilePath,
     default='motion_stats.xls',
     help='The output Excel spreadsheet with the subjects motion stats.'
 )
-def motion(input, out_file):
+def motion(input: hansel.Crumb, extra: pd.DataFrame, out_file: hansel.Crumb):
     """ Create in `out_path` an Excel spreadsheet with some of the motion statistics obtained from the
     `statistics_files` output of the nipype.RapidArt found in the hansel.Crumb `motion_file_cr`.
 
@@ -178,7 +187,17 @@ def motion(input, out_file):
 
     crumb_args = list(input.open_args())
     df = motion_stats_sheet(input, crumb_args)
+
+    if extra:
+        extra_columns = set(extra.columns.values)
+        matched_args = extra_columns.intersection(crumb_args)
+        if not matched_args:
+            click.fail('Found no matches in the spreadsheet file between: '
+                       '"{}" and "{}".'.format(extra_columns, crumb_args))
+        df.join(extra, on=matched_args)
+
     df.to_excel(out_file)
+    print('Successfully wrote the motions spreadsheet in "".'.format(out_file))
 
 #
 # @task
