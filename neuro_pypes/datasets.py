@@ -126,13 +126,14 @@ def _clinical_wf_setup(wf_name):
         "spm_anat_pet_tpm_pvc": [
             ("spm_anat_preproc", attach_spm_anat_preprocessing),
             ("spm_pet_preproc", attach_spm_pet_preprocessing),
-            ("spm_mrpet_grouptemplate", attach_spm_pet_grouptemplate),
+            ("spm_pet_grouptemplate", attach_spm_pet_grouptemplate),
         ],
 
         # MPRAGE preprocessing, PET MNI group template, PET PVC, and rest-fMRI
         "spm_anat_pet_pvc_rest": [
             ("spm_anat_preproc", attach_spm_anat_preprocessing),
             ("spm_pet_preproc", attach_spm_pet_preprocessing),
+            ("spm_pet_grouptemplate", attach_spm_pet_grouptemplate),
             ("spm_rest_preproc", attach_rest_preprocessing),
         ],
 
@@ -180,14 +181,14 @@ def _clinical_wf_setup(wf_name):
             ("spm_anat_preproc", attach_spm_anat_preprocessing),
             ("spm_warp_fmri", attach_rest_grptemplate_preprocessing),
             ("spm_pet_preproc", attach_spm_pet_preprocessing),
-            ("spm_mrpet_grouptemplate", attach_spm_pet_grouptemplate),
+            ("spm_pet_grouptemplate", attach_spm_pet_grouptemplate),
         ],
 
         # MPRAGE preprocessing, EPI group template, and rs-fMRI preprocessing and normalization to MNI
         "spm_anat_pet_rest_preproc": [
             ("spm_anat_preproc", attach_spm_anat_preprocessing),
             ("spm_rest_preproc", attach_rest_preprocessing),
-            ("spm_mrpet_preproc", attach_spm_mrpet_preprocessing),
+            ("spm_pet_preproc", attach_spm_mrpet_preprocessing),
         ],
 
         # MPRAGE and cortical thickness
