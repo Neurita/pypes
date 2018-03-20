@@ -1,6 +1,14 @@
 Changelog
 =========
 
+Version X (unreleased)
+----------------------
+
+### Features:
+
+- Add `--extra` parameter to `nitap motion` for extra subject metadata.
+
+
 Version 1.1.1 (08.03.2018)
 --------------------------
 

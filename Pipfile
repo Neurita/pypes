@@ -9,6 +9,7 @@ name = "pypi"
 
 numpy = "*"
 xlwt = "*"
+pandas = "==0.22.0"
 
 
 [dev-packages]

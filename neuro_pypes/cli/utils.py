@@ -5,10 +5,12 @@ Utilities for the CLI functions.
 from __future__ import print_function, division, unicode_literals, absolute_import
 
 import os.path as path
+import pathlib
 import re
 from typing import Iterable, Tuple, Union
 
 import click
+import pandas as pd
 
 import hansel
 
@@ -34,7 +36,7 @@ class RegularExpression(click.ParamType):
         try:
             rex = re.compile(value, re.IGNORECASE)
         except ValueError:
-            self.fail('%s is not a valid regular expression.' % value, param, ctx)
+            self.fail('"{}" is not a valid regular expression.'.format(value))
         else:
             return rex
 
@@ -46,9 +48,32 @@ class CrumbPath(click.ParamType):
         try:
             cr = hansel.Crumb(path.expanduser(value), ignore_list=['.*'])
         except ValueError:
-            self.fail('%s is not a valid crumb path.' % value, param, ctx)
+            self.fail('"{}" is not a valid crumb path.'.format(value))
         else:
             return cr
+
+
+class Spreadsheet(click.ParamType):
+    name = 'spreadsheet'
+
+    def convert(self, value, param, ctx):
+        filepath = pathlib.Path(value)
+        if not filepath.exists():
+            self.fail('Could not find the file {}.'.format(filepath))
+
+        valid_extensions = ('.csv', '.xls', '.xlsx')
+        if filepath.suffix not in valid_extensions:
+            self.fail('"{}" is not a valid spreadsheet file type. Use only "{}".'.format(value, valid_extensions))
+
+        try:
+            if filepath.suffix in ('.xls', '.xlsx'):
+                sheet = pd.read_excel(filepath)
+            else:
+                sheet = pd.read_table(filepath)
+        except ValueError:
+            self.fail('"{}" is not a valid spreadsheet.'.format(value))
+        else:
+            return sheet
 
 
 def echo_list(alist):
@@ -62,7 +87,6 @@ def _print_values_map_as_csv(list_of_lists):
 
 
 def _get_plot_file_pairs(background: hansel.Crumb, foreground: hansel.Crumb) -> Iterable[Tuple[str, Union[str, None]]]:
-
     if background is None and foreground is not None:
         background = foreground
 
