@@ -450,7 +450,11 @@ def spm_mrpet_grouptemplate_preprocessing(wf_name="spm_mrpet_grouptemplate_prepr
 def attach_spm_mrpet_preprocessing(main_wf, wf_name="spm_mrpet_preproc",
                                    do_group_template=False):
     """ Attach a PET pre-processing workflow that uses SPM12 to `main_wf`.
-    This workflow needs MRI based
+    This workflow needs MRI based workflow.
+
+    This function is using the workflows defined in the function above:
+    spm_mrpet_preprocessing or spm_mrpet_grouptemplate_preprocessing. Depending
+    if group template is enabled.
 
     Nipype Inputs for `main_wf`
     ---------------------------
