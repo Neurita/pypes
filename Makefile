@@ -100,4 +100,4 @@ build:
 upload:
 	pipenv run python setup.py sdist upload
 
-release: clean build upload tag
+release: clean-build clean-pyc build upload tag
