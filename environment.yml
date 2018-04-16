@@ -1,0 +1,7 @@
+name: neuro
+channels:
+  - defaults
+dependencies:
+  - numpy=1.13.3
+  - pip:
+    - neuro_pypes=1.1.2

@@ -33,6 +33,9 @@ develop:
 	pipenv run python setup.py develop
 	pipenv install --dev --skip-lock
 
+condaenv:
+	conda env create -f=./environment.yml
+
 clean: clean-build clean-pyc clean-pyenv
 
 clean-build:
