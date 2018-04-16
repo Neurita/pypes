@@ -31,19 +31,20 @@ def spm_tpm_priors_path(spm_dir=None):
     FileNotFoundError
         If `template` is `None` and can't find the TPM.nii file from SPM.
     """
-    spm_version = spm.Info.version()
+    spm_info = spm.Info()
 
+    spm_version = spm_info.version()
     if spm_version is None:
         raise RuntimeError("Nipype could not find a valid Matlab or SPM configuration.")
 
     if spm_dir is None:
-        spm_dir = spm_version.get('path', None)
+        spm_dir = spm_info.path()
 
     if spm_dir is None:
         spm_dir = os.path.expanduser(get_config_setting('spm_dir'))
 
     if not spm_dir:
-        raise NotADirectoryError('Could not find SPM path.')
+        raise NotADirectoryError('Could not find a SPM path.')
 
     if not os.path.exists(spm_dir):
         raise NotADirectoryError('The specified SPM path ({}) does not exist.'.format(spm_dir))
