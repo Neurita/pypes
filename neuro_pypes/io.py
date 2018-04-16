@@ -6,7 +6,7 @@ import logging as log
 import os
 
 import nipype.pipeline.engine as pe
-from hansel.utils import joint_value_map, valuesmap_to_dict
+from hansel.operations import joint_value_map, valuesmap_to_dict
 from nipype.interfaces.io import DataSink
 from nipype.interfaces.utility import IdentityInterface
 
