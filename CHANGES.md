@@ -1,12 +1,13 @@
 Changelog
 =========
 
-Version X (unreleased)
-----------------------
+Version 1.1.2 (16.04.2018)
+--------------------------
 
 ### Features:
 
 - Add `--extra` parameter to `nitap motion` for extra subject metadata.
+- Bump nipype version to 1.0.2. Few fixes included.
 
 
 Version 1.1.1 (08.03.2018)
