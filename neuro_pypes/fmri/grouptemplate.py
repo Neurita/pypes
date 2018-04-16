@@ -71,14 +71,14 @@ def attach_spm_fmri_grouptemplate_wf(main_wf, wf_name='spm_epi_grouptemplate'):
     fmri_fbasename = remove_ext(os.path.basename(get_input_file_name(in_files, 'rest')))
 
     # the group template datasink
-    base_outdir  = datasink.inputs.base_directory
+    base_outdir = datasink.inputs.base_directory
     grp_datasink = pe.Node(DataSink(parameterization=False,
-                                    base_directory=base_outdir,),
-                                    name='{}_grouptemplate_datasink'.format(fmri_fbasename))
+                                    base_directory=base_outdir, ),
+                           name='{}_grouptemplate_datasink'.format(fmri_fbasename))
     grp_datasink.inputs.container = '{}_grouptemplate'.format(fmri_fbasename)
 
     # the list of the average EPIs from all the subjects
-    #avg_epi_map = pe.MapNode(IdentityInterface(fields=['avg_epis']), iterfield=['avg_epis'], name='avg_epi_map')
+    # avg_epi_map = pe.MapNode(IdentityInterface(fields=['avg_epis']), iterfield=['avg_epis'], name='avg_epi_map')
 
     avg_epis = pe.JoinNode(IdentityInterface(fields=['avg_epis']), joinsource='infosrc', joinfield='avg_epis',
                            name='avg_epis')
@@ -94,9 +94,9 @@ def attach_spm_fmri_grouptemplate_wf(main_wf, wf_name='spm_epi_grouptemplate'):
 
     # group dataSink output substitutions
     regexp_subst = [
-                     (r'/wgrptemplate{fmri}_merged_mean_smooth.nii$',  '/{fmri}_grouptemplate_mni.nii'),
-                     (r'/w{fmri}_merged_mean_smooth.nii$',             '/{fmri}_grouptemplate_mni.nii'),
-                   ]
+        (r'/wgrptemplate{fmri}_merged_mean_smooth.nii$', '/{fmri}_grouptemplate_mni.nii'),
+        (r'/w{fmri}_merged_mean_smooth.nii$', '/{fmri}_grouptemplate_mni.nii'),
+    ]
     regexp_subst = format_pair_list(regexp_subst, fmri=fmri_fbasename)
     regexp_subst += extension_duplicates(regexp_subst)
     grp_datasink.inputs.regexp_substitutions = extend_trait_list(grp_datasink.inputs.regexp_substitutions,
@@ -104,23 +104,22 @@ def attach_spm_fmri_grouptemplate_wf(main_wf, wf_name='spm_epi_grouptemplate'):
 
     # Connect the nodes
     main_wf.connect([
-                     # the avg EPI inputs
-                     (fmri_cleanup_wf, avg_epis,  [('rest_output.avg_epi',         'avg_epis')]),
-                     #(fmri_cleanup_wf, avg_epi_map,  [('rest_output.avg_epi',         'avg_epis')]),
-                     #(avg_epi_map,     avg_epis,     [('avg_epis',                    'avg_epis')]),
+        # the avg EPI inputs
+        (fmri_cleanup_wf, avg_epis, [('rest_output.avg_epi', 'avg_epis')]),
 
-                     # warp avg EPIs to MNI
-                     (avg_epis,        warp_epis,    [('avg_epis',                    'warp_input.in_files')]),
+        # warp avg EPIs to MNI
+        (avg_epis, warp_epis, [('avg_epis', 'warp_input.in_files')]),
 
-                     # group template wf
-                     (warp_epis,       template_wf,  [('warp_output.warped_files',    'grptemplate_input.in_files')]),
+        # group template wf
+        (warp_epis, template_wf, [('warp_output.warped_files', 'grptemplate_input.in_files')]),
+        # (warp_epis, template_wf, [('warp_output.warped_files', 'grptemplate_input.in_files')]),
 
-                     # output node
-                     (template_wf,     output,       [('grptemplate_output.template', 'fmri_template')]),
+        # output node
+        (template_wf, output, [('grptemplate_output.template', 'fmri_template')]),
 
-                     # template output
-                     (output,          grp_datasink, [('fmri_template',               '@fmri_group_template')]),
-                     (warp_epis,       grp_datasink, [('warp_output.warped_files',    'individuals.@warped')]),
-                   ])
+        # template output
+        (output, grp_datasink, [('fmri_template', '@fmri_group_template')]),
+        (warp_epis, grp_datasink, [('warp_output.warped_files', 'individuals.@warped')]),
+    ])
 
     return main_wf
