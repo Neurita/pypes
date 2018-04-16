@@ -25,19 +25,15 @@ help:
 	@echo "minor - bumpversion minor"
 	@echo "major - bumpversion major"
 
-install: deps
+install:
 	pipenv run python setup.py install
-
-develop: dev_deps deps
-	pipenv run python setup.py develop
-
-deps:
 	pipenv install
 
-dev_deps:
-	pipenv install --dev
+develop:
+	pipenv run python setup.py develop
+	pipenv install --dev --skip-lock
 
-clean: clean-build clean-pyc
+clean: clean-build clean-pyc clean-pyenv
 
 clean-build:
 	rm -fr build/
@@ -50,6 +46,9 @@ clean-pyc:
 	find . -name '*~' -exec rm -f {} +
 	find . -name '__pycache__' -exec rm -rf {} +
 	find . -name '*.log*' -delete
+
+clean-pyenv:
+	pipenv --rm
 
 lint:
 	pipenv run flake8 $(project-name)/
@@ -102,4 +101,3 @@ upload:
 	pipenv run python setup.py sdist upload
 
 release: clean build upload tag
-
