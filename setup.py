@@ -39,7 +39,7 @@ def read(*filenames, **kwargs):
 
 setup_dict = dict(
     name='neuro_pypes',
-    version='1.1.1',
+    version='1.1.2',
     description='Reusable and configurable neuroimaging pipelines with Nipype.',
     license='Apache License, Version 2.0',
     author='Alexandre Savio',
