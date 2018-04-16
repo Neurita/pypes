@@ -17,7 +17,7 @@ requirements = [
     'nilearn>=0.4.0',
     'kaptan==0.5.9',
     'nibabel>=2.2.1',
-    'nipype>=0.14.0',
+    'nipype>=1.0.2',
     'boyle>=0.2.0',
     'pandas>=0.22.0',
     'click>=6.7',
