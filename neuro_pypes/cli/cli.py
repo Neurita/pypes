@@ -163,7 +163,6 @@ def plot(
     '-e',
     '--extra',
     type=Spreadsheet(),
-    callback=check_not_none,
     required=False,
     help='A spreadsheet (CSV file) with extra data for the subjects in the input. \n'
          'The first row, with column names, must be match at least one argument.'
@@ -197,7 +196,7 @@ def motion(input: hansel.Crumb, extra: pd.DataFrame, out_file: hansel.Crumb):
         df.join(extra, on=matched_args)
 
     df.to_excel(out_file)
-    print('Successfully wrote the motions spreadsheet in "".'.format(out_file))
+    print('Successfully wrote the motions spreadsheet in "{}".'.format(out_file))
 
 #
 # @task
