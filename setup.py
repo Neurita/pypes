@@ -23,6 +23,7 @@ requirements = [
     'click>=6.7',
     'nipy>=0.4.2',
     'pydicom>=1.0.1',
+    'xlwt>=1.3.0',
 ]
 
 

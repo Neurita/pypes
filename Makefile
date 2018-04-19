@@ -30,8 +30,8 @@ install:
 	pipenv install
 
 develop:
-	pipenv run python setup.py develop
 	pipenv install --dev --skip-lock
+	pipenv run python setup.py develop
 
 condaenv:
 	conda env create -f=./environment.yml
