@@ -56,8 +56,10 @@ clean-pyenv:
 lint:
 	pipenv run flake8 $(project-name)/
 
-test:
-	pipenv run py.test -v
+test: test-src test_docs
+
+test-src:
+	pipenv run py.test -v neuro_pypes/
 
 test-cov:
 	pipenv run py.test --cov-report term-missing --cov=$(project-name)
@@ -71,6 +73,9 @@ test-all:
 coverage:
 	pipenv run coverage run --source $(project-name) setup.py test
 	pipenv run coverage report -m
+
+test_docs:
+	pipenv run pytest -s docs/
 
 docs:
 	rm -f docs/$(project-name).rst

@@ -18,7 +18,7 @@ This pipeline will bias-field correct, segment the tissues, and register a
 **T1-weighted image** to MNI.
 
 It is based in **ANTS and SPM12**.
-It is implemented in [`neuro_neuro_pypes.anat.attach_spm_anat_preprocessing`](https://github.com/Neurita/pypes/blob/master/neuro_pypes/anat.py).
+It is implemented in [`neuro_neuro_pypes.anat.attach_spm_anat_preprocessing`](https://github.com/Neurita/pypes/blob/master/neuro_pypes/anat/preproc.py).
 
 A cortical thickness method is enabled with the `anat_preproc.do_cortical_thickness` boolean field.
 This performs the **SPM+DiReCT** method described in [(Schwarz et al., 2016)](http://dx.doi.org/10.1016/j.nicl.2016.05.017),
@@ -73,7 +73,7 @@ It consists on two parts:
 2. warping and smoothing ([`neuro_pypes.fmri.warp.attach_spm_warp_fmri_wf`](https://github.com/Neurita/pypes/blob/master/neuro_pypes/fmri/warp.py)).
 
 The connection of both parts is in
-[`neuro_pypes.fmri.resting._attach_rest_preprocessing`](https://github.com/Neurita/pypes/blob/master/neuro_pypes/fmri/rest.py).
+[`neuro_pypes.fmri.resting._attach_rest_preprocessing`](https://github.com/Neurita/pypes/blob/master/neuro_pypes/fmri/resting.py).
 
 It's also possible to create a **group template** if you set that in the
 configuration file.

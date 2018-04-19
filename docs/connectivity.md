@@ -7,7 +7,7 @@ perform the connectivity measures with the pre-processed rs-fMRI data.
 
 This pipeline depends on the anatomical and rs-fMRI pre-processing pipelines.
 
-There is already an interface almost done in [`neuro_pypes.interfaces.nilearn.connectivity`](https://github.com/Neurita/pypes/blob/master/nero_pypes/interfaces/nilearn/connectivity.py) for this.
+There is already an interface almost done in [`neuro_pypes.interfaces.nilearn.connectivity`](https://github.com/Neurita/pypes/blob/master/neuro_pypes/interfaces/nilearn/connectivity.py) for this.
 
 ##### Related settings
 ```yaml

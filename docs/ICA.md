@@ -1,19 +1,19 @@
 
 # fMRI Independent Component Analysis (ICA)
-The CanICA interface [`neuro_pypes.interfaces.CanICAInterface`](https://github.com/Neurita/pypes/blob/master/neuro_pypes/interfaces/nilearn/canica.py) 
-can be used to perform [Independent-Component Analysis (ICA)](https://en.wikipedia.org/wiki/Independent_component_analysis) 
-on fMRI images. 
+The CanICA interface [`neuro_pypes.interfaces.CanICAInterface`](https://github.com/Neurita/pypes/blob/master/neuro_pypes/interfaces/nilearn/canica.py)
+can be used to perform [Independent-Component Analysis (ICA)](https://en.wikipedia.org/wiki/Independent_component_analysis)
+on fMRI images.
 It uses the CanICA and the DictLearning implementation in [NiLearn](http://nilearn.github.io/).
 You can choose which implementation to use through the `canica.algorithm` setting.
 
 The helper functions to attach this interface to a workflow are in [`neuro_pypes.`]
 There is one version for one functional image, in `attach_canica` and
-another for a group ICA (GICA) in `attach_concat_canica`. 
+another for a group ICA (GICA) in `attach_concat_canica`.
 However, probably the GICA approach should be further tested on real data.
 
 It depends on the RS-fMRI pipeline.
 This is implemented in
-[`neuro_pypes.postproc.decompose`](https://github.com/Neurita/pypes/blob/master/neuro_pypes/postproc/decompose.py).
+[`neuro_pypes.postproc.decompose`](https://github.com/Neurita/pypes/blob/master/neuro_pypes/ica/decompose.py).
 
 ##### Related settings
 ```yaml

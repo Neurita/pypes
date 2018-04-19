@@ -12,7 +12,7 @@ have to add to the configuration file an entry for the value
 you want, as in: `<node_name>.<parameter_name>: <value>`
 
 For example, let's say we have a
-[`spm.Normalize12`](http://nipype.readthedocs.io/en/latest/interfaces/generated/nipype.interfaces.spm.preprocess.html#normalize12)
+[`spm.Normalize12`](http://nipype.readthedocs.io/en/latest/interfaces/generated/interfaces.spm/preprocess.html#normalize12)
 node named `anat_warp` in one of the workflows.
 We want to set the value of the parameter `bias_regularization` to `0.1`.
 The entry should be:
