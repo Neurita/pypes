@@ -52,6 +52,10 @@ def build_crumb_workflow(wfname_attacher, data_crumb, in_out_kwargs, output_dir,
 
     wf_name: str
         Name of the main workflow.
+
+    Returns
+    -------
+    wf: Nipype Workflow
     """
     if not data_crumb.exists():
         raise IOError("Expected an existing folder for `data_crumb`, got {}.".format(data_crumb))

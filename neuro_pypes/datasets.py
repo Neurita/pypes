@@ -5,17 +5,20 @@ Functions to create pipelines for public and not so public available datasets.
 
 from collections import OrderedDict
 
+from neuro_pypes.io import build_crumb_workflow
+from neuro_pypes.config import update_config
 from neuro_pypes.anat import (
     attach_spm_anat_preprocessing,
     attach_ants_cortical_thickness
 )
-from neuro_pypes.config import update_config
 from neuro_pypes.dmri import (
     attach_spm_fsl_dti_preprocessing,
     attach_camino_tractography
 )
-from neuro_pypes.fmri import attach_rest_preprocessing, attach_rest_grptemplate_preprocessing
-from neuro_pypes.io import build_crumb_workflow
+from neuro_pypes.fmri import (
+    attach_rest_preprocessing,
+    attach_rest_grptemplate_preprocessing
+)
 from neuro_pypes.pet import (
     attach_spm_mrpet_preprocessing,
     attach_spm_pet_preprocessing,
@@ -262,6 +265,10 @@ def cobre_crumb_workflow(wf_name, data_crumb, output_dir, cache_dir='', config_f
         crumb_replaces
 
         atlas_file
+
+    Returns
+    -------
+    wf: Nipype Workflow
     """
     attach_funcs, cfg_params, file_templates = _cobre_wf_setup(wf_name)
 
@@ -321,6 +328,10 @@ def clinical_crumb_workflow(wf_name, data_crumb, output_dir, cache_dir='', confi
         atlas_file
 
         raise_on_filenotfound
+
+    Returns
+    -------
+    wf: Nipype Workflow
     """
     attach_funcs, cfg_params, file_templates = _clinical_wf_setup(wf_name)
 

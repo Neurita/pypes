@@ -180,7 +180,7 @@ def motion(input: hansel.Crumb, extra: pd.DataFrame, out_file: hansel.Crumb):
 
     Examples: \n
     nitap motion -i "/data/hansel/cobre/{sid}/{session}/rest/artifact_stats/motion_stats.json" -o motion.xls\n
-    nitap motion -i "/home/alexandre/data/nuk/out/{group}/{sid}/session_0/rest/artifact_stats" -o motion.xls\n
+    nitap motion -i "/home/alexandre/data/nuk/out/{group}/{sid}/session_0/rest/artifact_stats/motion_stats.json" -o motion.xls\n
     """
     from neuro_pypes.fmri.utils import motion_stats_sheet
 
