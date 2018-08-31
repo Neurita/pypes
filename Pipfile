@@ -21,10 +21,7 @@ numpy = ">=1.13.1"
 xlwt = ">=1.3.0"
 
 [dev-packages]
-pytest = "*"
-pytest-cov = "*"
 pdbpp = "*"
-watchdog = "*"
 better-exceptions = "*"
 "flake8" = "*"
 bumpversion = "*"
