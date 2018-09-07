@@ -36,7 +36,6 @@ def cli():
     '--fg',
     '--foreground',
     type=CrumbPath(),
-    callback=check_not_none,
     required=False,
     help='The hansel.Crumb path to the foreground images.'
 )
@@ -144,10 +143,10 @@ def plot(
         plot_file = output_plotdir / (out_plot_file + '.png')
         fig.savefig(str(plot_file), facecolor='k', edgecolor='k', bbox_inches='tight')
         plot_files.append(plot_file)
-        click.echo('Created {}.'.format(plot_file))
+        click.echo('Created file://{}.'.format(plot_file))
 
     create_imglist_html(plot_files, output_filepath=index_file)
-    click.echo('Created index file in {}.'.format(index_file))
+    click.echo('Created index file in file://{}.'.format(index_file))
 
 
 @cli.command(context_settings=CONTEXT_SETTINGS)
