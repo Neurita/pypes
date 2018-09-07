@@ -126,7 +126,10 @@ def rest_noise_filter_wf(wf_name='rest_noise_removal'):
     # Use :class:`nipype.algorithms.rapidart` to determine which of the
     # images in the functional series are outliers based on deviations in
     # intensity or movement.
-    art = setup_node(rapidart_fmri_artifact_detection(), name="detect_artifacts")
+    art = setup_node(
+        rapidart_fmri_artifact_detection(),
+        name="rapidart_artifacts"
+    )
 
     # Compute motion regressors
     motion_regs = setup_node(
