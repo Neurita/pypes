@@ -100,7 +100,7 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", register_to_grptemplate=False):
     wfmri_output.coreg_avg_epi: traits.File
         The average EPI image in anatomical space.
 
-        Only if registration.anat2fmri is false.
+        Only if registration.fmri2mni is false.
 
     wfmri_output.coreg_others: traits.File
         Other mid-preprocessing fmri images registered to
@@ -112,7 +112,7 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", register_to_grptemplate=False):
 
         - wfmri_input.time_filtered.
 
-        Only if registration.anat2fmri is false
+        Only if registration.fmri2mni is false
 
     wfmri_output.wbrain_mask: traits.File
         Brain mask in fMRI space warped to MNI.
@@ -175,9 +175,8 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", register_to_grptemplate=False):
     rest_output = setup_node(IdentityInterface(fields=out_fields),
                              name="wfmri_output")
 
-
     # check how to perform the registration, to decide how to build the pipeline
-    anat2fmri = get_config_setting('registration.anat2fmri', False)
+    fmri2mni = get_config_setting('registration.fmri2mni', False)
     # register to group template
     if register_to_grptemplate:
         gunzip_template = pe.Node(Gunzip(), name="gunzip_template",)
@@ -187,7 +186,7 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", register_to_grptemplate=False):
         warp_outsource_arg = "normalized_source"
         warp_field_arg     = "normalization_parameters"
 
-    elif anat2fmri:
+    elif fmri2mni:
         # register to standard template
         warp = setup_node(spm_normalize(), name="fmri_warp")
         tpm_bbox.inputs.in_file = spm_tpm_priors_path()
@@ -195,7 +194,7 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", register_to_grptemplate=False):
         warp_outsource_arg = "normalized_image"
         warp_field_arg     = "deformation_field"
 
-    else: # anat2fmri is False
+    else: # fmri2mni is False
         coreg       = setup_node(spm_coregister(cost_function="mi"), name="coreg_fmri")
         warp        = setup_node(spm_apply_deformations(), name="fmri_warp")
         coreg_files = pe.Node(Merge(3), name='merge_for_coreg')
@@ -216,7 +215,7 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", register_to_grptemplate=False):
                     (wfmri_input, tpm_bbox, [("epi_template", "in_file")]),
                     ])
 
-    if anat2fmri or register_to_grptemplate:
+    if fmri2mni or register_to_grptemplate:
         # prepare the inputs
         wf.connect([
                     # unzip the in_file input file
@@ -287,7 +286,7 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", register_to_grptemplate=False):
                    ])
 
     # atlas file in fMRI space
-    if anat2fmri:
+    if fmri2mni:
         coreg_atlas = setup_node(spm_coregister(cost_function="mi"), name="coreg_atlas2fmri")
 
         # set the registration interpolation to nearest neighbour.
