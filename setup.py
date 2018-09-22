@@ -55,7 +55,7 @@ requires, extras_requires = get_requirements_from_pipfile()
 
 setup_dict = dict(
     name='neuro_pypes',
-    version='1.1.2',
+    version='1.2.0',
     description='Reusable and configurable neuroimaging pipelines with Nipype.',
     license='Apache License, Version 2.0',
     author='Alexandre Savio',
