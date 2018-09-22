@@ -26,12 +26,13 @@ help:
 	@echo "major - bumpversion major"
 
 install:
-	pipenv run python setup.py install
 	pipenv install
+	pipenv run python setup.py install
 
 develop:
-	pipenv install --dev --skip-lock
+	pipenv install --dev
 	pipenv run python setup.py develop
+	pipenv run pre-commit install
 
 condaenv:
 	conda env create -f=./environment.yml

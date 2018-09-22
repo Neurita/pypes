@@ -1,0 +1,26 @@
+---
+exclude: '(^ext/|src/domain/_unit_tests/res/app.json)'
+repos:
+ - repo: https://github.com/pre-commit/pre-commit-hooks
+   rev: v1.2.3
+   hooks:
+     - id: check-ast
+     - id: check-symlinks
+     - id: check-executables-have-shebangs
+     - id: check-merge-conflict
+     - id: check-json
+     - id: check-xml
+     - id: check-yaml
+     - id: detect-aws-credentials
+     - id: flake8
+       args: ['--config=setup.cfg']
+     - id: end-of-file-fixer
+     - id: trailing-whitespace
+     - id: no-commit-to-branch   # No (direct) commits to master
+ - repo: https://github.com/Lucas-C/pre-commit-hooks
+   rev: v1.1.5
+   hooks:
+     - id: forbid-crlf
+       files: \.md$
+     - id: remove-crlf
+       files: \.md$
