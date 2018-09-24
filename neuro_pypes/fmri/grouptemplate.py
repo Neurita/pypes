@@ -11,12 +11,15 @@ from nipype.interfaces.io import DataSink
 from neuro_pypes._utils import format_pair_list
 from neuro_pypes.config import setup_node
 from neuro_pypes.preproc.registration import spm_create_group_template_wf, spm_warp_to_mni
-from neuro_pypes.utils import (get_datasink,
-                               extend_trait_list,
-                               get_input_node,
-                               remove_ext,
-                               get_input_file_name,
-                               extension_duplicates)
+from neuro_pypes.utils import (
+    get_datasink,
+    extend_trait_list,
+    get_input_node,
+    remove_ext,
+    get_subworkflow,
+    get_input_file_name,
+    extension_duplicates
+)
 
 
 def attach_spm_fmri_grouptemplate_wf(main_wf, wf_name='spm_epi_grouptemplate'):
@@ -62,7 +65,7 @@ def attach_spm_fmri_grouptemplate_wf(main_wf, wf_name='spm_epi_grouptemplate'):
     main_wf: nipype Workflow
     """
     # Dependency workflows
-    fmri_cleanup_wf = main_wf.get_node('fmri_cleanup')
+    fmri_cleanup_wf = get_subworkflow('fmri_cleanup')
 
     in_files = get_input_node(main_wf)
     datasink = get_datasink(main_wf, name='datasink')
@@ -72,16 +75,21 @@ def attach_spm_fmri_grouptemplate_wf(main_wf, wf_name='spm_epi_grouptemplate'):
 
     # the group template datasink
     base_outdir = datasink.inputs.base_directory
-    grp_datasink = pe.Node(DataSink(parameterization=False,
-                                    base_directory=base_outdir, ),
-                           name='{}_grouptemplate_datasink'.format(fmri_fbasename))
+    grp_datasink = pe.Node(
+        DataSink(parameterization=False, base_directory=base_outdir),
+        name='{}_grouptemplate_datasink'.format(fmri_fbasename)
+    )
     grp_datasink.inputs.container = '{}_grouptemplate'.format(fmri_fbasename)
 
     # the list of the average EPIs from all the subjects
     # avg_epi_map = pe.MapNode(IdentityInterface(fields=['avg_epis']), iterfield=['avg_epis'], name='avg_epi_map')
 
-    avg_epis = pe.JoinNode(IdentityInterface(fields=['avg_epis']), joinsource='infosrc', joinfield='avg_epis',
-                           name='avg_epis')
+    avg_epis = pe.JoinNode(
+        IdentityInterface(fields=['avg_epis']),
+        joinsource='infosrc',
+        joinfield='avg_epis',
+        name='avg_epis'
+    )
 
     # directly warp the avg EPI to the SPM standard template
     warp_epis = spm_warp_to_mni("spm_warp_avgepi_to_mni")
@@ -99,8 +107,10 @@ def attach_spm_fmri_grouptemplate_wf(main_wf, wf_name='spm_epi_grouptemplate'):
     ]
     regexp_subst = format_pair_list(regexp_subst, fmri=fmri_fbasename)
     regexp_subst += extension_duplicates(regexp_subst)
-    grp_datasink.inputs.regexp_substitutions = extend_trait_list(grp_datasink.inputs.regexp_substitutions,
-                                                                 regexp_subst)
+    grp_datasink.inputs.regexp_substitutions = extend_trait_list(
+        grp_datasink.inputs.regexp_substitutions,
+        regexp_subst
+    )
 
     # Connect the nodes
     main_wf.connect([
@@ -112,7 +122,6 @@ def attach_spm_fmri_grouptemplate_wf(main_wf, wf_name='spm_epi_grouptemplate'):
 
         # group template wf
         (warp_epis, template_wf, [('warp_output.warped_files', 'grptemplate_input.in_files')]),
-        # (warp_epis, template_wf, [('warp_output.warped_files', 'grptemplate_input.in_files')]),
 
         # output node
         (template_wf, output, [('grptemplate_output.template', 'fmri_template')]),

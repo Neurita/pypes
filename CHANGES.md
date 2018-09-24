@@ -1,6 +1,14 @@
 Changelog
 =========
 
+Version 1.X.X (X.X.2018)
+--------------------------
+
+### Features:
+
+- Raise exceptions when necessary subworkflows are not found.
+
+
 Version 1.2.0 (21.09.2018)
 --------------------------
 

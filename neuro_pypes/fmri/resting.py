@@ -6,6 +6,7 @@ Nipype workflows to process resting-state functional MRI.
 from neuro_pypes.fmri.clean import attach_fmri_cleanup_wf
 from neuro_pypes.fmri.grouptemplate import attach_spm_fmri_grouptemplate_wf
 from neuro_pypes.fmri.warp import attach_spm_warp_fmri_wf
+from neuro_pypes.utils import get_subworkflow
 
 
 def _attach_rest_preprocessing(main_wf, registration_wf_name="spm_warp_fmri", do_group_template=False):
@@ -34,30 +35,40 @@ def _attach_rest_preprocessing(main_wf, registration_wf_name="spm_warp_fmri", do
     main_wf: nipype Workflow
     """
     main_wf = attach_fmri_cleanup_wf(main_wf)
-    main_wf = attach_spm_warp_fmri_wf(main_wf,
-                                      registration_wf_name=registration_wf_name,
-                                      do_group_template=False)
+    main_wf = attach_spm_warp_fmri_wf(
+        main_wf,
+        registration_wf_name=registration_wf_name,
+        do_group_template=False
+    )
 
     if do_group_template:
         main_wf = attach_spm_fmri_grouptemplate_wf(main_wf, wf_name="spm_fmri_grptemplate")
-        main_wf = attach_spm_warp_fmri_wf(main_wf,
-                                          registration_wf_name=registration_wf_name,
-                                          do_group_template=True)
+        main_wf = attach_spm_warp_fmri_wf(
+            main_wf,
+            registration_wf_name=registration_wf_name,
+            do_group_template=True
+        )
 
-        reg_wf       = main_wf.get_node("{}_{}".format(registration_wf_name, 'grptemplate'))
-        grp_template = main_wf.get_node("group_template")
+        fmri_registration_wf_name = "{}_{}".format(registration_wf_name, 'grptemplate')
+        reg_wf = get_subworkflow(main_wf, fmri_registration_wf_name)
+
+        grp_template = get_subworkflow(main_wf, "group_template")
         main_wf.connect([(grp_template, reg_wf,  [("fmri_template",  "wfmri_input.epi_template")]),])
 
     return main_wf
 
 
 def attach_rest_preprocessing(main_wf, wf_name="spm_warp_fmri"):
-    return _attach_rest_preprocessing(main_wf,
-                                      registration_wf_name=wf_name,
-                                      do_group_template=False)
+    return _attach_rest_preprocessing(
+        main_wf,
+        registration_wf_name=wf_name,
+        do_group_template=False
+    )
 
 
 def attach_rest_grptemplate_preprocessing(main_wf, wf_name="spm_warp_fmri"):
-    return _attach_rest_preprocessing(main_wf,
-                                      registration_wf_name=wf_name,
-                                      do_group_template=True)
+    return _attach_rest_preprocessing(
+        main_wf,
+        registration_wf_name=wf_name,
+        do_group_template=True
+    )

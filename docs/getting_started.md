@@ -40,7 +40,7 @@ data_path = os.path.join(base_dir, "{subject_id}", "session_1", "{modality}", "{
 # create the filetree Crumb object
 data_crumb = Crumb(data_path, ignore_list=[".*"])
 
-# the different worflows that I will use with any given name
+# the different workflows that I will use with any given name
 attach_functions = {"spm_anat_preproc": attach_spm_anat_preprocessing,
                     "spm_rest_preproc": attach_rest_preprocessing,}
 
