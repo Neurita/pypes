@@ -69,7 +69,7 @@ def get_node(wf, node_types, name=''):
             return node
 
     if node is None:
-        raise KeyError('Could not find a node of type {} in the worflow.'.format(node_types))
+        raise KeyError('Could not find a node of type {} in the workflow.'.format(node_types))
 
 
 def get_datasink(wf, name=''):
