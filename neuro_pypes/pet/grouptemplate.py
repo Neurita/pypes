@@ -17,6 +17,7 @@ from neuro_pypes.preproc import (
 )
 from neuro_pypes.utils import (
     get_datasink,
+    get_subworkflow,
     extend_trait_list,
     get_input_node,
     remove_ext,
@@ -63,7 +64,7 @@ def attach_spm_pet_grouptemplate(main_wf, wf_name="spm_pet_template"):
     main_wf: nipype Workflow
     """
     # Dependency workflows
-    pet_wf = main_wf.get_node("spm_pet_preproc")
+    pet_wf = get_subworkflow(main_wf, "spm_pet_preproc")
 
     in_files = get_input_node(main_wf)
     datasink = get_datasink(main_wf, name='datasink')
@@ -96,8 +97,8 @@ def attach_spm_pet_grouptemplate(main_wf, wf_name="spm_pet_template"):
 
     # group dataSink output substitutions
     regexp_subst = [
-        (r"/wgrptemplate{pet}_merged_mean_smooth.nii$",  "/{pet}_grouptemplate_mni.nii"),
-        (r"/w{pet}_merged_mean_smooth.nii$",             "/{pet}_grouptemplate_mni.nii"),
+        (r"/wgrptemplate{pet}_merged_mean_smooth.nii$", "/{pet}_grouptemplate_mni.nii"),
+        (r"/w{pet}_merged_mean_smooth.nii$",            "/{pet}_grouptemplate_mni.nii"),
     ]
     regexp_subst = format_pair_list(regexp_subst, pet=pet_fbasename)
     regexp_subst += extension_duplicates(regexp_subst)
@@ -107,7 +108,7 @@ def attach_spm_pet_grouptemplate(main_wf, wf_name="spm_pet_template"):
     # Connect the nodes
     main_wf.connect([
         # warped pets file list input
-        (pet_wf,       warped_pets, [("warp_output.warped_files",    "warped_pets")]),
+        (pet_wf,       warped_pets, [("warp_output.warped_files", "warped_pets")]),
 
         # group template wf
         (warped_pets,  template_wf, [(("warped_pets", flatten_list), "grptemplate_input.in_files")]),
@@ -116,19 +117,18 @@ def attach_spm_pet_grouptemplate(main_wf, wf_name="spm_pet_template"):
         (template_wf, output,       [("grptemplate_output.template", "pet_template")]),
 
         # template output
-        (output,      grp_datasink, [("pet_template",                "@pet_group_template")]),
+        (output,      grp_datasink, [("pet_template", "@pet_group_template")]),
     ])
 
     # Now we start with the correction and registration of each subject to the group template
     do_petpvc = get_config_setting('spm_pet_template.do_petpvc')
     if do_petpvc:
-        if main_wf.get_node('spm_anat_preproc') is None:
-            raise AttributeError("Expected `spm_anat_preproc` workflow node to attach PETPVC.")
+        assert get_subworkflow('spm_anat_preproc')
 
         preproc_wf_name = "spm_mrpet_grouptemplate_preproc"
         main_wf = attach_spm_mrpet_preprocessing(main_wf, wf_name=preproc_wf_name, do_group_template=True)
 
-        preproc_wf = main_wf.get_node(preproc_wf_name)
+        preproc_wf = get_subworkflow(main_wf, preproc_wf_name)
         main_wf.connect([(output, preproc_wf, [("pet_template", "pet_input.pet_template".format(preproc_wf_name))]), ])
     else:
         # add the pet template to the preproc workflow

@@ -9,6 +9,7 @@ from nipype.interfaces.base import traits, isdefined
 import nipype.interfaces.fsl as fsl
 
 from neuro_pypes.crumb import DataCrumb
+from neuro_pypes.exceptions import PypesAssemblyError
 
 
 def get_trait_value(traitspec, value_name, default=None):
@@ -48,6 +49,29 @@ def selectindex(files, idx, flatten=True):
         return files[idx]
 
 
+def get_subworkflow(wf, wf_name):
+    """ Return the node named `wf_name` found in `wf`.
+
+    Parameters
+    ----------
+    wf: nipype Workflow
+
+    wf_name: str
+
+    Returns
+    -------
+    node: nipype Node
+        The sub-workflow node.
+
+    Raises
+    ------
+    PypesAssemblyError: if the node is not found.
+    """
+    sub_wf = wf.get_node(wf_name)
+    if sub_wf is None:
+        raise PypesAssemblyError('Could not find a workflow named {}.'.format(wf_name))
+
+
 def get_node(wf, node_types, name=''):
     """ Return the first node found in `wf` of any of the types in `node_types`.
 
@@ -60,7 +84,11 @@ def get_node(wf, node_types, name=''):
     Returns
     -------
     nodes: nipype Node
-        The DataSink in `wf`.
+        The found node.
+
+    Raises
+    ------
+    KeyError: if no node is found.
     """
     node = None
     for ionode in node_types:

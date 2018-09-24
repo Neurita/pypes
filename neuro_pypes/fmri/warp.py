@@ -24,6 +24,7 @@ from neuro_pypes.utils import (
     extend_trait_list,
     get_input_node,
     get_datasink,
+    get_subworkflow,
     get_input_file_name,
     extension_duplicates
 )
@@ -125,35 +126,40 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", register_to_grptemplate=False):
     wf = pe.Workflow(name=wf_name)
 
     # specify input and output fields
-    in_fields  = ["in_file",
-                  "anat_fmri",
-                  "anat_to_mni_warp",
-                  "brain_mask",
-                  "reference_file",
-                  "time_filtered",
-                  "avg_epi",]
+    in_fields  = [
+        "in_file",
+        "anat_fmri",
+        "anat_to_mni_warp",
+        "brain_mask",
+        "reference_file",
+        "time_filtered",
+        "avg_epi",
+    ]
 
-    out_fields = ["warped_fmri",
-                  "wtime_filtered",
-                  "smooth",
-                  "wavg_epi",
-                  "wbrain_mask",
-                  "warp_field",
-                  "coreg_avg_epi",
-                  "coreg_others"
-                  ]
+    out_fields = [
+        "warped_fmri",
+        "wtime_filtered",
+        "smooth",
+        "wavg_epi",
+        "wbrain_mask",
+        "warp_field",
+        "coreg_avg_epi",
+        "coreg_others"
+    ]
 
     if register_to_grptemplate:
         in_fields += ['epi_template']
 
     do_atlas, _ = check_atlas_file()
     if do_atlas:
-        in_fields  += ["atlas_anat"]
+        in_fields += ["atlas_anat"]
         out_fields += ["atlas_fmri"]
 
     # input identities
-    wfmri_input = setup_node(IdentityInterface(fields=in_fields, mandatory_inputs=True),
-                             name="wfmri_input")
+    wfmri_input = setup_node(
+        IdentityInterface(fields=in_fields, mandatory_inputs=True),
+        name="wfmri_input"
+    )
 
     # in file unzipper
     in_gunzip = pe.Node(Gunzip(), name="in_gunzip")
@@ -163,42 +169,46 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", register_to_grptemplate=False):
     gunzipper = pe.MapNode(Gunzip(), name="gunzip", iterfield=['in_file'])
 
     # the template bounding box
-    tpm_bbox = setup_node(Function(function=get_bounding_box,
-                                   input_names=["in_file"],
-                                   output_names=["bbox"]),
-                          name="tpm_bbox")
+    tpm_bbox = setup_node(
+        Function(function=get_bounding_box, input_names=["in_file"], output_names=["bbox"]),
+        name="tpm_bbox"
+    )
 
     # smooth the final result
     smooth = setup_node(fsl.IsotropicSmooth(fwhm=8, output_type='NIFTI'), name="smooth_fmri")
 
     # output identities
-    rest_output = setup_node(IdentityInterface(fields=out_fields),
-                             name="wfmri_output")
+    rest_output = setup_node(
+        IdentityInterface(fields=out_fields),
+        name="wfmri_output"
+    )
 
     # check how to perform the registration, to decide how to build the pipeline
     fmri2mni = get_config_setting('registration.fmri2mni', False)
     # register to group template
     if register_to_grptemplate:
         gunzip_template = pe.Node(Gunzip(), name="gunzip_template",)
-        warp = setup_node(spm.Normalize(jobtype="estwrite", out_prefix="wgrptmpl_"),
-                          name="fmri_grptemplate_warp",)
-        warp_source_arg    = "source"
+        warp = setup_node(
+            spm.Normalize(jobtype="estwrite", out_prefix="wgrptmpl_"),
+            name="fmri_grptemplate_warp"
+        )
+        warp_source_arg = "source"
         warp_outsource_arg = "normalized_source"
-        warp_field_arg     = "normalization_parameters"
+        warp_field_arg = "normalization_parameters"
 
     elif fmri2mni:
         # register to standard template
         warp = setup_node(spm_normalize(), name="fmri_warp")
         tpm_bbox.inputs.in_file = spm_tpm_priors_path()
-        warp_source_arg    = "image_to_align"
+        warp_source_arg = "image_to_align"
         warp_outsource_arg = "normalized_image"
-        warp_field_arg     = "deformation_field"
+        warp_field_arg = "deformation_field"
 
-    else: # fmri2mni is False
-        coreg       = setup_node(spm_coregister(cost_function="mi"), name="coreg_fmri")
-        warp        = setup_node(spm_apply_deformations(), name="fmri_warp")
+    else:  # fmri2mni is False
+        coreg = setup_node(spm_coregister(cost_function="mi"), name="coreg_fmri")
+        warp = setup_node(spm_apply_deformations(), name="fmri_warp")
         coreg_files = pe.Node(Merge(3), name='merge_for_coreg')
-        warp_files  = pe.Node(Merge(2), name='merge_for_warp')
+        warp_files = pe.Node(Merge(2), name='merge_for_warp')
         tpm_bbox.inputs.in_file = spm_tpm_priors_path()
 
     # make the connections
@@ -218,72 +228,75 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", register_to_grptemplate=False):
     if fmri2mni or register_to_grptemplate:
         # prepare the inputs
         wf.connect([
-                    # unzip the in_file input file
-                    (wfmri_input, in_gunzip, [("avg_epi", "in_file")]),
+            # unzip the in_file input file
+            (wfmri_input, in_gunzip, [("avg_epi", "in_file")]),
 
-                    # warp source file
-                    (in_gunzip, warp, [("out_file", warp_source_arg)]),
+            # warp source file
+            (in_gunzip, warp, [("out_file", warp_source_arg)]),
 
-                    # bounding box
-                    (tpm_bbox,  warp, [("bbox", "write_bounding_box")]),
+            # bounding box
+            (tpm_bbox,  warp, [("bbox", "write_bounding_box")]),
 
-                    # merge the other input files into a list
-                    (wfmri_input, merge_list, [("in_file",       "in1"),
-                                               ("time_filtered", "in2"),
-                                              ]),
+            # merge the other input files into a list
+            (wfmri_input, merge_list, [
+                ("in_file",       "in1"),
+                ("time_filtered", "in2"),
+            ]),
 
-                    # gunzip them for SPM
-                    (merge_list, gunzipper, [("out", "in_file")]),
+            # gunzip them for SPM
+            (merge_list, gunzipper, [("out", "in_file")]),
 
-                    # apply to files
-                    (gunzipper, warp,       [("out_file", "apply_to_files")]),
+            # apply to files
+            (gunzipper, warp, [("out_file", "apply_to_files")]),
 
-                    # outputs
-                    (warp, rest_output,     [(warp_field_arg,     "warp_field"),
-                                             (warp_outsource_arg, "wavg_epi"),
-                                            ]),
+            # outputs
+            (warp, rest_output, [
+                (warp_field_arg,     "warp_field"),
+                (warp_outsource_arg, "wavg_epi"),
+            ]),
 
-                   ])
+        ])
 
     else: # FMRI to ANAT
         wf.connect([
-                    (wfmri_input, coreg,      [("reference_file", "target")]),
+            (wfmri_input, coreg, [("reference_file", "target")]),
 
-                    # unzip the in_file input file
-                    (wfmri_input, in_gunzip,  [("avg_epi",  "in_file")]),
-                    (in_gunzip,   coreg,      [("out_file", "source")]),
+            # unzip the in_file input file
+            (wfmri_input, in_gunzip, [("avg_epi",  "in_file")]),
+            (in_gunzip,   coreg, [("out_file", "source")]),
 
-                    # merge the other input files into a list
-                    (wfmri_input, coreg_files, [("in_file",       "in1"),
-                                                ("time_filtered", "in2"),
-                                                ("brain_mask",    "in3"),
-                                               ]),
+            # merge the other input files into a list
+            (wfmri_input, coreg_files, [
+                ("in_file",       "in1"),
+                ("time_filtered", "in2"),
+                ("brain_mask",    "in3"),
+            ]),
 
-                    # gunzip them for SPM
-                    (coreg_files, gunzipper, [("out", "in_file")]),
+            # gunzip them for SPM
+            (coreg_files, gunzipper, [("out", "in_file")]),
 
-                    # coregister fmri to anat
-                    (gunzipper,   coreg,     [("out_file", "apply_to_files")]),
+            # coregister fmri to anat
+            (gunzipper,   coreg, [("out_file", "apply_to_files")]),
 
-                    # anat to mni warp field
-                    (wfmri_input, warp, [("anat_to_mni_warp", "deformation_file")]),
+            # anat to mni warp field
+            (wfmri_input, warp, [("anat_to_mni_warp", "deformation_file")]),
 
-                    # bounding box
-                    (tpm_bbox,  warp, [("bbox", "write_bounding_box")]),
+            # bounding box
+            (tpm_bbox,  warp, [("bbox", "write_bounding_box")]),
 
-                    # apply to files
-                    (coreg, warp_files, [("coregistered_source", "in1")]),
-                    (coreg, warp_files, [("coregistered_files",  "in2")]),
+            # apply to files
+            (coreg, warp_files, [("coregistered_source", "in1")]),
+            (coreg, warp_files, [("coregistered_files",  "in2")]),
 
-                    (warp_files, warp, [("out", "apply_to_files")]),
+            (warp_files, warp, [("out", "apply_to_files")]),
 
-                    # outputs
-                    (warp, rest_output,  [("normalized_files",  "warped_files"),]),
-                    (warp, rest_output,  [(("normalized_files", selectindex, 0), "wavg_epi"),]),
+            # outputs
+            (warp, rest_output, [("normalized_files", "warped_files"),]),
+            (warp, rest_output, [(("normalized_files", selectindex, 0), "wavg_epi"),]),
 
-                    (coreg, rest_output, [("coregistered_source", "coreg_avg_epi")]),
-                    (coreg, rest_output, [("coregistered_files",  "coreg_others")]),
-                   ])
+            (coreg, rest_output, [("coregistered_source", "coreg_avg_epi")]),
+            (coreg, rest_output, [("coregistered_files",  "coreg_others")]),
+        ])
 
     # atlas file in fMRI space
     if fmri2mni:
@@ -292,9 +305,10 @@ def spm_warp_fmri_wf(wf_name="spm_warp_fmri", register_to_grptemplate=False):
         # set the registration interpolation to nearest neighbour.
         coreg_atlas.inputs.write_interp = 0
         wf.connect([
-                    (wfmri_input, coreg_atlas, [("reference_file", "source"),
-                                                ("atlas_anat", "apply_to_files"),
-                                               ]),
+                    (wfmri_input, coreg_atlas, [
+                        ("reference_file", "source"),
+                        ("atlas_anat", "apply_to_files"),
+                    ]),
                     (in_gunzip,   coreg_atlas, [("out_file",           "target")]),
                     (coreg_atlas, rest_output, [("coregistered_files", "atlas_fmri")]),
                   ])
@@ -348,11 +362,11 @@ def attach_spm_warp_fmri_wf(main_wf, registration_wf_name="spm_warp_fmri", do_gr
     main_wf: nipype Workflow
     """
     # Dependency workflows
-    anat_wf = main_wf.get_node("spm_anat_preproc")
-    cleanup_wf = main_wf.get_node("fmri_cleanup")
+    anat_wf = get_subworkflow(main_wf, 'spm_anat_preproc')
+    cleanup_wf = get_subworkflow(main_wf, 'fmri_cleanup')
 
     in_files = get_input_node(main_wf)
-    datasink = get_datasink  (main_wf)
+    datasink = get_datasink(main_wf)
 
     if do_group_template:
         template_name = 'grptemplate'
@@ -368,30 +382,30 @@ def attach_spm_warp_fmri_wf(main_wf, registration_wf_name="spm_warp_fmri", do_gr
     anat_fbasename = remove_ext(os.path.basename(get_input_file_name(in_files, 'anat')))
 
     regexp_subst = [
-                    (r"/corr_stc{fmri}_trim_mean_sn.mat$", "/{fmri}_grptemplate_params.mat"),
-                    (r"/y_corr_stc{fmri}_trim_mean\.nii$", "/{fmri}_to_mni_warpfield.nii"),
-                    (r"/rcorr_stc{fmri}_trim_mean.nii$",   "/avg_epi_anat.nii"),
+        (r"/corr_stc{fmri}_trim_mean_sn.mat$", "/{fmri}_grptemplate_params.mat"),
+        (r"/y_corr_stc{fmri}_trim_mean\.nii$", "/{fmri}_to_mni_warpfield.nii"),
+        (r"/rcorr_stc{fmri}_trim_mean.nii$",   "/avg_epi_anat.nii"),
 
-                    (r"/wgrptmpl_corr_stc{fmri}_trim_mean\.nii$",                          "/avg_epi_grptemplate.nii"),
-                    (r"/wgrptmpl_corr_stc{fmri}_trim\.nii$",                               "/{fmri}_trimmed_grptemplate.nii"),
-                    (r"/wgrptmpl_corr_stc{fmri}_trim_filtermotart[\w_]*_cleaned\.nii$",    "/{fmri}_nuisance_corrected_grptemplate.nii"),
-                    (r"/wgrptmpl_corr_stc{fmri}_trim_filtermotart[\w_]*_gsr\.nii$",        "/{fmri}_nuisance_corrected_grptemplate.nii"),
-                    (r"/wgrptmpl_corr_stc{fmri}_trim_filtermotart[\w_]*_bandpassed\.nii$", "/{fmri}_time_filtered_grptemplate.nii"),
-                    (r"/wgrptmpl_corr_stc{fmri}_trim_filtermotart[\w_]*_smooth\.nii$",     "/{fmri}_smooth_grptemplate.nii"),
+        (r"/wgrptmpl_corr_stc{fmri}_trim_mean\.nii$",                          "/avg_epi_grptemplate.nii"),
+        (r"/wgrptmpl_corr_stc{fmri}_trim\.nii$",                               "/{fmri}_trimmed_grptemplate.nii"),
+        (r"/wgrptmpl_corr_stc{fmri}_trim_filtermotart[\w_]*_cleaned\.nii$",    "/{fmri}_nuisance_corrected_grptemplate.nii"),
+        (r"/wgrptmpl_corr_stc{fmri}_trim_filtermotart[\w_]*_gsr\.nii$",        "/{fmri}_nuisance_corrected_grptemplate.nii"),
+        (r"/wgrptmpl_corr_stc{fmri}_trim_filtermotart[\w_]*_bandpassed\.nii$", "/{fmri}_time_filtered_grptemplate.nii"),
+        (r"/wgrptmpl_corr_stc{fmri}_trim_filtermotart[\w_]*_smooth\.nii$",     "/{fmri}_smooth_grptemplate.nii"),
 
-                    (r"/w[r]?corr_stc{fmri}_trim_mean\.nii$",                          "/avg_epi_mni.nii"),
-                    (r"/w[r]?corr_stc{fmri}_trim\.nii$",                               "/{fmri}_trimmed_mni.nii"),
-                    (r"/w[r]?corr_stc{fmri}_trim_filtermotart[\w_]*_cleaned\.nii$",    "/{fmri}_nuisance_corrected_mni.nii"),
-                    (r"/w[r]?corr_stc{fmri}_trim_filtermotart[\w_]*_gsr\.nii$",        "/{fmri}_nuisance_corrected_mni.nii"),
-                    (r"/w[r]?corr_stc{fmri}_trim_filtermotart[\w_]*_bandpassed\.nii$", "/{fmri}_time_filtered_mni.nii"),
-                    (r"/w[r]?corr_stc{fmri}_trim_filtermotart[\w_]*_smooth\.nii$",     "/{fmri}_smooth_mni.nii"),
+        (r"/w[r]?corr_stc{fmri}_trim_mean\.nii$",                          "/avg_epi_mni.nii"),
+        (r"/w[r]?corr_stc{fmri}_trim\.nii$",                               "/{fmri}_trimmed_mni.nii"),
+        (r"/w[r]?corr_stc{fmri}_trim_filtermotart[\w_]*_cleaned\.nii$",    "/{fmri}_nuisance_corrected_mni.nii"),
+        (r"/w[r]?corr_stc{fmri}_trim_filtermotart[\w_]*_gsr\.nii$",        "/{fmri}_nuisance_corrected_mni.nii"),
+        (r"/w[r]?corr_stc{fmri}_trim_filtermotart[\w_]*_bandpassed\.nii$", "/{fmri}_time_filtered_mni.nii"),
+        (r"/w[r]?corr_stc{fmri}_trim_filtermotart[\w_]*_smooth\.nii$",     "/{fmri}_smooth_mni.nii"),
 
-                    (r"/w[r]?corr_stc{fmri}_trim[\w_]*_smooth\.nii$",       "/{fmri}_nofilt_smooth_mni.nii"),
-                    (r"/w[r]?corr_stc{fmri}_trim[\w_]*_cleaned\.nii$",      "/{fmri}_nofilt_nuisance_corrected_mni.nii"),
-                    (r"/w[r]?corr_stc{fmri}_trim[\w_]*_gsr\.nii$",          "/{fmri}_nofilt_nuisance_corrected_mni.nii"),
-                    (r"/w[r]?corr_stc{fmri}_trim[\w_]*_bandpassed\.nii$",   "/{fmri}_nofilt_time_filtered_mni.nii"),
-                    (r"/w[r]?corr_stc{fmri}_trim[\w_]*_smooth\.nii$",       "/{fmri}_nofilt_smooth_mni.nii"),
-                  ]
+        (r"/w[r]?corr_stc{fmri}_trim[\w_]*_smooth\.nii$",       "/{fmri}_nofilt_smooth_mni.nii"),
+        (r"/w[r]?corr_stc{fmri}_trim[\w_]*_cleaned\.nii$",      "/{fmri}_nofilt_nuisance_corrected_mni.nii"),
+        (r"/w[r]?corr_stc{fmri}_trim[\w_]*_gsr\.nii$",          "/{fmri}_nofilt_nuisance_corrected_mni.nii"),
+        (r"/w[r]?corr_stc{fmri}_trim[\w_]*_bandpassed\.nii$",   "/{fmri}_nofilt_time_filtered_mni.nii"),
+        (r"/w[r]?corr_stc{fmri}_trim[\w_]*_smooth\.nii$",       "/{fmri}_nofilt_smooth_mni.nii"),
+    ]
     regexp_subst = format_pair_list(regexp_subst, fmri=rest_fbasename, anat=anat_fbasename)
 
     # prepare substitution for atlas_file, if any
@@ -399,8 +413,8 @@ def attach_spm_warp_fmri_wf(main_wf, registration_wf_name="spm_warp_fmri", do_gr
     if do_atlas:
         atlas_basename = remove_ext(os.path.basename(atlas_file))
         regexp_subst.extend([
-                             (r"/[\w]*{atlas}.*\.nii$", "/{atlas}_{fmri}_space.nii"),
-                            ])
+            (r"/[\w]*{atlas}.*\.nii$", "/{atlas}_{fmri}_space.nii"),
+        ])
         regexp_subst = format_pair_list(regexp_subst, atlas=atlas_basename, fmri=rest_fbasename)
 
     regexp_subst += extension_duplicates(regexp_subst)
@@ -410,38 +424,41 @@ def attach_spm_warp_fmri_wf(main_wf, registration_wf_name="spm_warp_fmri", do_gr
                                                              regexp_subst)
 
     # input and output anat workflow to main workflow connections
-    main_wf.connect([# clean_up_wf to registration_wf
-                     (cleanup_wf, warp_fmri_wf, [
-                                                 ("rest_output.motion_corrected",   "wfmri_input.in_file"),
-                                                 ("rest_output.anat",               "wfmri_input.anat_fmri"),
-                                                 ("rest_output.time_filtered",      "wfmri_input.time_filtered"),
-                                                 ("rest_output.avg_epi",            "wfmri_input.avg_epi"),
-                                                 ("rest_output.tissues_brain_mask", "wfmri_input.brain_mask"),
-                                                ]),
-                     # output
-                     (warp_fmri_wf,  datasink,  [
-                                                 ("wfmri_output.warped_fmri",    "rest.{}.@warped_fmri".format(template_name)),
-                                                 ("wfmri_output.wtime_filtered", "rest.{}.@time_filtered".format(template_name)),
-                                                 ("wfmri_output.smooth",         "rest.{}.@smooth".format(template_name)),
-                                                 ("wfmri_output.wavg_epi",       "rest.{}.@avg_epi".format(template_name)),
-                                                 ("wfmri_output.warp_field",     "rest.{}.@warp_field".format(template_name)),
-                                                ]),
-                    ])
+    main_wf.connect([
+         # clean_up_wf to registration_wf
+         (cleanup_wf, warp_fmri_wf, [
+             ("rest_output.motion_corrected",   "wfmri_input.in_file"),
+             ("rest_output.anat",               "wfmri_input.anat_fmri"),
+             ("rest_output.time_filtered",      "wfmri_input.time_filtered"),
+             ("rest_output.avg_epi",            "wfmri_input.avg_epi"),
+             ("rest_output.tissues_brain_mask", "wfmri_input.brain_mask"),
+         ]),
+         # output
+         (warp_fmri_wf,  datasink,  [
+             ("wfmri_output.warped_fmri",    "rest.{}.@warped_fmri".format(template_name)),
+             ("wfmri_output.wtime_filtered", "rest.{}.@time_filtered".format(template_name)),
+             ("wfmri_output.smooth",         "rest.{}.@smooth".format(template_name)),
+             ("wfmri_output.wavg_epi",       "rest.{}.@avg_epi".format(template_name)),
+             ("wfmri_output.warp_field",     "rest.{}.@warp_field".format(template_name)),
+         ]),
+    ])
 
     if not do_group_template:
         main_wf.connect([
-                         (anat_wf, warp_fmri_wf, [("anat_output.anat_biascorr",  "wfmri_input.reference_file"),
-                                                  ("anat_output.warp_forward",   "wfmri_input.anat_to_mni_warp"),
-                                                 ]),
-                        # output
-                        (warp_fmri_wf,  datasink,  [
-                                                    ("wfmri_output.coreg_avg_epi", "rest.@coreg_fmri_anat"),
-                                                    ("wfmri_output.coreg_others",  "rest.@coreg_others"),
-                                                   ]),
-                        ])
+            (anat_wf, warp_fmri_wf, [
+                ("anat_output.anat_biascorr",  "wfmri_input.reference_file"),
+                ("anat_output.warp_forward",   "wfmri_input.anat_to_mni_warp"),
+            ]),
+            # output
+            (warp_fmri_wf,  datasink,  [
+                ("wfmri_output.coreg_avg_epi", "rest.@coreg_fmri_anat"),
+                ("wfmri_output.coreg_others",  "rest.@coreg_others"),
+            ]),
+        ])
 
     if do_atlas:
-        main_wf.connect([(anat_wf,      warp_fmri_wf, [("anat_output.atlas_anat",   "wfmri_input.atlas_anat")]),
-                         (warp_fmri_wf, datasink,     [("wfmri_output.atlas_fmri",  "rest.@atlas")]),
-                         ])
+        main_wf.connect([
+            (anat_wf,      warp_fmri_wf, [("anat_output.atlas_anat",   "wfmri_input.atlas_anat")]),
+            (warp_fmri_wf, datasink,     [("wfmri_output.atlas_fmri",  "rest.@atlas")]),
+        ])
     return main_wf

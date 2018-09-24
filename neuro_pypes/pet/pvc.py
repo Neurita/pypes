@@ -22,6 +22,7 @@ from neuro_pypes.utils import (
     extend_trait_list,
     get_input_node,
     remove_ext,
+    get_subworkflow,
     get_input_file_name,
     extension_duplicates)
 
@@ -96,11 +97,15 @@ def petpvc_workflow(wf_name="petpvc"):
     ]
 
     # input
-    pet_input = setup_node(IdentityInterface(fields=in_fields, mandatory_inputs=True),
-                           name="pvc_input")
+    pet_input = setup_node(
+        IdentityInterface(fields=in_fields, mandatory_inputs=True),
+        name="pvc_input"
+    )
 
-    flat_list = pe.Node(Function(input_names=['list_of_lists'], output_names=['out'], function=flatten_list),
-                        name='flatten_tissue_list')
+    flat_list = pe.Node(
+        Function(input_names=['list_of_lists'], output_names=['out'], function=flatten_list),
+        name='flatten_tissue_list'
+    )
 
     # coreg pet
     gunzip_pet = setup_node(Gunzip(), name="gunzip_pet")
@@ -233,7 +238,7 @@ def attach_petpvc_workflow(main_wf, wf_name="spm_petpvc"):
     main_wf: nipype Workflow
     """
     # Dependency workflows
-    anat_wf = main_wf.get_node("spm_anat_preproc")
+    anat_wf = get_subworkflow(main_wf, 'spm_anat_preproc')
     in_files = get_input_node(main_wf)
     datasink = get_datasink(main_wf)
 
