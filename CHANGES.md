@@ -1,6 +1,19 @@
 Changelog
 =========
 
+Version 1.2.0 (21.09.2018)
+--------------------------
+
+### Features:
+
+- Change configuration variable name from `anat2fmri` to `fmri2mni`.
+
+### Bugfixes:
+
+- I am still struggling with pipenv, trying a new approach: add `get_requirements_from_pipfile`
+in `setup.py`.
+
+
 Version 1.1.2 (16.04.2018)
 --------------------------
 

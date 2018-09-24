@@ -47,17 +47,17 @@ direct.thickness_prior_estimate: 10
 # 4) apply the transformation from 3 to PET data in anatomical space.
 registration.anat2pet: False
 
-# If anat2fmri is True, the registration process will be:
+# If fmri2mni is True, the registration process will be:
 # 1) the anatomical image is co-registered to fMRI space,
 # 2) all the cleaning and resting-state processes in fMRI space,
 # 3) direct normalization of fMRI to MNI either through standard template or group template.
-# Else, if anat2fmri is False, the registration process will be:
-# 1) avg. fMRI to anatomical space,
+# Else, if fmri2mni is False, the registration process will be:
+# 1) avg. fMRI is co-registered to anatomical space,
 # 2) the anatomical image is co-registered to fMRI space,
 # 3) all the cleaning and resting-state processes in fMRI space,
-# 4) pick the anatomical image to MNI transformation from the anatomical pipeline,
-# 5) normalize fMRI to MNI using the anatomical to MNI transformation.
-registration.anat2fmri: False
+# 4) pick the 'anatomical image to MNI transformation' from the anatomical pipeline,
+# 5) normalize fMRI to MNI using the 'anatomical image to MNI transformation'.
+registration.fmri2mni: False
 
 # DTI
 extract_b0.max_b: 0.0 # maximum b-value to be considered a b0, for brain mask calculation.

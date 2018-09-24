@@ -104,16 +104,16 @@ the configuration file.
 perform component regression for at least one tissue, e.g., CSF.
 
 In the same way as for the MRI + FDG-PET pipeline (described below),
-there is **2 ways for registration**. This is configured through the `registration.anat2fmri`
+there is **2 ways for registration**. This is configured through the `registration.fmri2mni`
 option.
 
-#### If registration.anat2fmri: True
+#### If registration.fmri2mni: True
 8. Cleaned-up versions of **fMRI are directly warped** to MNI using SPM12
 Normalize.
 9. Smooth these warped images, in the same ways as the non-warped data,
 according to `smooth_fmri.fwhm: 8`.
 
-#### If registration.anat2fmri: False
+#### If registration.fmri2mni: False
 8. **Co-register fMRI** to anatomical space.
 9. Apply the anat-to-MNI warp field to warp the cleaned-up versions of
 the fMRI data to MNI.
@@ -124,7 +124,7 @@ according to `smooth_fmri.fwhm: 8`.
 ##### Related settings
 
 ```yaml
-registration.anat2fmri: True
+registration.fmri2mni: True
 
 # degree of b-spline used for rs-fmri interpolation
 coreg_rest.write_interp: 3

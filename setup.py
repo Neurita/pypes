@@ -9,23 +9,6 @@ import io
 
 from setuptools import setup, find_packages
 
-requirements = [
-    'scipy>=1.0.0',
-    'hansel>=2.0.1',
-    'scikit_learn>=0.19.1',
-    'matplotlib==2.1.0',
-    'nilearn>=0.4.0',
-    'kaptan==0.5.9',
-    'nibabel>=2.2.1',
-    'nipype>=1.0.2',
-    'boyle>=0.2.0',
-    'pandas>=0.22.0',
-    'click>=6.7',
-    'nipy>=0.4.2',
-    'pydicom>=1.0.1',
-    'xlwt>=1.3.0',
-]
-
 
 # long description
 def read(*filenames, **kwargs):
@@ -38,9 +21,41 @@ def read(*filenames, **kwargs):
     return sep.join(buf)
 
 
+def get_requirements_from_pipfile():
+
+    def parse_options(options):
+        if isinstance(options, dict):
+            version = options.get('version', '')
+            extras = options.get('extras', '')
+        elif isinstance(options, str):
+            version = options
+            extras = ''
+        else:
+            raise ValueError('Expected dict or str, got {}.'.format(options))
+
+        if version == '*':
+            version = ''
+
+        return version, extras
+
+    import toml
+    pipfile = toml.load('Pipfile')
+    requires = []
+    extras_requires = {}
+
+    for module, options in pipfile['packages'].items():
+        version, extras = parse_options(options)
+        requires.append('{}{}'.format(module, version))
+        if extras:
+            extras_requires[module] = extras
+    return requires, extras_requires
+
+
+requires, extras_requires = get_requirements_from_pipfile()
+
 setup_dict = dict(
     name='neuro_pypes',
-    version='1.1.2',
+    version='1.2.0',
     description='Reusable and configurable neuroimaging pipelines with Nipype.',
     license='Apache License, Version 2.0',
     author='Alexandre Savio',
@@ -48,7 +63,9 @@ setup_dict = dict(
     maintainer='',
     maintainer_email='',
     packages=find_packages(exclude=['tests']),
-    install_requires=requirements,
+    setup_requires=['toml~=0.9.4'],
+    install_requires=requires,
+    extra_requires=extras_requires,
     scripts=[],
     entry_points='''
       [console_scripts]

@@ -14,7 +14,8 @@ from neuro_pypes.cli.utils import (
     UnexistingFilePath,
     check_not_none,
     _get_plot_file_pairs,
-    Spreadsheet)
+    Spreadsheet
+)
 
 
 # declare the CLI group
@@ -95,13 +96,13 @@ def plot(
     ncols: int,
     cut_dir: str,
     alpha: float,
-    out_file: click.Path):
+    out_file: click.Path
+):
     """Plot slices of the `bg` (background) images, overlaid with the `fg` (foreground)
     images if provided.
 
     Examples: \n
     nitap plot --bg "/data/hansel/cobre/{sid}/{session}/anat.nii.gz" --fg "/data/hansel/cobre/{sid}/{session}/mni_in_anat_space.nii.gz"\n
-    nitap plot --bg "/data/hansel/cobre/{sid}/{session}/anat.nii.gz"\n
     nitap plot --bg "/data/hansel/cobre/{sid}/{session}/anat.nii.gz"\n
     """
     import nilearn.plotting as niplot
