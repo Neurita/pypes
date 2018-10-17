@@ -11,6 +11,8 @@ from neuro_pypes.cli.plot_helpers import create_imglist_html
 from neuro_pypes.cli.utils import (
     CONTEXT_SETTINGS,
     CrumbPath,
+    ExistingDirPath,
+    ExistingFilePath,
     UnexistingFilePath,
     check_not_none,
     _get_plot_file_pairs,
@@ -180,7 +182,7 @@ def motion(input: hansel.Crumb, extra: pd.DataFrame, out_file: hansel.Crumb):
 
     Examples: \n
     nitap motion -i "/data/hansel/cobre/{sid}/{session}/rest/artifact_stats/motion_stats.json" -o motion.xls\n
-    nitap motion -i "/home/alexandre/data/nuk/out/{group}/{sid}/session_0/rest/artifact_stats/motion_stats.json" -o motion.xls\n
+    nitap motion -i "/data/nuk/out/{group}/{sid}/session_0/rest/artifact_stats/motion_stats.json" -o motion.xls\n
     """
     from neuro_pypes.fmri.utils import motion_stats_sheet
 
@@ -198,105 +200,174 @@ def motion(input: hansel.Crumb, extra: pd.DataFrame, out_file: hansel.Crumb):
     df.to_excel(out_file)
     print('Successfully wrote the motions spreadsheet in "{}".'.format(out_file))
 
-#
-# @task
-# def ica_sbm_loadings_sheet(ctx, ica_out_dir, labels_file="", mask="", bg_img=None, zscore=2.,
-#                            subjid_pat=r'(?P<patid>[a-z]{2}_[0-9]{6})'):
-#     """
-#     Save the Excel loadings files in the `ica_out_dir`.
-#     One file is `subject_loadings.xls` which has the loadings as is, with the subjects IDs and group.
-#     The other file is `subject_group_loadings.xls` which has the loading signs changed according to
-#     the average correlation value of the "main" region of each of the IC spatial maps.
-#
-#     Parameters
-#     ----------
-#     ica_out_dir: str
-#         Path to the SBM ICA analysis output folder.
-#
-#     labels_file: str
-#         A CSV file with two columns: "subject_id" and "group".
-#         The subject_ids must be in the paths contained in the Subject.mat
-#         file and match the `subjid_pat` argument.
-#
-#     mask: str
-#         Path to a mask file to select only brain area from the IC spatial map.
-#
-#     bg_img: str
-#         A background image for the blob plots check report, to verify that the blobs
-#         taken into account for the loadings signs are correct.
-#
-#     zscore: float
-#         Value to threshold the IC spatial maps to obtain the IC spatial map "main" region.
-#
-#     subjid_pat: regext str
-#         A search regex pattern that returns one group element that
-#         contains the subject id.
-#         This will be used to search for subject_id in the file paths
-#         contained in the Subjects.mat file.
-#     """
-#     from pypes.networks.plotting import SBMICAResultsPlotter
-#
-#     rawloadings_filename   = 'subject_loadings.xls'
-#     grouploadings_filename = 'subject_weighted_loadings.xls'
-#     check_blob_plot        = 'check_sign_blobs.png'
-#
-#     plotter = SBMICAResultsPlotter(ica_out_dir)
-#     plotter.fit(mask_file=mask, mode='+-', zscore=zscore)
-#
-#     # generate and save the simple loadings sheet
-#     sdf = plotter.simple_loadings_df(group_labels_file=labels_file, subjid_pat=subjid_pat)
-#     sdf.to_excel(op.join(ica_out_dir, rawloadings_filename))
-#
-#     # generate and save the group-processed loadings sheet
-#     pdf = plotter.weighted_loadings_df(group_labels_file=labels_file, subjid_pat=subjid_pat)
-#     pdf.to_excel(op.join(ica_out_dir, grouploadings_filename))
-#
-#     # plot blobs over IC maps for checking
-#     check_blob_plot = op.join(ica_out_dir, check_blob_plot)
-#     plotter.plot_icmaps_and_blobs(check_blob_plot, bg_img=bg_img)
-#
-#
-# @task(autoprint=True)
-# def plot_ica_results(ctx, ica_result, application='nilearn', mask_file='', mode='+-', zscore=0, bg_img=None):
-#     """ Use nilearn through pypes to plot results from CanICA and DictLearning, given the ICA result folder path.
-#     Parameters
-#     ----------
-#     ica_result: str
-#         Path to the ICA output folder or the ICA components volume file.
-#
-#     application: str
-#         Choicese: ('nilearn', 'sbm', 'gift')
-#
-#     mask_file: str
-#         Path to the brain mask file to be used for thresholding.
-#
-#     mode: str
-#         Choices: '+' for positive threshold,
-#                  '+-' for positive and negative threshold and
-#                  '-' for negative threshold.
-#
-#     zscore: int
-#         Value of the Z-score thresholding.
-#
-#     bg_img: str
-#         Path to a background image.
-#         If empty will use the SPM canonical brain image at 2mm.
-#     """
-#     from pypes.ica import plot_ica_results
-#
-#     from config import SPM_CANONICAL_BRAIN_2MM
-#
-#     if bg_img is None:
-#         bg_img = op.expanduser(SPM_CANONICAL_BRAIN_2MM)
-#
-#     return plot_ica_results(ica_result,
-#                             application=application,
-#                             mask_file=mask_file,
-#                             zscore=float(zscore),
-#                             mode=mode,
-#                             bg_img=bg_img)
-#
-#
+
+@cli.command(context_settings=CONTEXT_SETTINGS)
+@click.option(
+    '-i',
+    '--ica_results_dir',
+    type=ExistingDirPath,
+    callback=check_not_none,
+    required=True,
+    help='Path to the ICA analysis results folder.'
+)
+@click.option(
+    '-a',
+    '--app',
+    type=click.Choice(('nilearn', 'sbm', 'gift', 'gift-group')),
+    default='gift',
+    required=False,
+    help='An identification of the tool used for the ICA analysis.'
+)
+@click.option(
+    '-l',
+    '--labels',
+    type=ExistingFilePath,
+    required=False,
+    help='A CSV file with two columns: "subject_id" and "group".'
+    'The subject_ids must be in the paths contained in the Subject.mat'
+    'file and match the `subjid_pat` argument.'
+)
+@click.option(
+    '-m',
+    '--mask',
+    type=ExistingFilePath,
+    required=False,
+    help='Path to a mask file to filter out non-brain areas from the IC spatial map.'
+)
+@click.option(
+    '-z',
+    '--zscore',
+    type=float,
+    default=2.,
+    required=False,
+    help='Upper bound threshold for the IC spatial maps.'
+)
+@click.option(
+    '-s',
+    '--subjid_pat',
+    type=str,
+    default=r'(?P<patid>[a-z]{2}_[0-9]{6})',
+    required=False,
+    help='A search regex pattern that returns one group element that contains the subject id.'
+         'This will be used to search for subject_id in the file paths contained in the Subjects.mat file.'
+)
+@click.option(
+    '-o',
+    '--out_file',
+    type=UnexistingFilePath,
+    required=False,
+    default='loading_coefficients.xls',
+    help='The output Excel spreadsheet with the loading coefficients.'
+)
+def loadings(ctx, ica_results_dir, app, labels, mask, background, zscore, subjid_pat, out_file):
+    """
+    Save the Excel loadings files in the `ica_out_dir`.
+    The `out_file` has the loadings as is, with the subjects IDs and group.
+    The other file has a `weighted_` preffix which has the loading signs changed according to
+    the average correlation value of the "main" region of each of the IC spatial maps.
+
+    Examples: \n
+    nitap loadings -i "/data/hansel/cobre/rest_ica/experiment1" -o subject_loadings.xls\n
+    nitap loadings -i "/data/hansel/cobre/rest_ica/experiment2" -o subject_loadings.xls\n
+    """
+    from pypes.networks.plotting import _pick_plotter
+
+    check_blob_plot = 'check_sign_blobs.png'
+    weighted_loadings_out_file = 'weighted_{}'.format(out_file)
+
+    plotter_class = _pick_plotter(app)
+    click.echo('Using {} to read the results data.'.format(plotter_class.__name__))
+
+    plotter = plotter_class(ica_results_dir)
+    plotter.fit(mask_file=mask, mode='+-', zscore=zscore)
+
+    sdf = plotter.simple_loadings_df(group_labels_file=labels, subjid_pat=subjid_pat)
+    sdf.to_excel(out_file)
+    click.echo('Created {} with loading coefficients.'.format(os.path.abspath(out_file)))
+
+    pdf = plotter.weighted_loadings_df(group_labels_file=labels, subjid_pat=subjid_pat)
+    pdf.to_excel(weighted_loadings_out_file)
+    click.echo('Created {} with weighted loading coefficients.'.format(os.path.abspath(weighted_loadings_out_file)))
+
+    check_blob_plot = os.path.join(os.path.dirname(out_file), check_blob_plot)
+    plotter.plot_icmaps_and_blobs(check_blob_plot, bg_img=background)
+    click.echo(
+        'Created {} with coloured blob plots to verify weighted loading coefficients.'.format(
+            os.path.abspath(check_blob_plot)
+        )
+    )
+
+
+@cli.command(context_settings=CONTEXT_SETTINGS)
+@click.option(
+    '-i',
+    '--ica_results_dir',
+    type=ExistingDirPath,
+    callback=check_not_none,
+    required=True,
+    help='Path to the ICA analysis results folder.'
+)
+@click.option(
+    '-a',
+    '--app',
+    type=click.Choice(('nilearn', 'sbm', 'gift', 'gift-group')),
+    default='gift',
+    required=False,
+    help='An identification of the tool used for the ICA analysis.'
+)
+@click.option(
+    '-m',
+    '--mask',
+    type=ExistingFilePath,
+    required=False,
+    help='Path to a mask file to filter out non-brain areas from the IC spatial map.'
+)
+@click.option(
+    '-b',
+    '--background',
+    type=ExistingFilePath,
+    required=False,
+    help='A background image for the blob-check report, to verify that the blobs'
+         'taken into account for the loadings signs are correct.'
+)
+@click.option(
+    '-z',
+    '--zscore',
+    type=float,
+    default=2.,
+    required=False,
+    help='Upper bound threshold for the IC spatial maps.'
+)
+@click.option(
+    '-o',
+    '--out_dir',
+    type=ExistingDirPath,
+    required=False,
+    help='The output path for the plot files. If None will use `ica_results_dir`.'
+)
+def spatial_maps(ctx, ica_results_dir, app, mask, background,  zscore, out_dir):
+    """
+    Plot the spatial maps in `ica_results_dir`.
+
+    Examples: \n
+    nitap spatial_maps -i "/data/hansel/cobre/rest_ica/experiment1" -a canica -z 2 -b /data/hansel/std_brains/templates/mni.nii\n
+    nitap spatial_maps -i "/data/hansel/cobre/rest_ica/experiment2" -a gift -z 1\n
+    """
+    from pypes.networks.plotting import _pick_plotter
+
+    plotter_class = _pick_plotter(app)
+    click.echo('Using {} to read the results data.'.format(plotter_class.__name__))
+
+    plotter = plotter_class(ica_results_dir)
+    plotter.fit(mask_file=mask, mode='+-', zscore=zscore)
+
+    if not out_dir:
+        out_dir = ica_results_dir
+
+    plotter.plot_icmaps(bg_img=background)
+    click.echo('Created IC spatial map plots in {}.'.format(out_dir))
+
+
 # @task
 # def dcm2nii(ctx, input_crumb_path, output_dir, regex='fnmatch', ncpus=3):
 #     """ Convert all DICOM files within `input_crumb_path` into NifTI in `output_folder`.
