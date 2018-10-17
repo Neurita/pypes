@@ -1,7 +1,6 @@
 
 from neuro_pypes.ica.decompose import attach_canica, attach_concat_canica
 from neuro_pypes.ica.plotting import (
-    plot_connectivity_matrix,
     plot_ica_results,
     ica_loadings_sheet,
     ICAResultsPlotter,
