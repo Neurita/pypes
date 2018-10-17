@@ -4,11 +4,11 @@ PET image preprocessing utilities nipype function helpers.
 """
 from nipype.interfaces.base import traits
 from nipype.interfaces.utility import Merge, Function, IdentityInterface
+from nipype.interfaces.petpvc import PETPVC
 from nipype.pipeline import Workflow
 
 from neuro_pypes.config import setup_node
 from neuro_pypes.interfaces.nilearn import math_img, concat_imgs, resample_to_img
-from neuro_pypes.preproc import PETPVC
 from neuro_pypes.utils import selectindex, rename
 
 

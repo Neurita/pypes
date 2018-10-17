@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 
+from neuro_pypes.preproc.realign import nipy_motion_correction
 from neuro_pypes.preproc.denoise import (
     nlmeans_denoise_img,
     create_regressors,
     extract_noise_components,
     motion_regressors,
     reslice_img)
-from neuro_pypes.preproc.petpvc import PETPVC
-from neuro_pypes.preproc.realign import nipy_motion_correction
 from neuro_pypes.preproc.slicetime import (
     afni_slicetime,
     spm_slicetime,

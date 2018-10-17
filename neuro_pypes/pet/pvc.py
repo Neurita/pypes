@@ -113,7 +113,7 @@ def petpvc_workflow(wf_name="petpvc"):
 
     tissues_sel = setup_node(Select(index=[0, 1, 2]), name="tissues")
     select_gm = setup_node(Select(index=[0]), name="select_gm")
-    rbvpvc = setup_node(petpvc_cmd(fwhm_mm=psf_fwhm, pvc_method='RBV'), name="rbvpvc")
+    pvc = setup_node(petpvc_cmd(fwhm_mm=psf_fwhm, pvc_method='RBV'), name="pvc")
 
     # output
     pvc_output = setup_node(IdentityInterface(fields=out_fields), name="pvc_output")
@@ -151,19 +151,19 @@ def petpvc_workflow(wf_name="petpvc"):
             (coreg_pet, mask_wf, [("coregistered_files", "pvcmask_input.tissues")]),
 
             # the PET in native space to PVC correction
-            (gunzip_pet, rbvpvc, [("out_file", "in_file")]),
+            (gunzip_pet, pvc, [("out_file", "in_file")]),
 
             # the merged file with 4 tissues to PCV correction
-            (mask_wf, rbvpvc, [("pvcmask_output.petpvc_mask", "mask_file")]),
+            (mask_wf, pvc, [("pvcmask_output.petpvc_mask", "mask_file")]),
 
             # normalize voxel values of PET PVCed by demeaning it entirely by GM PET voxel values
-            (rbvpvc, norm_wf, [("out_file", "intnorm_input.source")]),
+            (pvc, norm_wf, [("out_file", "intnorm_input.source")]),
             (select_gm, norm_wf, [("out", "intnorm_input.mask")]),
 
             # output
             (coreg_pet, pvc_output, [("coregistered_source", "coreg_ref")]),
             (coreg_pet, pvc_output, [("coregistered_files", "coreg_others")]),
-            (rbvpvc, pvc_output, [("out_file", "pvc_out")]),
+            (pvc, pvc_output, [("out_file", "pvc_out")]),
             (mask_wf, pvc_output, [("pvcmask_output.brain_mask", "brain_mask")]),
             (mask_wf, pvc_output, [("pvcmask_output.petpvc_mask", "petpvc_mask")]),
             (norm_wf, pvc_output, [("intnorm_output.out_file", "gm_norm")]),
@@ -184,20 +184,20 @@ def petpvc_workflow(wf_name="petpvc"):
             (flat_list, mask_wf, [("out", "pvcmask_input.tissues")]),
 
             # the PET in ANAT space to PVC correction
-            (coreg_pet, rbvpvc, [("coregistered_source", "in_file")]),
+            (coreg_pet, pvc, [("coregistered_source", "in_file")]),
 
             # the merged file with 4 tissues to PCV correction
-            (mask_wf, rbvpvc, [("pvcmask_output.petpvc_mask", "mask_file")]),
+            (mask_wf, pvc, [("pvcmask_output.petpvc_mask", "mask_file")]),
 
             # normalize voxel values of PET PVCed by demeaning it entirely by GM PET voxel values
-            (rbvpvc, norm_wf, [("out_file", "intnorm_input.source")]),
+            (pvc, norm_wf, [("out_file", "intnorm_input.source")]),
             (select_gm, norm_wf, [("out", "intnorm_input.mask")]),
 
             # output
             # TODO: coreg_ref should have a different name in this case
             (coreg_pet, pvc_output, [("coregistered_source", "coreg_ref")]),
             (coreg_pet, pvc_output, [("coregistered_files", "coreg_others")]),
-            (rbvpvc, pvc_output, [("out_file", "pvc_out")]),
+            (pvc, pvc_output, [("out_file", "pvc_out")]),
             (mask_wf, pvc_output, [("pvcmask_output.brain_mask", "brain_mask")]),
             (mask_wf, pvc_output, [("pvcmask_output.petpvc_mask", "petpvc_mask")]),
             (norm_wf, pvc_output, [("intnorm_output.out_file", "gm_norm")]),
@@ -253,11 +253,6 @@ def attach_petpvc_workflow(main_wf, wf_name="spm_petpvc"):
     regexp_subst = [
         (r"/{pet}_.*_pvc.nii.gz$", "/{pet}_pvc.nii.gz"),
         (r"/{pet}_.*_pvc_maths.nii.gz$", "/{pet}_pvc_norm.nii.gz"),
-        (r"/rm{anat}_corrected.nii$", "/{anat}_{pet}.nii"),
-        (r"/rc1{anat}_corrected.nii$", "/gm_{pet}.nii"),
-        (r"/rc2{anat}_corrected.nii$", "/wm_{pet}.nii"),
-        (r"/rc3{anat}_corrected.nii$", "/csf_{pet}.nii"),
-        (r"/tissues_brain_mask.nii$", "/brain_mask_anat.nii.gz"),
     ]
     regexp_subst = format_pair_list(regexp_subst, pet=pet_fbasename, anat=anat_fbasename)
     regexp_subst += extension_duplicates(regexp_subst)
