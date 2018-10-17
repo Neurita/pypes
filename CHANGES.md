@@ -7,6 +7,7 @@ Version 1.X.X (X.X.2018)
 ### Features:
 
 - Raise exceptions when necessary subworkflows are not found.
+- Added `loadings` and `spatial_maps` for ICA result checks in `nitap`.
 
 
 Version 1.2.0 (21.09.2018)
