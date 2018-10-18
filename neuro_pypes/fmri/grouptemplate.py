@@ -65,7 +65,7 @@ def attach_spm_fmri_grouptemplate_wf(main_wf, wf_name='spm_epi_grouptemplate'):
     main_wf: nipype Workflow
     """
     # Dependency workflows
-    fmri_cleanup_wf = get_subworkflow('fmri_cleanup')
+    fmri_cleanup_wf = get_subworkflow(main_wf, 'fmri_cleanup')
 
     in_files = get_input_node(main_wf)
     datasink = get_datasink(main_wf, name='datasink')

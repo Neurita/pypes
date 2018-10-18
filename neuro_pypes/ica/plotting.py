@@ -29,24 +29,18 @@ from neuro_pypes.interfaces import (
 from neuro_pypes.utils import fetch_one_file
 
 
-def plot_connectivity_matrix(connectivity_matrix, label_names):
-    """ Plot the connectivity matrix. """
-    # Display the correlation matrix
-    import numpy as np
-    from matplotlib import pyplot as plt
-
-    plt.figure(figsize=(10, 10))
-
-    # Mask out the major diagonal
-    np.fill_diagonal(connectivity_matrix, 0)
-    fig = plt.imshow(connectivity_matrix, interpolation="nearest", cmap="RdBu_r",
-                     vmax=0.8, vmin=-0.8)
-    plt.colorbar()
-    # And display the labels
-    _ = plt.xticks(range(len(label_names)), label_names, rotation=90)
-    _ = plt.yticks(range(len(label_names)), label_names)
-
-    return fig
+def _pick_plotter(application):
+    """
+    application: str
+        Choices: ('nilearn', 'sbm', 'gift', 'gift-group')
+    """
+    plotters = {
+        'sbm': SBMICAResultsPlotter,
+        'gift-group': GIFTGroupICAResultsPlotter,
+        'gift': GIFTICAResultsPlotter,
+        'canica': CanICAResultsPlotter
+    }
+    return plotters[application]
 
 
 def plot_ica_results(ica_result_dir, application, mask_file='', zscore=2., mode='+', bg_img=''):
@@ -58,7 +52,7 @@ def plot_ica_results(ica_result_dir, application, mask_file='', zscore=2., mode=
         Path to the ICA output folder or the ICA components volume file.
 
     application: str
-        Choicese: ('nilearn', 'sbm', 'gift', 'gift-group')
+        Choices: ('nilearn', 'sbm', 'gift', 'gift-group')
 
     mask_file: str
         Path to the brain mask file to be used for thresholding.
@@ -75,16 +69,8 @@ def plot_ica_results(ica_result_dir, application, mask_file='', zscore=2., mode=
         Path to a background image.
         If empty will use the SPM canonical brain image at 2mm.
     """
-    if application == 'sbm': # SBM ICA (3D sources)
-        plotter = SBMICAResultsPlotter(ica_result_dir)
-    elif application == 'gift-group': # group GIFT ICA (4D sources)
-        plotter = GIFTGroupICAResultsPlotter(ica_result_dir)
-    elif application == 'gift': # single subject GIFT ICA (4D sources)
-        plotter = GIFTICAResultsPlotter(ica_result_dir)
-    elif application == 'canica': # group ICA (4D sources)
-        plotter = CanICAResultsPlotter(ica_result_dir)
-    else:
-        raise NotImplementedError('Got no ICAResultsPlotter for application {}.'.format(application))
+    plotter_class = _pick_plotter(application)
+    plotter = plotter_class(ica_result_dir)
 
     plotter.fit(mask_file=mask_file, mode=mode, zscore=zscore)
     plotter.plot_icmaps(bg_img=bg_img)
@@ -208,14 +194,16 @@ class ICAResultsPlotter(object):
         # make the multi sliced IC plots
         sliced_ic_plots = []
         for i, img in enumerate(iter_img(self._icc_imgs)):
-            fig3 = plot_multi_slices(img,
-                                     cut_dir="z",
-                                     n_cuts=24,
-                                     n_cols=4,
-                                     title="IC {}\n(z-score {})".format(i+1, self.zscore),
-                                     title_fontsize=32,
-                                     plot_func=None,
-                                     **kwargs)
+            fig3 = plot_multi_slices(
+                img,
+                cut_dir="z",
+                n_cuts=24,
+                n_cols=4,
+                title="IC {}\n(z-score {})".format(i+1, self.zscore),
+                title_fontsize=32,
+                plot_func=None,
+                **kwargs
+            )
 
             # prepare the output file name/path
             out_f = icc_multi_slice.format(i+1, self.zscore, outtype)
@@ -235,6 +223,12 @@ class CanICAResultsPlotter(ICAResultsPlotter):
     """
     _comps_fname = 'canica_resting_state.nii.gz'
 
+    def simple_loadings_df(self, group_labels_file, subjid_pat=r'(?P<patid>[a-z]{2}_[0-9]{6})'):
+        raise NotImplementedError
+
+    def weighted_loadings_df(self, group_labels_file, subjid_pat=r'(?P<patid>[a-z]{2}_[0-9]{6})'):
+        raise NotImplementedError
+
 
 class MIALABICAResultsPlotter(ICAResultsPlotter):
     """ Use nilearn to plot results from MIALAB (GIFT and SBM) tools, given the ICA result folder path.
@@ -245,10 +239,10 @@ class MIALABICAResultsPlotter(ICAResultsPlotter):
         Path to the ICA output folder or the ICA components volume file.
     """
     # define the input file patterns
-    _tcs_fname       = '*_timecourses_ica*'
-    _comps_fname     = '*_component_ica*'
-    _subjects_fname  = '*Subject.mat'
-    _mask_fname      = r'.*Mask.(hdr|nii)'
+    _tcs_fname = '*_timecourses_ica*'
+    _comps_fname = '*_component_ica*'
+    _subjects_fname = '*Subject.mat'
+    _mask_fname = r'.*Mask.(hdr|nii)'
 
     def __init__(self, ica_result_dir):
         super(MIALABICAResultsPlotter, self).__init__(ica_result_dir=ica_result_dir)
@@ -275,10 +269,10 @@ class MIALABICAResultsPlotter(ICAResultsPlotter):
         groups = None
         if group_labels_file and os.path.exists(group_labels_file):
             groups = pd.read_csv(group_labels_file)
-            if not 'subject_id' in groups.columns or \
-               not 'group' in groups.columns:
-                raise AttributeError("Please add columns names 'subject_id' "
-                                     "and 'group' to the group labels file.")
+            if 'subject_id' not in groups.columns or 'group' not in groups.columns:
+                raise AttributeError(
+                    "Please add columns names 'subject_id' and 'group' to the group labels file."
+                )
         return groups
 
     def _load_components(self):
@@ -301,7 +295,7 @@ class MIALABICAResultsPlotter(ICAResultsPlotter):
         """
         from itertools import chain
 
-        subjsf   = fetch_one_file(self.ica_dir, self._subjects_fname)
+        subjsf = fetch_one_file(self.ica_dir, self._subjects_fname)
         mat_file = sio.loadmat(subjsf)['files']
         return [f.strip() for f in list(chain.from_iterable(chain.from_iterable(chain.from_iterable(mat_file))))]
 
@@ -327,7 +321,7 @@ class MIALABICAResultsPlotter(ICAResultsPlotter):
         # process the paths to extract the patient IDs given by `patid_re`
         in_files = [f.split(',')[0] for f in subj_files]
         patid_re = re.compile(subjid_pat, re.I)
-        patids   = [patid_re.search(f).group() for f in in_files]
+        patids = [patid_re.search(f).group() for f in in_files]
 
         return patids
 
@@ -376,7 +370,6 @@ class MIALABICAResultsPlotter(ICAResultsPlotter):
     def load_components_data(self, masked=False, **kwargs):
         if masked:
             comps = self._load_components()
-            n_comps = comps.shape[-1]
             return self._apply_mask_to_4dimg(comps, **kwargs)
         else:
             return self._load_components()
@@ -396,7 +389,6 @@ class MIALABICAResultsPlotter(ICAResultsPlotter):
 
         Would return: [0, 0, 1]
         """
-        # get the subject file list
         subj_files = self._get_subject_files()
 
         # remove the numbers after the comma in this list
@@ -404,8 +396,6 @@ class MIALABICAResultsPlotter(ICAResultsPlotter):
 
         # make a dict that assign a number to each unique file
         file_int = {f: i for i, f in enumerate(np.unique(files))}
-
-        # return the corresponding numbers for each file in the cleaned file list
         return np.array([file_int[f] for f in files])
 
     def _load_subject_data(self):
@@ -446,9 +436,11 @@ class MIALABICAResultsPlotter(ICAResultsPlotter):
         if not mask_file:
             mask_file = fetch_one_file(self.ica_dir, self._mask_fname, pat_type='re.match')
 
-        super(MIALABICAResultsPlotter, self).fit(mask_file=mask_file,
-                                                 mode=mode,
-                                                 zscore=zscore)
+        super(MIALABICAResultsPlotter, self).fit(
+            mask_file=mask_file,
+            mode=mode,
+            zscore=zscore
+        )
 
     def simple_loadings_df(self, group_labels_file, subjid_pat=r'(?P<patid>[a-z]{2}_[0-9]{6})'):
         """ Return a pandas.DataFrame spreadsheet ready for an excel file with the subject IDs taken from
@@ -481,18 +473,14 @@ class MIALABICAResultsPlotter(ICAResultsPlotter):
         # make sure this object has been .fit()
         self._update()
 
-        # read the groups file
         groups = self._parse_groups_file(group_labels_file=group_labels_file)
         patids = self._get_subject_ids(subjid_pat=subjid_pat)
 
-        # load the loadings file
         loads = self._load_loadings()
 
         # build the raw loadings table
         df = build_raw_loadings_table(loads, patids)
         df = add_groups_to_loadings_table(df, groups)
-        #df.to_excel(os.path.join(ica_out_dir, rawloadings_filename))
-
         return df
 
     def weighted_loadings_df(self, group_labels_file, subjid_pat=r'(?P<patid>[a-z]{2}_[0-9]{6})'):
@@ -522,28 +510,19 @@ class MIALABICAResultsPlotter(ICAResultsPlotter):
         if not os.path.exists(group_labels_file):
             raise FileNotFoundError('The file {} has not been found.'.format(group_labels_file))
 
-        # make sure this object has been .fit()
         self._update()
 
         # let's first pick the simple version of the loadings
         df = self.simple_loadings_df(group_labels_file, subjid_pat=subjid_pat)
-
-        # get the values of the largest blobs in the filtered IC maps
         blobs = get_largest_blobs(self._icc_imgs)
 
-        # apply the blob mask to each corresponding IC map
         masks = [apply_mask(ic_map, blob) for ic_map, blob in zip(self._icc_imgs, blobs)]
 
-        # calculate the avg per blob
         blob_avgs = [mask.mean() for mask in masks]
 
-        # multiply the avg blob value with the group loadings
         blob_signs = np.sign(blob_avgs)
-        n_ics      = len(blob_avgs)
-
+        n_ics = len(blob_avgs)
         df[list(range(1, n_ics+1))] = df[list(range(1, n_ics+1))] * blob_signs
-
-        # put the dataframe back into one whole ungrouped dataframe
         return df
 
     def plot_icmaps_and_blobs(self, outfile, bg_img=None, **kwargs):
@@ -558,10 +537,13 @@ class MIALABICAResultsPlotter(ICAResultsPlotter):
         """
         # make sure this object has been .fit()
         self._update()
-        fig = plot_overlays(self._icc_imgs, get_largest_blobs(self._icc_imgs),
-                            bg_img=bg_img, figsize=(2.5, 3), **kwargs)
-
-        # save fig
+        fig = plot_overlays(
+            self._icc_imgs,
+            get_largest_blobs(self._icc_imgs),
+            bg_img=bg_img,
+            figsize=(2.5, 3),
+            **kwargs
+        )
         fig.savefig(outfile, facecolor=fig.get_facecolor(), edgecolor='none')
 
 
@@ -579,23 +561,28 @@ class GIFTICAResultsPlotter(MIALABICAResultsPlotter):
 
     def _check_output(self):
         comps_img = self._load_components()
-        tcs_img   = self._load_timecourses()
+        tcs_img = self._load_timecourses()
 
         n_ics = tcs_img.shape[1]
         if comps_img.get_data().shape[-1] != n_ics:
-            raise AttributeError('Shape mismatch between timecourses matrix {} '
-                                 'and components data shape {}.'.format(tcs_img.shape,
-                                                                        comps_img.get_data().shape))
+            raise AttributeError(
+                'Shape mismatch between timecourses matrix {} and components data shape {}.'.format(
+                    tcs_img.shape,
+                    comps_img.get_data().shape
+                )
+            )
 
-        # read the groups file
-        subj_files   = self._get_subject_files()
+        subj_files = self._get_subject_files()
         n_timepoints = len(subj_files)
 
         # check shapes
         if n_timepoints != tcs_img.shape[0]:
-            raise AttributeError('Shape mismatch between list of subjects {} '
-                                 'and timecourses data shape {}.'.format(n_timepoints,
-                                                                         tcs_img.shape))
+            raise AttributeError(
+                'Shape mismatch between list of subjects {} and timecourses data shape {}.'.format(
+                    n_timepoints,
+                    tcs_img.shape
+                )
+            )
 
     def _load_timecourses(self):
         """ Return the timecourses image file and checks if the shape is correct."""
@@ -622,23 +609,16 @@ class GIFTGroupICAResultsPlotter(MIALABICAResultsPlotter):
 
     def _check_output(self):
         comps_img = self._load_components()
-        tcs_img   = self._load_timecourses()
+        tcs_img = self._load_timecourses()
 
         n_ics = tcs_img.shape[1]
         if comps_img.get_data().shape[-1] != n_ics:
-            raise AttributeError('Shape mismatch between timecourses matrix {} '
-                                 'and components data shape {}.'.format(tcs_img.shape,
-                                                                        comps_img.get_data().shape))
-
-        # read the groups file
-        # subj_files   = self._get_subject_files()
-        # n_timepoints = len(subj_files)
-
-        # check shapes
-        #if n_timepoints != tcs_img.shape[0]:
-        #    raise AttributeError('Shape mismatch between list of subjects {} '
-        #                         'and timecourses data shape {}.'.format(n_timepoints,
-        #                                                                 tcs_img.shape))
+            raise AttributeError(
+                'Shape mismatch between timecourses matrix {} and components data shape {}.'.format(
+                    tcs_img.shape,
+                    comps_img.get_data().shape
+                )
+            )
 
     def _load_timecourses(self):
         """ Return the timecourses image file and checks if the shape is correct."""
@@ -650,54 +630,6 @@ class GIFTGroupICAResultsPlotter(MIALABICAResultsPlotter):
     def _fetch_components_file(self):
         return fetch_one_file(self.ica_dir, self._comps_fname)
 
-    # def _calculate_goodness_of_fit(self):
-    #     """ Return the goodness-of-fit values from a GIFT result."""
-    #     pass
-    #     #TODO
-    #
-    # def goodness_of_fit_df(self, group_labels_file, subjid_pat=r'(?P<patid>[a-z]{2}_[0-9]{6})'):
-    #     """ Return a pandas.DataFrame ready for an excel file with:
-    #     - the subject IDs taken from the file paths inside the *Subject.mat file,
-    #     - the groups taken from `group_labels_file`, and
-    #     - the goodness-of-fit measures for each subject and independent component.
-    #
-    #     Parameters
-    #     ----------
-    #     group_labels_file: str
-    #         A CSV file with two columns: "subject_id" and "group".
-    #         The subject_ids must be in the paths contained in the Subject.mat
-    #         file and match the `subjid_pat` argument.
-    #
-    #     subjid_pat: regext str
-    #         A search regex pattern that returns one group element that
-    #         contains the subject id.
-    #         This will be used to *search* for subject_id in the file paths
-    #         contained in the Subjects.mat file.
-    #
-    #     Returns
-    #     -------
-    #     gof_df: pandas.DataFrame
-    #     """
-    #     # make sure file exists
-    #     if not os.path.exists(group_labels_file):
-    #         raise FileNotFoundError('The file {} has not been found.'.format(group_labels_file))
-    #
-    #     # make sure this object has been .fit()
-    #     self._update()
-    #
-    #     # read the groups file
-    #     groups = self._parse_groups_file(group_labels_file=group_labels_file)
-    #     patids = self._get_subject_ids(subjid_pat=subjid_pat)
-    #
-    #     # calculate the goodness of fit
-    #     gofs = self._calculate_goodness_of_fit(patids)
-    #
-    #     # build the goodness-of-fit table
-    #     df = build_raw_loadings_table(gofs, patids)
-    #     df = add_groups_to_loadings_table(df, groups)
-    #
-    #     return df
-
 
 class SBMICAResultsPlotter(MIALABICAResultsPlotter):
     """ Use nilearn to plot results from the MIALAB SBM tool, given the ICA result folder path.
@@ -707,11 +639,11 @@ class SBMICAResultsPlotter(MIALABICAResultsPlotter):
     ica_result_dir: str
         Path to the ICA output folder or the ICA components volume file.
     """
-    _tcs_fname  = '*_loading_coeff_.nii'
+    _tcs_fname = '*_loading_coeff_.nii'
 
     def _check_output(self):
         # read the groups file
-        subj_files   = self._get_subject_files()
+        subj_files = self._get_subject_files()
         n_timepoints = len(subj_files)
 
         # load the loadings file
@@ -719,9 +651,12 @@ class SBMICAResultsPlotter(MIALABICAResultsPlotter):
 
         # check shapes
         if n_timepoints != loads.shape[0]:
-            raise AttributeError('Shape mismatch between list of subjects {} '
-                                 'and loadings data shape {}.'.format(n_timepoints,
-                                                                      loads.shape))
+            raise AttributeError(
+                'Shape mismatch between list of subjects {} and loadings data shape {}.'.format(
+                    n_timepoints,
+                    loads.shape
+                )
+            )
 
         # load components image file to check shape match
         # this doesn't make much sense to be here (because it does not use the components image
@@ -731,9 +666,12 @@ class SBMICAResultsPlotter(MIALABICAResultsPlotter):
 
         n_ics = loads.shape[1]
         if comps_img.get_data().shape[-1] != n_ics:
-            raise AttributeError('Shape mismatch between loadings matrix {} '
-                                 'and components data shape {}.'.format(loads.shape,
-                                                                        comps_img.get_data().shape))
+            raise AttributeError(
+                'Shape mismatch between loadings matrix {} and components data shape {}.'.format(
+                    loads.shape,
+                    comps_img.get_data().shape
+                )
+            )
 
 
 def ica_loadings_sheet(plotter, labels_file, mask=None, bg_img=None, zscore=2.,
@@ -771,9 +709,9 @@ def ica_loadings_sheet(plotter, labels_file, mask=None, bg_img=None, zscore=2.,
         This will be used to search for subject_id in the file paths
         contained in the Subjects.mat file.
     """
-    rawloadings_filename   = 'subject_loadings.xls'
+    rawloadings_filename = 'subject_loadings.xls'
     grouploadings_filename = 'subject_weighted_loadings.xls'
-    check_blob_plot        = 'check_sign_blobs.png'
+    check_blob_plot = 'check_sign_blobs.png'
 
     if not plotter.is_fit():
         plotter.fit(mask_file=mask, mode='+-', zscore=zscore)

@@ -301,8 +301,8 @@ spm_mrpet_grouptemplate.do_petpvc: True
 spm_mrpet_grouptemplate.template_file: ""
 
 # PET PVC
-rbvpvc.pvc: RBV
-rbvpvc.fwhm_x: 4.3
-rbvpvc.fwhm_y: 4.3
-rbvpvc.fwhm_z: 4.3
+pvc.pvc_method: RBV
+pvc.fwhm_x: 4.3
+pvc.fwhm_y: 4.3
+pvc.fwhm_z: 4.3
 ```

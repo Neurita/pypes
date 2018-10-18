@@ -91,9 +91,6 @@ tag: clean
 	git tag v$(version)
 	git push --tags
 
-log:
-	pipenv run gitchangelog
-
 patch:
 	pipenv run bumpversion patch
 
@@ -110,3 +107,7 @@ upload:
 	pipenv run python setup.py sdist upload
 
 release: clean-build clean-pyc build upload tag
+
+docker:
+	if [ ! -d neuro_ansible ]; then git clone git@github.com:Neurita/neuro_ansible.git; fi
+	cd neuro_ansible; pipenv run packer build packer/neuro_docker-run.json
