@@ -8,13 +8,15 @@ from neuro_pypes._utils import format_pair_list, concat_to_pair_list
 from neuro_pypes.config import check_atlas_file
 from neuro_pypes.dmri.artifacts import attach_dti_artifact_correction
 from neuro_pypes.dmri.coregister import spm_anat_to_diff_coregistration
-from neuro_pypes.utils import (get_datasink,
-                               get_input_node,
-                               get_interface_node,
-                               remove_ext,
-                               extend_trait_list,
-                               get_input_file_name,
-                               extension_duplicates)
+from neuro_pypes.utils import (
+    get_datasink,
+    get_input_node,
+    get_interface_node,
+    remove_ext,
+    extend_trait_list,
+    get_input_file_name,
+    extension_duplicates
+)
 
 
 def attach_spm_fsl_dti_preprocessing(main_wf, wf_name="spm_fsl_dti_preprocessing"):
@@ -29,10 +31,6 @@ def attach_spm_fsl_dti_preprocessing(main_wf, wf_name="spm_fsl_dti_preprocessing
 
     wf_name: str
         Name of the preprocessing workflow
-
-    params: dict with parameter values
-        atlas_file: str
-            Path to the anatomical atlas to be transformed to diffusion MRI space.
 
     Nipype Inputs for `main_wf`
     ---------------------------
