@@ -370,6 +370,9 @@ def spm_register_to_template_wf(wf_name="spm_registration_to_template"):
     reg_input.template: list of traits.File
         The template file for inter-subject registration reference.
 
+    reg_input.apply_to_files: list of traits.File
+        A list of files to be warped too.
+
     Nipype outputs
     --------------
     reg_output.warped: existing file
@@ -385,6 +388,7 @@ def spm_register_to_template_wf(wf_name="spm_registration_to_template"):
     # specify input and output fields
     in_fields = [
         "in_file",
+        "apply_to_files",
         "template",
     ]
 
@@ -400,6 +404,7 @@ def spm_register_to_template_wf(wf_name="spm_registration_to_template"):
     # warp each subject to the group template
     gunzip_template = setup_node(Gunzip(), name="gunzip_template", )
     gunzip_input = setup_node(Gunzip(), name="gunzip_input", )
+    gunzip_others = pe.MapNode(Gunzip(), name="gunzip", iterfield=['in_file'])
 
     warp2template = setup_node(spm.Normalize(jobtype="estwrite", out_prefix="wgrptemplate_"),
                                name="warp2template")
@@ -422,12 +427,14 @@ def spm_register_to_template_wf(wf_name="spm_registration_to_template"):
         # gunzip some inputs
         (reg_input, gunzip_input, [("in_file", "in_file")]),
         (reg_input, gunzip_template, [("template", "in_file")]),
+        (reg_input, gunzip_others, [("apply_to_files", "in_file")]),
 
         # prepare the target parameters of the warp to template
         (gunzip_template, warp2template, [("out_file", "template")]),
         (get_bbox, warp2template, [("bbox", "write_bounding_box")]),
 
         # directly warp pet to the template
+        (gunzip_others, warp2template, ["out_file", "apply_to_files"]),
         (gunzip_input, warp2template, [("out_file", "source")]),
 
         # output

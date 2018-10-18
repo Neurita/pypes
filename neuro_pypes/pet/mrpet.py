@@ -511,28 +511,34 @@ def attach_spm_mrpet_preprocessing(
         output_subfolder = 'std_template'
 
     # dataSink output substitutions
+    petpvc_method_regex = r'[\w]+'
     regexp_subst = [
-        (r"/{pet}_.*_pvc.nii.gz$",           "/{pet}_pvc.nii.gz"),
-        (r"/{pet}_.*_pvc_maths.nii.gz$",     "/{pet}_pvc_norm.nii.gz"),
-        (r"/{pet}_.*_pvc_intnormed.nii.gz$", "/{pet}_pvc_norm.nii.gz"),
-        (r"/tissues_brain_mask.nii$",        "/brain_mask_anat.nii"),
-        (r"/w{pet}.nii",                     "/{pet}_{template}.nii"),
-        (r"/w{pet}_.*_pvc.nii$",             "/{pet}_pvc_{template}.nii"),
-        (r"/w{pet}_.*_pvc_maths.nii$",       "/{pet}_pvc_norm_{template}.nii"),
-        (r"/w{pet}_.*_pvc_intnormed.nii$",   "/{pet}_pvc_norm_{template}.nii"),
-        (r"/wbrain_mask.nii",                "/brain_mask_{template}.nii"),
-        (r"/r{pet}.nii",                     "/{pet}_anat.nii"),
-        (r"/r{pet}_.*_pvc.nii$",             "/{pet}_pvc_anat.nii"),
-        (r"/r{pet}_.*_pvc_maths.nii$",       "/{pet}_pvc_norm_anat.nii"),
-        (r"/r{pet}_.*_pvc_intnormed.nii$",   "/{pet}_pvc_norm_anat.nii"),
-        (r"/y_rm{anat}_corrected.nii",       "/{anat}_{pet}_warpfield.nii"),
-        (r"/rm{anat}_corrected.nii$",        "/{anat}_{pet}.nii"),
-        (r"/rc1{anat}_corrected.nii$",       "/gm_{pet}.nii"),
-        (r"/rc2{anat}_corrected.nii$",       "/wm_{pet}.nii"),
-        (r"/rc3{anat}_corrected.nii$",       "/csf_{pet}.nii"),
+        (r"/{pet}_.*_pvc.nii.gz$",                   "/{pet}_pvc.nii.gz"),
+        (r"/{pet}_.*_pvc_maths.nii.gz$",             "/{pet}_pvc_norm.nii.gz"),
+        (r"/{pet}_.*_pvc_intnormed.nii.gz$",         "/{pet}_pvc_norm.nii.gz"),
+        (r"/tissues_brain_mask.nii$",                "/brain_mask.nii"),
+        (r"/w{pet}.nii",                             "/{pet}_{template}.nii"),
+        (r"/w{pet}_{pvc_method}_pvc.nii$",           "/{pet}_pvc_{template}.nii"),
+        (r"/w{pet}_{pvc_method}_pvc_maths.nii$",     "/{pet}_pvc_norm_{template}.nii"),
+        (r"/w{pet}_{pvc_method}_pvc_intnormed.nii$", "/{pet}_pvc_norm_{template}.nii"),
+        (r"/wbrain_mask.nii",                        "/brain_mask_{template}.nii"),
+        (r"/r{pet}.nii",                             "/{pet}_anat.nii"),
+        (r"/r{pet}_.*_pvc.nii$",                     "/{pet}_pvc_anat.nii"),
+        (r"/r{pet}_.*_pvc_maths.nii$",               "/{pet}_pvc_norm_anat.nii"),
+        (r"/r{pet}_.*_pvc_intnormed.nii$",           "/{pet}_pvc_norm_anat.nii"),
+        (r"mrpet/y_rm{anat}_corrected.nii$",         "mrpet/{anat}_{pet}_warpfield.nii"),
+        (r"mrpet/rm{anat}_corrected.nii$",           "mrpet/{anat}_{pet}.nii"),
+        (r"mrpet/tissues/rc1{anat}_corrected.nii$",  "mrpet/tissues/gm_{pet}.nii"),
+        (r"mrpet/tissues/rc2{anat}_corrected.nii$",  "mrpet/tissues/wm_{pet}.nii"),
+        (r"mrpet/tissues/rc3{anat}_corrected.nii$",  "mrpet/tissues/csf_{pet}.nii"),
     ]
-    regexp_subst = format_pair_list(regexp_subst, pet=pet_fbasename, anat=anat_fbasename,
-                                    template=template_name)
+    regexp_subst = format_pair_list(
+        regexp_subst,
+        pet=pet_fbasename,
+        anat=anat_fbasename,
+        template=template_name,
+        pvc_method=petpvc_method_regex
+    )
 
     # prepare substitution for atlas_file, if any
     do_atlas, atlas_file = check_atlas_file()

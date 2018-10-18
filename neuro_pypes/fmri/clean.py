@@ -346,10 +346,10 @@ def attach_fmri_cleanup_wf(main_wf, wf_name="fmri_cleanup"):
     anat_fbasename = remove_ext(os.path.basename(get_input_file_name(in_files, 'anat')))
 
     regexp_subst = [
-        (r"/rc1[\w]+_corrected\.nii$", "/gm_{rest}.nii"),
-        (r"/rc2[\w]+_corrected\.nii$", "/wm_{rest}.nii"),
-        (r"/rc3[\w]+_corrected\.nii$", "/csf_{rest}.nii"),
-        (r"/rm[\w]+_corrected\.nii$", "/{anat}_{rest}.nii"),
+        (r"rest/tissues/rc1{anat}_corrected\.nii$", "rest/tissues/gm_{rest}.nii"),
+        (r"rest/tissues/rc2{anat}_corrected\.nii$", "rest/tissues/wm_{rest}.nii"),
+        (r"rest/tissues/rc3{anat}_corrected\.nii$", "rest/tissues/csf_{rest}.nii"),
+        (r"rest/rm{anat}_corrected\.nii$",  "rest/{anat}_{rest}.nii"),
         (r"/corr_stc{rest}_trim\.nii$", "/slice_time_corrected.nii"),
         (r"/stc{rest}_trim\.nii\.par$", "/motion_parameters.txt"),
         (r"/corr_stc{rest}_trim_filt\.nii$", "/time_filt.nii"),
@@ -390,7 +390,7 @@ def attach_fmri_cleanup_wf(main_wf, wf_name="fmri_cleanup"):
         (cleanup_wf, datasink, [
             ("rest_output.epi_brain_mask", "rest.@epi_brain_mask"),
             ("rest_output.tissues_brain_mask", "rest.@tissues_brain_mask"),
-            ("rest_output.tissues", "rest.@tissues"),
+            ("rest_output.tissues", "rest.tissues"),   # careful changing this, look regexp_subst
             ("rest_output.anat", "rest.@anat"),
             ("rest_output.motion_regressors", "rest.@motion_regressors"),
             ("rest_output.compcor_regressors", "rest.@compcor_regressors"),
