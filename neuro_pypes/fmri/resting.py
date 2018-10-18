@@ -52,8 +52,8 @@ def _attach_rest_preprocessing(main_wf, registration_wf_name="spm_warp_fmri", do
         fmri_registration_wf_name = "{}_{}".format(registration_wf_name, 'grptemplate')
         reg_wf = get_subworkflow(main_wf, fmri_registration_wf_name)
 
-        grp_template = get_subworkflow(main_wf, "group_template")
-        main_wf.connect([(grp_template, reg_wf,  [("fmri_template",  "wfmri_input.epi_template")]),])
+        group_template = get_subworkflow(main_wf, "group_template")
+        main_wf.connect([(group_template, reg_wf,  [("fmri_template",  "wfmri_input.epi_template")]),])
 
     return main_wf
 

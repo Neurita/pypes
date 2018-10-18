@@ -354,8 +354,7 @@ def spm_mrpet_grouptemplate_preprocessing(wf_name="spm_mrpet_grouptemplate_prepr
         out_fields += ["atlas_pet"]
 
     # input
-    pet_input = setup_node(IdentityInterface(fields=in_fields, mandatory_inputs=True),
-                           name="pet_input")
+    pet_input = setup_node(IdentityInterface(fields=in_fields, mandatory_inputs=True), name="pet_input")
 
     # workflow to perform partial volume correction
     petpvc = petpvc_workflow(wf_name="petpvc")
@@ -385,26 +384,30 @@ def spm_mrpet_grouptemplate_preprocessing(wf_name="spm_mrpet_grouptemplate_prepr
 
     wf.connect([
         # inputs
-        (pet_input,   petpvc,  [("in_file", "pvc_input.in_file"),
-                                ("anat",    "pvc_input.reference_file"),
-                                ("tissues", "pvc_input.tissues")]),
+        (pet_input, petpvc, [
+            ("in_file", "pvc_input.in_file"),
+            ("anat",    "pvc_input.reference_file"),
+            ("tissues", "pvc_input.tissues")
+        ]),
 
         # get template bounding box to apply to results
-        (pet_input, get_bbox,  [("pet_template", "in_file")]),
+        (pet_input, get_bbox, [("pet_template", "in_file")]),
 
         # gunzip some inputs
         (pet_input, gunzip_pet,      [("in_file",      "in_file")]),
         (pet_input, gunzip_template, [("pet_template", "in_file")]),
 
         # gunzip some files for SPM Normalize
-        (petpvc,    unzip_mrg, [("pvc_output.pvc_out",    "in1"),
-                                ("pvc_output.brain_mask", "in2"),
-                                ("pvc_output.gm_norm",    "in3")]),
-        (pet_input, unzip_mrg, [("in_file",               "in4")]),
+        (petpvc, unzip_mrg, [
+            ("pvc_output.pvc_out",    "in1"),
+            ("pvc_output.brain_mask", "in2"),
+            ("pvc_output.gm_norm",    "in3")
+        ]),
+        (pet_input, unzip_mrg, [("in_file", "in4")]),
 
         (unzip_mrg, gunzipper, [("out", "in_file")]),
 
-        (gunzipper, warp_mrg,  [("out_file", "in1")]),
+        (gunzipper, warp_mrg, [("out_file", "in1")]),
 
         (warp_mrg, warp2template, [(("out", flatten_list), "apply_to_files")]),
 
@@ -421,7 +424,7 @@ def spm_mrpet_grouptemplate_preprocessing(wf_name="spm_mrpet_grouptemplate_prepr
         ]),
 
         # output
-        (petpvc,   pet_output, [
+        (petpvc, pet_output, [
             ("pvc_output.pvc_out",      "pvc_out"),
             ("pvc_output.brain_mask",   "brain_mask"),
             ("pvc_output.coreg_ref",    "coreg_ref"),
@@ -447,8 +450,11 @@ def spm_mrpet_grouptemplate_preprocessing(wf_name="spm_mrpet_grouptemplate_prepr
     return wf
 
 
-def attach_spm_mrpet_preprocessing(main_wf, wf_name="spm_mrpet_preproc",
-                                   do_group_template=False):
+def attach_spm_mrpet_preprocessing(
+    main_wf,
+    wf_name="spm_mrpet_preproc",
+    do_group_template=False
+):
     """ Attach a PET pre-processing workflow that uses SPM12 to `main_wf`.
     This workflow needs MRI based workflow.
 
@@ -498,10 +504,10 @@ def attach_spm_mrpet_preprocessing(main_wf, wf_name="spm_mrpet_preproc",
     if do_group_template:
         pet_wf = spm_mrpet_grouptemplate_preprocessing(wf_name=wf_name)
         template_name = 'grptemplate'
-        output_subfolder = 'grp_template'
+        output_subfolder = 'group_template'
     else:
         pet_wf = spm_mrpet_preprocessing(wf_name=wf_name)
-        template_name = 'mni'
+        template_name = 'stdtemplate'
         output_subfolder = 'std_template'
 
     # dataSink output substitutions
@@ -542,38 +548,38 @@ def attach_spm_mrpet_preprocessing(main_wf, wf_name="spm_mrpet_preproc",
 
     # Connect the nodes
     main_wf.connect([
-                     # pet file input
-                     (in_files, pet_wf, [("pet", "pet_input.in_file")]),
+         # pet file input
+         (in_files, pet_wf, [("pet", "pet_input.in_file")]),
 
-                     # pet to anat registration
-                     (anat_output,  pet_wf, [
-                         ("anat_biascorr",  "pet_input.anat"),
-                         ("tissues_native", "pet_input.tissues")
-                     ]),
-                     (pet_wf, datasink, [
-                        ("pet_output.gm_norm",      "mrpet.@norm"),
-                        ("pet_output.coreg_others", "mrpet.tissues"),
-                        ("pet_output.coreg_ref",    "mrpet.@anat"),
-                        ("pet_output.pvc_mask",     "mrpet.@pvc_mask"),
-                        ("pet_output.pvc_out",      "mrpet.@pvc"),
-                        ("pet_output.brain_mask",   "mrpet.@brain_mask"),
-                        ("pet_output.pvc_warped",   "mrpet.{}.@pvc".format(output_subfolder)),
-                        ("pet_output.warp_field",   "mrpet.{}.@warp_field".format(output_subfolder)),
-                        ("pet_output.pet_warped",   "mrpet.{}.@pet_warped".format(output_subfolder)),
-                     ])
+         # pet to anat registration
+         (anat_output,  pet_wf, [
+             ("anat_biascorr", "pet_input.anat"),
+             ("tissues_native", "pet_input.tissues")
+         ]),
+         (pet_wf, datasink, [
+            ("pet_output.gm_norm",      "mrpet.@norm"),
+            ("pet_output.coreg_others", "mrpet.tissues"),  # careful changing this, look regexp_subst
+            ("pet_output.coreg_ref",    "mrpet.@anat"),
+            ("pet_output.pvc_mask",     "mrpet.@pvc_mask"),
+            ("pet_output.pvc_out",      "mrpet.@pvc"),
+            ("pet_output.brain_mask",   "mrpet.@brain_mask"),
+            ("pet_output.pvc_warped",   "mrpet.{}.@pvc".format(output_subfolder)),
+            ("pet_output.warp_field",   "mrpet.{}.@warp_field".format(output_subfolder)),
+            ("pet_output.pet_warped",   "mrpet.{}.@pet_warped".format(output_subfolder)),
+         ])
     ])
 
     if not do_group_template:
         # Connect the nodes
         main_wf.connect([
             # pet to anat registration
-            (anat_output,  pet_wf, [("warp_forward", "pet_input.anat_to_mni_warp")]),
+            (anat_output, pet_wf, [("warp_forward", "pet_input.anat_to_mni_warp")]),
         ])
 
     if do_atlas:
             main_wf.connect([
-                (anat_output, pet_wf,   [("atlas_anat",           "pet_input.atlas_anat")]),
-                (pet_wf,      datasink, [("pet_output.atlas_pet", "mrpet.@atlas")]),
+                (anat_output, pet_wf, [("atlas_anat", "pet_input.atlas_anat")]),
+                (pet_wf, datasink, [("pet_output.atlas_pet", "mrpet.@atlas")]),
             ])
 
     return main_wf

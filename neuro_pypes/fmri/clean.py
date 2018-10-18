@@ -316,7 +316,7 @@ def attach_fmri_cleanup_wf(main_wf, wf_name="fmri_cleanup"):
     ----------
     main_wf: nipype Workflow
 
-    registration_wf_name: str
+    wf_name: str
         Name of the registration workflow.
 
     Nipype Inputs for `main_wf`
@@ -371,8 +371,10 @@ def attach_fmri_cleanup_wf(main_wf, wf_name="fmri_cleanup"):
     ]
     regexp_subst = format_pair_list(regexp_subst, rest=rest_fbasename, anat=anat_fbasename)
     regexp_subst += extension_duplicates(regexp_subst)
-    datasink.inputs.regexp_substitutions = extend_trait_list(datasink.inputs.regexp_substitutions,
-                                                             regexp_subst)
+    datasink.inputs.regexp_substitutions = extend_trait_list(
+        datasink.inputs.regexp_substitutions,
+        regexp_subst
+    )
 
     # input and output anat workflow to main workflow connections
     main_wf.connect([

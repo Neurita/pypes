@@ -74,9 +74,8 @@ def attach_spm_pet_grouptemplate(main_wf, wf_name="spm_pet_template"):
 
     # the group template datasink
     base_outdir = datasink.inputs.base_directory
-    grp_datasink = pe.Node(DataSink(
-        parameterization=False,
-        base_directory=base_outdir,),
+    grp_datasink = pe.Node(
+        DataSink(parameterization=False, base_directory=base_outdir),
         name='{}_grouptemplate_datasink'.format(pet_fbasename)
     )
     grp_datasink.inputs.container = '{}_grouptemplate'.format(pet_fbasename)
@@ -102,56 +101,63 @@ def attach_spm_pet_grouptemplate(main_wf, wf_name="spm_pet_template"):
     ]
     regexp_subst = format_pair_list(regexp_subst, pet=pet_fbasename)
     regexp_subst += extension_duplicates(regexp_subst)
-    grp_datasink.inputs.regexp_substitutions = extend_trait_list(grp_datasink.inputs.regexp_substitutions,
-                                                                 regexp_subst)
+
+    grp_datasink.inputs.regexp_substitutions = extend_trait_list(
+        grp_datasink.inputs.regexp_substitutions,
+        regexp_subst
+    )
 
     # Connect the nodes
     main_wf.connect([
         # warped pets file list input
-        (pet_wf,       warped_pets, [("warp_output.warped_files", "warped_pets")]),
+        (pet_wf, warped_pets, [("warp_output.warped_files", "warped_pets")]),
 
         # group template wf
-        (warped_pets,  template_wf, [(("warped_pets", flatten_list), "grptemplate_input.in_files")]),
+        (warped_pets, template_wf, [(("warped_pets", flatten_list), "grptemplate_input.in_files")]),
 
         # output node
-        (template_wf, output,       [("grptemplate_output.template", "pet_template")]),
+        (template_wf, output, [("grptemplate_output.template", "pet_template")]),
 
         # template output
-        (output,      grp_datasink, [("pet_template", "@pet_group_template")]),
+        (output, grp_datasink, [("pet_template", "@pet_grouptemplate")]),
     ])
 
     # Now we start with the correction and registration of each subject to the group template
     do_petpvc = get_config_setting('spm_pet_template.do_petpvc')
     if do_petpvc:
-        assert get_subworkflow('spm_anat_preproc')
+        get_subworkflow(main_wf, 'spm_anat_preproc')
 
         preproc_wf_name = "spm_mrpet_grouptemplate_preproc"
         main_wf = attach_spm_mrpet_preprocessing(main_wf, wf_name=preproc_wf_name, do_group_template=True)
-
         preproc_wf = get_subworkflow(main_wf, preproc_wf_name)
-        main_wf.connect([(output, preproc_wf, [("pet_template", "pet_input.pet_template".format(preproc_wf_name))]), ])
+
+        main_wf.connect([(output, preproc_wf, [
+            ("pet_template", "pet_input.pet_template")]),
+        ])
     else:
         # add the pet template to the preproc workflow
         reg_wf = spm_register_to_template_wf(wf_name="spm_pet_register_to_grouptemplate")
         main_wf.connect([
-            (output,   reg_wf,  [("pet_template",  "reg_input.template")]),
-            (in_files, reg_wf,  [("pet",           "reg_input.in_file")]),
+            (output,      reg_wf, [("pet_template", "reg_input.template")]),
+            (in_files,    reg_wf, [("pet",          "reg_input.in_file")]),
 
-            (reg_wf,   datasink, [
-                ("reg_output.warped",     "pet.grp_template.@warped"),
-                ("reg_output.warp_field", "pet.grp_template.@warp_field"),
+            (reg_wf, datasink, [
+                ("reg_output.warped",     "pet.group_template.@warped"),
+                ("reg_output.warp_field", "pet.group_template.@warp_field"),
             ]),
         ])
 
     # per-subject datasink output substitutions
     regexp_subst = [
-        (r"/{pet}_sn.mat$",           "/{pet}_grptemplate_params.mat"),
-        (r"/wgrptemplate_{pet}.nii$", "/{pet}_grptemplate.nii"),
-        (r"/w{pet}.nii",              "/{pet}_grptemplate.nii"),
+        (r"group_template/{pet}_sn.mat$",           "group_template/{pet}_grptemplate_params.mat"),
+        (r"group_template/wgrptemplate_{pet}.nii$", "group_template/{pet}_grptemplate.nii"),
+        (r"group_template/w{pet}.nii",              "group_template/{pet}_grptemplate.nii"),
     ]
     regexp_subst = format_pair_list(regexp_subst, pet=pet_fbasename)
     regexp_subst += extension_duplicates(regexp_subst)
-    datasink.inputs.regexp_substitutions = extend_trait_list(datasink.inputs.regexp_substitutions,
-                                                             regexp_subst)
+    datasink.inputs.regexp_substitutions = extend_trait_list(
+        datasink.inputs.regexp_substitutions,
+        regexp_subst
+    )
 
     return main_wf
