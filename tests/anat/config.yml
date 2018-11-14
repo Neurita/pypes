@@ -1,0 +1,6 @@
+## global configuration parameters
+spm_dir: "~/software/spm12"
+
+# anatomical image pre-processing
+normalize_atlas: True
+atlas_file: '' # this is being set from config.py
