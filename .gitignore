@@ -64,3 +64,4 @@ target/
 *.xls
 *.html
 slices*
+pyscript.m

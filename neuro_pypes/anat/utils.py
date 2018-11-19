@@ -30,9 +30,7 @@ def biasfield_correct(anat_filepath=traits.Undefined):
     n4.inputs.convergence_threshold = 1e-6
     #n4.inputs.bspline_order = 5
     n4.inputs.save_bias = True
-
     n4.inputs.input_image = anat_filepath
-
     return n4
 
 
