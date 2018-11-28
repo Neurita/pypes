@@ -208,7 +208,7 @@ def rest_noise_filter_wf(wf_name='rest_noise_removal'):
             ("in_file", "realigned_files"),
             ("motion_params", "realignment_parameters"),
             ("brain_mask", "mask_file"),
-        ß]),
+        ]),
 
         # calculte motion regressors
         (rest_noise_input, motion_regs, [("motion_params", "motion_params")]),
