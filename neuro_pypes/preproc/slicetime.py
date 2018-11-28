@@ -306,8 +306,7 @@ def auto_spm_slicetime(in_file=traits.Undefined,
     ]
 
     # the input and output nodes
-    stc_input = setup_node(IdentityInterface(fields=input_fields),
-                           name="stc_input")
+    stc_input = setup_node(IdentityInterface(fields=input_fields), name="stc_input")
 
     stc_output = setup_node(IdentityInterface(fields=["timecorrected_files",
                                                       "time_repetition",
