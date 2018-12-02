@@ -203,7 +203,7 @@ def _get_slice_order(in_file, n_slices, slice_mode):
         img = nib.load(in_file)
         times = get_nii_slice_times(img)
         if times is not None:
-            return order_from_times(times)
+            return list(order_from_times(times))
 
     # read the slice mode code from the file
     if slice_mode == 'unknown':
