@@ -259,7 +259,7 @@ def motion(input: hansel.Crumb, extra: pd.DataFrame, out_file: hansel.Crumb):
     default='loading_coefficients.xls',
     help='The output Excel spreadsheet with the loading coefficients.'
 )
-def loadings(ctx, ica_results_dir, app, labels, mask, background, zscore, subjid_pat, out_file):
+def loadings(ica_results_dir, app, labels, mask, background, zscore, subjid_pat, out_file):
     """
     Save the Excel loadings files in the `ica_out_dir`.
     The `out_file` has the loadings as is, with the subjects IDs and group.
@@ -345,7 +345,7 @@ def loadings(ctx, ica_results_dir, app, labels, mask, background, zscore, subjid
     required=False,
     help='The output path for the plot files. If None will use `ica_results_dir`.'
 )
-def spatial_maps(ctx, ica_results_dir, app, mask, background,  zscore, out_dir):
+def spatial_maps(ica_results_dir, app, mask, background,  zscore, out_dir):
     """
     Plot the spatial maps in `ica_results_dir`.
 
@@ -353,7 +353,7 @@ def spatial_maps(ctx, ica_results_dir, app, mask, background,  zscore, out_dir):
     nitap spatial_maps -i "/data/hansel/cobre/rest_ica/experiment1" -a canica -z 2 -b /data/hansel/std_brains/templates/mni.nii\n
     nitap spatial_maps -i "/data/hansel/cobre/rest_ica/experiment2" -a gift -z 1\n
     """
-    from pypes.networks.plotting import _pick_plotter
+    from neuro_pypes.ica.plotting import _pick_plotter
 
     plotter_class = _pick_plotter(app)
     click.echo('Using {} to read the results data.'.format(plotter_class.__name__))
@@ -369,7 +369,7 @@ def spatial_maps(ctx, ica_results_dir, app, mask, background,  zscore, out_dir):
 
 
 # @task
-# def dcm2nii(ctx, input_crumb_path, output_dir, regex='fnmatch', ncpus=3):
+# def dcm2nii(input_crumb_path, output_dir, regex='fnmatch', ncpus=3):
 #     """ Convert all DICOM files within `input_crumb_path` into NifTI in `output_folder`.
 #
 #     Will copy only the NifTI files reoriented by MRICron's dcm2nii command.
@@ -447,7 +447,7 @@ def spatial_maps(ctx, ica_results_dir, app, mask, background,  zscore, out_dir):
 #
 #
 # @task
-# def decompress_dicoms(ctx, input_dir):
+# def decompress_dicoms(input_dir):
 #     """ Decompress all *.dcm files recursively found in DICOM_DIR.
 #     This uses 'gdcmconv --raw'.
 #     It works when 'dcm2nii' shows the `Unsupported Transfer Syntax` error. This error is
