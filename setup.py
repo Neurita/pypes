@@ -21,37 +21,7 @@ def read(*filenames, **kwargs):
     return sep.join(buf)
 
 
-def get_requirements_from_pipfile():
-
-    def parse_options(options):
-        if isinstance(options, dict):
-            version = options.get('version', '')
-            extras = options.get('extras', '')
-        elif isinstance(options, str):
-            version = options
-            extras = ''
-        else:
-            raise ValueError('Expected dict or str, got {}.'.format(options))
-
-        if version == '*':
-            version = ''
-
-        return version, extras
-
-    import toml
-    pipfile = toml.load('Pipfile')
-    requires = []
-    extras_requires = {}
-
-    for module, options in pipfile['packages'].items():
-        version, extras = parse_options(options)
-        requires.append('{}{}'.format(module, version))
-        if extras:
-            extras_requires[module] = extras
-    return requires, extras_requires
-
-
-requires, extras_requires = get_requirements_from_pipfile()
+requires, extras_requires = [], []
 
 setup_dict = dict(
     name='neuro_pypes',
@@ -63,7 +33,6 @@ setup_dict = dict(
     maintainer='',
     maintainer_email='',
     packages=find_packages(exclude=['tests']),
-    setup_requires=['toml~=0.9.4'],
     install_requires=requires,
     extra_requires=extras_requires,
     scripts=[],
